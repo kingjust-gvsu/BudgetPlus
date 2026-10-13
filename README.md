@@ -66,10 +66,36 @@ Firebase Authentication
 ## Repository layout
 
 ```
-frontend/   React + TypeScript app   (coming soon)
-backend/    Express.js API           (coming soon)
+frontend/   React + TypeScript app (Vite)
+backend/    Express.js API
 docs/       Project context and design notes
 ```
+
+## Getting started
+
+**Prerequisites:** Node.js 24.15 or newer.
+
+```bash
+npm install
+cp backend/.env.example backend/.env   # then adjust values if needed
+npm run dev
+```
+
+`npm run dev` starts both projects together:
+
+- Frontend: http://localhost:5173
+- API: http://localhost:4000 (the frontend forwards `/api/*` requests here)
+
+Other commands, run from the repo root, apply to both projects:
+
+| Command             | What it does                    |
+| ------------------- | ------------------------------- |
+| `npm test`          | Run all tests                   |
+| `npm run lint`      | Check code for common problems  |
+| `npm run typecheck` | Check TypeScript types          |
+| `npm run build`     | Build both projects for release |
+
+CI runs lint, typecheck, tests, and build on every push to `main` and on every pull request.
 
 See [docs/project-context.md](docs/project-context.md) for detailed domain rules, decisions, and
 open questions.

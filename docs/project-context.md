@@ -44,7 +44,7 @@ in the backend, Justin should review that code closely.
   separated, testable place, and it fits the frontend/backend ownership split.
 - **Why PostgreSQL over Firestore:** the data is relational (transactions → categories, bills →
   funds), and totals like "all grocery spending in October" are natural in SQL.
-- **Proposed:** Prisma as the ORM, so the backend can define tables in a schema file and avoid
+- **Decided:** Prisma as the ORM, so the backend can define tables in a schema file and avoid
   raw SQL while learning Express + PostgreSQL.
 - **Proposed tooling:** Vitest/Jest (unit), Supertest (API), Playwright (end-to-end), GitHub
   Actions (CI), GitHub Projects (board), pull-request code review.
@@ -162,17 +162,16 @@ unchanged, and the next cycle starts at $100/month.
 
 - Agile (Scrum-style), with **two-week sprints**, each ending in a working increment and a review.
   The team acts as its own product owner.
-- **Draft schedule** (from proposal planning; adjust to the real course calendar):
+- **Schedule.** Final presentations are the week of Dec 7–11. Sprints run Monday through Sunday:
 
-  | Week    | Dates           | Focus                                                              |
-  | ------- | --------------- | ------------------------------------------------------------------ |
-  | 1       | Sep 28 – Oct 2  | Requirements, user stories, backlog, project board                 |
-  | 2       | Oct 5 – Oct 9   | Design: architecture, data model, wireframes, API contract         |
-  | 3–4     | Oct 12 – Oct 23 | Sprint 1: project skeleton, CI, auth, transactions, CSV import     |
-  | 5–6     | Oct 26 – Nov 6  | Sprint 2: categories, budget types, bills/funds, dashboard         |
-  | 7–8     | Nov 9 – Nov 20  | Sprint 3: rules, export, charts, polish                            |
-  | 9       | Nov 23 – Nov 27 | Hardening and buffer (Thanksgiving)                                |
-  | 10      | Nov 30 – Dec 4  | Final report, presentation, demo                                   |
+  | Sprint   | Dates           | Focus                                                                  |
+  | -------- | --------------- | ---------------------------------------------------------------------- |
+  | Sprint 0 | Oct 5 – Oct 11  | Design: architecture, data model, wireframes, API contract; repo/board setup |
+  | Sprint 1 | Oct 12 – Oct 25 | Project skeleton, CI, auth, transaction entry, CSV import              |
+  | Sprint 2 | Oct 26 – Nov 8  | Categories, budget types, bills vs. expenses, dashboard                |
+  | Sprint 3 | Nov 9 – Nov 22  | Periodic bills/funds, auto limit estimates, rules/export, charts       |
+  | Sprint 4 | Nov 23 – Dec 6  | Hardening, end-to-end tests, polish, final report and slides (Thanksgiving Nov 26) |
+  | —        | Dec 7 – Dec 11  | Final presentation and demo                                            |
 
 ## Naming
 
