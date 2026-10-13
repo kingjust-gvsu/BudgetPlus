@@ -3,8 +3,10 @@ node_modules/
 
 # Build output
 dist/
+dist-ssr/
 build/
 coverage/
+*.local
 
 # Environment / secrets
 .env
