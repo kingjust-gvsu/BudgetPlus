@@ -1,0 +1,62 @@
+// Database schema for Budget+.
+// After changing this file, run `npm run db:migrate -w backend` to update the database.
+
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "esm"
+  importFileExtension = "ts"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Bills cost what they cost and are shown neutrally; expenses are choices with a spending limit.
+enum CategoryKind {
+  BILL
+  EXPENSE
+}
+
+model User {
+  id           String        @id @default(uuid()) @db.Uuid
+  // Sign-up and login are handled by Firebase; this links our data to the Firebase account.
+  firebaseUid  String        @unique @map("firebase_uid")
+  email        String?
+  createdAt    DateTime      @default(now()) @map("created_at")
+  categories   Category[]
+  transactions Transaction[]
+
+  @@map("users")
+}
+
+model Category {
+  id           String        @id @default(uuid()) @db.Uuid
+  userId       String        @map("user_id") @db.Uuid
+  name         String
+  kind         CategoryKind
+  createdAt    DateTime      @default(now()) @map("created_at")
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@unique([userId, name])
+  @@map("categories")
+}
+
+model Transaction {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  // Optional so imported transactions can exist before they're categorized.
+  categoryId  String?   @map("category_id") @db.Uuid
+  date        DateTime  @db.Date
+  description String
+  // Whole cents, never floating point. Positive = money spent, negative = money back (e.g. a refund).
+  amountCents Int       @map("amount_cents")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category    Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@index([userId, date])
+  @@map("transactions")
+}

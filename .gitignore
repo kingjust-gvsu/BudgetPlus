@@ -8,6 +8,9 @@ build/
 coverage/
 *.local
 
+# Generated Prisma client (rebuilt by `prisma generate`)
+backend/src/generated/
+
 # Environment / secrets
 .env
 .env.*
