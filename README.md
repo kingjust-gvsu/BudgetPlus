@@ -73,11 +73,12 @@ docs/       Project context and design notes
 
 ## Getting started
 
-**Prerequisites:** Node.js 24.15 or newer.
+**Prerequisites:** Node.js 24.15 or newer, and PostgreSQL running locally.
 
 ```bash
 npm install
-cp backend/.env.example backend/.env   # then adjust values if needed
+cp backend/.env.example backend/.env   # then set your PostgreSQL password in DATABASE_URL
+npm run db:migrate -w backend          # creates the budget_plus database and its tables
 npm run dev
 ```
 
@@ -94,6 +95,8 @@ Other commands, run from the repo root, apply to both projects:
 | `npm run lint`      | Check code for common problems  |
 | `npm run typecheck` | Check TypeScript types          |
 | `npm run build`     | Build both projects for release |
+| `npm run db:migrate -w backend` | Apply database schema changes |
+| `npm run db:studio -w backend`  | Browse the database in a web UI |
 
 CI runs lint, typecheck, tests, and build on every push to `main` and on every pull request.
 
