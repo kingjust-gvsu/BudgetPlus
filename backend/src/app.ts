@@ -1,16 +1,21 @@
 import cors from 'cors'
 import express, { type ErrorRequestHandler } from 'express'
 import type { Config } from './config.ts'
-import { healthRouter } from './routes/health.ts'
+import { createHealthRouter, type DatabaseCheck } from './routes/health.ts'
 
-// Builds the Express app without starting a server, so tests can call it directly.
-export function createApp(config: Pick<Config, 'corsOrigin'>) {
+export type AppDependencies = {
+  checkDatabase: DatabaseCheck
+}
+
+// Builds the Express app without starting a server, so tests can call it directly
+// and swap in fake dependencies instead of a real database.
+export function createApp(config: Pick<Config, 'corsOrigin'>, deps: AppDependencies) {
   const app = express()
 
   app.use(cors({ origin: config.corsOrigin }))
   app.use(express.json())
 
-  app.use('/api/health', healthRouter)
+  app.use('/api/health', createHealthRouter(deps.checkDatabase))
 
   app.use('/api', (_req, res) => {
     res.status(404).json({ error: 'Not found' })
