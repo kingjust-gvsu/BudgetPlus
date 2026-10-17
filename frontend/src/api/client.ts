@@ -10,8 +10,10 @@ export class ApiError extends Error {
   }
 }
 
-export async function apiGet<T>(path: string): Promise<T> {
-  const response = await fetch(`/api${path}`)
+// Pass the signed-in user's token for routes that require sign-in.
+export async function apiGet<T>(path: string, token?: string | null): Promise<T> {
+  const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {}
+  const response = await fetch(`/api${path}`, { headers })
   if (!response.ok) {
     throw new ApiError(response.status, `GET ${path} failed with status ${response.status}`)
   }

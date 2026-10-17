@@ -1,28 +1,15 @@
-import { useEffect, useState } from 'react'
-import { apiGet } from './api/client'
-
-type HealthResponse = { status: string }
-
-type ApiStatus = 'checking' | 'online' | 'offline'
+import { useAuth } from './auth/useAuth'
+import { HomePage } from './pages/HomePage'
+import { SignInPage } from './pages/SignInPage'
 
 function App() {
-  const [apiStatus, setApiStatus] = useState<ApiStatus>('checking')
+  const { user } = useAuth()
 
-  useEffect(() => {
-    apiGet<HealthResponse>('/health')
-      .then((health) => setApiStatus(health.status === 'ok' ? 'online' : 'offline'))
-      .catch(() => setApiStatus('offline'))
-  }, [])
+  if (user === undefined) {
+    return <main className="app">Loading…</main>
+  }
 
-  return (
-    <main className="app">
-      <h1>Budget+</h1>
-      <p>Personal budgeting that respects the difference between bills and expenses.</p>
-      <p className={`api-status api-status--${apiStatus}`}>
-        API: {apiStatus}
-      </p>
-    </main>
-  )
+  return user ? <HomePage /> : <SignInPage />
 }
 
 export default App

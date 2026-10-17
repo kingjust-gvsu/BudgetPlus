@@ -44,3 +44,7 @@ body {
 .api-status--offline {
   color: var(--color-bad);
 }
+
+.error {
+  color: var(--color-bad);
+}
