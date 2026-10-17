@@ -1,14 +1,13 @@
 import request from 'supertest'
 import { describe, expect, it } from 'vitest'
 import { createApp } from './app.ts'
+import { fakeDependencies } from './test/fakes.ts'
 
 const config = { corsOrigin: 'http://localhost:5173' }
-const databaseUp = async () => true
-const databaseDown = async () => false
 
 describe('GET /api/health', () => {
   it('reports ok when the database is reachable', async () => {
-    const app = createApp(config, { checkDatabase: databaseUp })
+    const app = createApp(config, fakeDependencies())
 
     const response = await request(app).get('/api/health')
 
@@ -17,7 +16,7 @@ describe('GET /api/health', () => {
   })
 
   it('reports degraded when the database is unreachable', async () => {
-    const app = createApp(config, { checkDatabase: databaseDown })
+    const app = createApp(config, fakeDependencies({ checkDatabase: async () => false }))
 
     const response = await request(app).get('/api/health')
 
@@ -28,7 +27,7 @@ describe('GET /api/health', () => {
 
 describe('unknown API routes', () => {
   it('return 404 as JSON', async () => {
-    const app = createApp(config, { checkDatabase: databaseUp })
+    const app = createApp(config, fakeDependencies())
 
     const response = await request(app).get('/api/does-not-exist')
 

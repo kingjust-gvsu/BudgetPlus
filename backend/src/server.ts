@@ -1,6 +1,8 @@
 import { createApp } from './app.ts'
+import { createFirebaseTokenVerifier } from './auth.ts'
 import { loadConfig } from './config.ts'
 import { createDatabase } from './db.ts'
+import { createFindOrCreateUser } from './users.ts'
 
 const config = loadConfig()
 const db = createDatabase(config.databaseUrl)
@@ -14,6 +16,8 @@ const app = createApp(config, {
       return false
     }
   },
+  verifyToken: createFirebaseTokenVerifier(config.firebaseProjectId),
+  findOrCreateUser: createFindOrCreateUser(db),
 })
 
 app.listen(config.port, () => {
