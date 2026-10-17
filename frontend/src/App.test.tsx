@@ -1,9 +1,10 @@
 import { render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { MemoryRouter } from 'react-router'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import { AuthContext, type AuthState } from './auth/authContext'
 
-function renderApp(auth: Partial<AuthState>) {
+function renderApp(auth: Partial<AuthState>, path = '/') {
   const value: AuthState = {
     user: null,
     signInWithGoogle: vi.fn(),
@@ -12,15 +13,22 @@ function renderApp(auth: Partial<AuthState>) {
     ...auth,
   }
   return render(
-    <AuthContext.Provider value={value}>
-      <App />
-    </AuthContext.Provider>,
+    <MemoryRouter initialEntries={[path]}>
+      <AuthContext.Provider value={value}>
+        <App />
+      </AuthContext.Provider>
+    </MemoryRouter>,
   )
 }
 
 const signedInUser = { email: 'test@example.com', displayName: 'Test User' }
+const okResponse = () => Promise.resolve(Response.json({ status: 'ok' }))
 
 describe('App', () => {
+  beforeEach(() => {
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(okResponse))
+  })
+
   afterEach(() => {
     vi.unstubAllGlobals()
   })
@@ -31,23 +39,33 @@ describe('App', () => {
     expect(screen.getByRole('button', { name: 'Sign in with Google' })).toBeInTheDocument()
   })
 
-  it('shows the user and API status when signed in', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockImplementation(() => Promise.resolve(Response.json({ status: 'ok' }))))
-
+  it('shows the page tabs and the signed-in user', () => {
     renderApp({ user: signedInUser })
 
-    expect(screen.getByText(/Signed in as Test User/)).toBeInTheDocument()
-    expect(await screen.findByText('API: online')).toBeInTheDocument()
+    for (const tab of ['Dashboard', 'Transactions', 'Bills & funds', 'Budget setup']) {
+      expect(screen.getByRole('link', { name: tab })).toBeInTheDocument()
+    }
+    expect(screen.getByText('Test User')).toBeInTheDocument()
+  })
+
+  it('shows the page for the current URL and marks its tab', () => {
+    renderApp({ user: signedInUser }, '/budget-setup')
+
+    expect(screen.getByRole('heading', { name: 'Budget setup' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Budget setup' })).toHaveAttribute('aria-current', 'page')
+  })
+
+  it('sends unknown URLs to the dashboard', () => {
+    renderApp({ user: signedInUser }, '/not-a-page')
+
+    expect(screen.getByRole('heading', { name: 'Dashboard' })).toBeInTheDocument()
   })
 
   it('sends the sign-in token to the API', async () => {
-    const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(Response.json({ status: 'ok' })))
-    vi.stubGlobal('fetch', fetchMock)
-
     renderApp({ user: signedInUser })
     await screen.findByText('API: online')
 
-    expect(fetchMock).toHaveBeenCalledWith('/api/me', { headers: { Authorization: 'Bearer test-token' } })
+    expect(fetch).toHaveBeenCalledWith('/api/me', { headers: { Authorization: 'Bearer test-token' } })
   })
 
   it('shows the API as offline when requests fail', async () => {

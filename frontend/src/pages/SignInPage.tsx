@@ -15,7 +15,7 @@ export function SignInPage() {
   }
 
   return (
-    <main className="app">
+    <main className="page">
       <h1>Budget+</h1>
       <p>Personal budgeting that respects the difference between bills and expenses.</p>
       <button type="button" onClick={handleSignIn}>
