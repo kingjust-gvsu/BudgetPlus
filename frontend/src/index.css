@@ -120,3 +120,187 @@ h1 {
 .error {
   color: var(--color-bad);
 }
+
+h2 {
+  margin: 0 0 12px;
+  font-size: 20px;
+}
+
+.muted {
+  color: var(--color-muted);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+/* Buttons */
+
+.button {
+  font: inherit;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 16px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid #d0d0ca;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.button-primary {
+  font-weight: 500;
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #ffffff;
+}
+
+.button-primary:hover {
+  background: var(--color-accent-hover);
+}
+
+.button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* Forms */
+
+.form-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field-grow {
+  flex: 1 1 220px;
+}
+
+.field label {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.field input,
+.field select {
+  font: inherit;
+  min-height: 44px;
+  box-sizing: border-box;
+  padding: 0 12px;
+  border: 1px solid #d0d0ca;
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.input-amount {
+  width: 120px;
+}
+
+/* Month switcher */
+
+.month-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.month-name {
+  min-width: 140px;
+  text-align: center;
+  font-weight: 500;
+}
+
+/* Tables */
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  min-width: 560px;
+  border-collapse: collapse;
+}
+
+.table th {
+  text-align: left;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-muted);
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.table td {
+  padding: 10px 8px;
+  border-bottom: 1px solid #ececea;
+}
+
+.table tr:last-child td {
+  border-bottom: 0;
+}
+
+.table .amount {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.row-actions {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.row-actions .link-button {
+  margin-left: 12px;
+}
+
+/* Editing a table row in place */
+
+.editing-row td {
+  background: #f3f6fd;
+}
+
+.cell-input {
+  font: inherit;
+  min-height: 40px;
+  box-sizing: border-box;
+  padding: 0 8px;
+  border: 1px solid #d0d0ca;
+  border-radius: 6px;
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.cell-input-grow {
+  width: 100%;
+  min-width: 140px;
+}
