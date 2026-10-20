@@ -3,6 +3,7 @@ import { createFirebaseTokenVerifier } from './auth.ts'
 import { createCategoryStore } from './categories.ts'
 import { loadConfig } from './config.ts'
 import { createDatabase } from './db.ts'
+import { createTransactionStore } from './transactions.ts'
 import { createFindOrCreateUser } from './users.ts'
 
 const config = loadConfig()
@@ -20,6 +21,7 @@ const app = createApp(config, {
   verifyToken: createFirebaseTokenVerifier(config.firebaseProjectId),
   findOrCreateUser: createFindOrCreateUser(db),
   categories: createCategoryStore(db),
+  transactions: createTransactionStore(db),
 })
 
 app.listen(config.port, () => {

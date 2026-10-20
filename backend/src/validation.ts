@@ -30,6 +30,42 @@ export function requireOneOf<T extends string>(value: unknown, field: string, op
   return value as T
 }
 
+// A calendar date like 2026-10-15; rejects impossible dates like 2026-02-30
+export function requireDate(value: unknown, field: string): string {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    throw new ValidationError(`${field} must be a date like 2026-10-15`)
+  }
+  const parsed = new Date(`${value}T00:00:00Z`)
+  if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== value) {
+    throw new ValidationError(`${field} is not a real date`)
+  }
+  return value
+}
+
+// A month like 2026-10
+export function requireMonth(value: unknown, field: string): string {
+  if (typeof value !== 'string' || !/^\d{4}-(0[1-9]|1[0-2])$/.test(value)) {
+    throw new ValidationError(`${field} must be a month like 2026-10`)
+  }
+  return value
+}
+
+// Money in whole cents: an integer, never a decimal. Zero is not allowed.
+const MAX_CENTS = 1_000_000_000 // $10 million, well inside the database's integer limit
+
+export function requireCents(value: unknown, field: string): number {
+  if (typeof value !== 'number' || !Number.isInteger(value)) {
+    throw new ValidationError(`${field} must be a whole number of cents`)
+  }
+  if (value === 0) {
+    throw new ValidationError(`${field} can't be zero`)
+  }
+  if (Math.abs(value) > MAX_CENTS) {
+    throw new ValidationError(`${field} is too large`)
+  }
+  return value
+}
+
 // An id in the URL that isn't even a valid id can't match anything, so it's a 404.
 export function requireIdParam(value: string | undefined): string {
   if (!value || !UUID.test(value)) {

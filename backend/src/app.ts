@@ -7,12 +7,15 @@ import { ConflictError, NotFoundError, ValidationError } from './errors.ts'
 import { createCategoriesRouter } from './routes/categories.ts'
 import { createHealthRouter, type DatabaseCheck } from './routes/health.ts'
 import { meRouter } from './routes/me.ts'
+import { createTransactionsRouter } from './routes/transactions.ts'
+import type { TransactionStore } from './transactions.ts'
 
 export type AppDependencies = {
   checkDatabase: DatabaseCheck
   verifyToken: VerifyToken
   findOrCreateUser: FindOrCreateUser
   categories: CategoryStore
+  transactions: TransactionStore
 }
 
 // Builds the Express app without starting a server, so tests can call it directly
@@ -30,6 +33,7 @@ export function createApp(config: Pick<Config, 'corsOrigin'>, deps: AppDependenc
   const signedIn = requireAuth(deps.verifyToken, deps.findOrCreateUser)
   app.use('/api/me', signedIn, meRouter)
   app.use('/api/categories', signedIn, createCategoriesRouter(deps.categories))
+  app.use('/api/transactions', signedIn, createTransactionsRouter(deps.transactions))
 
   app.use('/api', (_req, res) => {
     res.status(404).json({ error: 'Not found' })

@@ -2,7 +2,8 @@ import { randomUUID } from 'node:crypto'
 import type { AppDependencies } from '../app.ts'
 import type { AuthenticatedUser } from '../auth.ts'
 import { DUPLICATE_NAME, type Category, type CategoryStore } from '../categories.ts'
-import { ConflictError } from '../errors.ts'
+import { ConflictError, ValidationError } from '../errors.ts'
+import { CATEGORY_NOT_FOUND, type Transaction, type TransactionStore } from '../transactions.ts'
 
 // Test stand-ins for the database and Firebase, so tests run without either.
 
@@ -63,6 +64,56 @@ export function createFakeCategoryStore(rows: StoredCategory[] = []): CategorySt
   }
 }
 
+type StoredTransaction = Transaction & { userId: string }
+
+// Behaves like the real transaction store, but keeps everything in memory. `categories` is the
+// category list it checks ownership against (share it with a fake category store).
+export function createFakeTransactionStore(
+  rows: StoredTransaction[] = [],
+  categories: StoredCategory[] = [],
+): TransactionStore & { rows: StoredTransaction[] } {
+  const toTransaction = ({ id, date, description, amountCents, categoryId }: StoredTransaction): Transaction => ({
+    id,
+    date,
+    description,
+    amountCents,
+    categoryId,
+  })
+  const checkCategory = (userId: string, categoryId: string | null | undefined) => {
+    if (categoryId && !categories.some((c) => c.id === categoryId && c.userId === userId)) {
+      throw new ValidationError(CATEGORY_NOT_FOUND)
+    }
+  }
+
+  return {
+    rows,
+    listByMonth: async (userId, month) =>
+      rows
+        .filter((r) => r.userId === userId && r.date.startsWith(`${month}-`))
+        .sort((a, b) => b.date.localeCompare(a.date))
+        .map(toTransaction),
+    create: async (userId, input) => {
+      checkCategory(userId, input.categoryId)
+      const row = { id: randomUUID(), userId, ...input }
+      rows.push(row)
+      return toTransaction(row)
+    },
+    update: async (userId, id, changes) => {
+      const row = rows.find((r) => r.id === id && r.userId === userId)
+      if (!row) return null
+      checkCategory(userId, changes.categoryId)
+      Object.assign(row, changes)
+      return toTransaction(row)
+    },
+    delete: async (userId, id) => {
+      const index = rows.findIndex((r) => r.id === id && r.userId === userId)
+      if (index === -1) return false
+      rows.splice(index, 1)
+      return true
+    },
+  }
+}
+
 export function fakeDependencies(overrides: Partial<AppDependencies> = {}): AppDependencies {
   return {
     checkDatabase: async () => true,
@@ -73,6 +124,7 @@ export function fakeDependencies(overrides: Partial<AppDependencies> = {}): AppD
     },
     findOrCreateUser: async ({ uid }) => (uid === otherUser.firebaseUid ? otherUser : testUser),
     categories: createFakeCategoryStore(),
+    transactions: createFakeTransactionStore(),
     ...overrides,
   }
 }
