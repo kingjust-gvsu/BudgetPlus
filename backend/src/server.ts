@@ -1,5 +1,6 @@
 import { createApp } from './app.ts'
 import { createFirebaseTokenVerifier } from './auth.ts'
+import { createCategoryStore } from './categories.ts'
 import { loadConfig } from './config.ts'
 import { createDatabase } from './db.ts'
 import { createFindOrCreateUser } from './users.ts'
@@ -18,6 +19,7 @@ const app = createApp(config, {
   },
   verifyToken: createFirebaseTokenVerifier(config.firebaseProjectId),
   findOrCreateUser: createFindOrCreateUser(db),
+  categories: createCategoryStore(db),
 })
 
 app.listen(config.port, () => {
