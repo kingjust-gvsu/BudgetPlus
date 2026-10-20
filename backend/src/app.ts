@@ -2,6 +2,7 @@ import cors from 'cors'
 import express, { type ErrorRequestHandler } from 'express'
 import { requireAuth, type FindOrCreateUser, type VerifyToken } from './auth.ts'
 import type { Config } from './config.ts'
+import { ConflictError, NotFoundError, ValidationError } from './errors.ts'
 import { createHealthRouter, type DatabaseCheck } from './routes/health.ts'
 import { meRouter } from './routes/me.ts'
 
@@ -31,8 +32,19 @@ export function createApp(config: Pick<Config, 'corsOrigin'>, deps: AppDependenc
   })
 
   const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
-    console.error(err)
-    res.status(500).json({ error: 'Internal server error' })
+    if (err instanceof ValidationError) {
+      res.status(400).json({ error: err.message })
+    } else if (err instanceof NotFoundError) {
+      res.status(404).json({ error: err.message })
+    } else if (err instanceof ConflictError) {
+      res.status(409).json({ error: err.message })
+    } else if (err?.type === 'entity.parse.failed') {
+      // express.json() couldn't read the body
+      res.status(400).json({ error: 'Request body must be valid JSON' })
+    } else {
+      console.error(err)
+      res.status(500).json({ error: 'Internal server error' })
+    }
   }
   app.use(errorHandler)
 

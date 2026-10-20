@@ -25,6 +25,17 @@ describe('GET /api/health', () => {
   })
 })
 
+describe('error responses', () => {
+  it('reject a body that is not valid JSON with a 400', async () => {
+    const app = createApp(config, fakeDependencies())
+
+    const response = await request(app).post('/api/health').set('Content-Type', 'application/json').send('{not json')
+
+    expect(response.status).toBe(400)
+    expect(response.body).toEqual({ error: 'Request body must be valid JSON' })
+  })
+})
+
 describe('unknown API routes', () => {
   it('return 404 as JSON', async () => {
     const app = createApp(config, fakeDependencies())
