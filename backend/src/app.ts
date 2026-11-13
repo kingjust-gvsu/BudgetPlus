@@ -29,7 +29,8 @@ export function createApp(config: Pick<Config, 'corsOrigin'>, deps: AppDependenc
   const app = express()
 
   app.use(cors({ origin: config.corsOrigin }))
-  app.use(express.json())
+  // Big enough for a bank CSV import of a few thousand transactions
+  app.use(express.json({ limit: '2mb' }))
 
   // Public routes
   app.use('/api/health', createHealthRouter(deps.checkDatabase))
