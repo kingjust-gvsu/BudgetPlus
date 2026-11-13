@@ -349,8 +349,36 @@ h2 {
   color: var(--color-good);
 }
 
+/* The income card fits on one line: heading, label, amount, Save, and a hint */
+.income-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+}
+
+.income-row h2 {
+  margin: 0 8px 0 0;
+}
+
+.income-row label {
+  font-weight: 500;
+}
+
 .input-income {
-  width: 160px;
+  font: inherit;
+  min-height: 44px;
+  width: 180px;
+  box-sizing: border-box;
+  padding: 0 12px;
+  border: 1px solid #d0d0ca;
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.income-row ~ p {
+  margin-bottom: 0;
 }
 
 .input-percent {
@@ -464,4 +492,78 @@ h2 {
 
 .editing-row-extra td {
   padding-top: 0;
+}
+
+/* A label with a "?" help button beside it */
+
+.label-with-help {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.help-tip {
+  position: relative;
+  display: inline-flex;
+}
+
+.help-tip-button {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--color-muted);
+  border-radius: 50%;
+  background: var(--color-surface);
+  color: var(--color-muted);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: help;
+}
+
+.help-tip-button:hover,
+.help-tip-button:focus-visible {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.help-tip-text {
+  position: absolute;
+  z-index: 10;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 280px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--color-text);
+  color: var(--color-bg);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.45;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 0.15);
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+
+.help-tip:hover .help-tip-text,
+.help-tip-button:focus-visible + .help-tip-text {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* A page heading with no intro line under it */
+.page-title {
+  margin-bottom: 24px;
+}
+
+.help-tip-list {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.help-tip-list li + li {
+  margin-top: 6px;
 }

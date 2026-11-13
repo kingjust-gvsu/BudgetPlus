@@ -56,28 +56,25 @@ export function IncomeSection() {
 
   return (
     <section className="card" aria-labelledby="income-heading">
-      <h2 id="income-heading">Income</h2>
-      <form className="form-row" onSubmit={save} aria-label="Monthly income">
-        <div className="field">
-          <label htmlFor="monthly-income">Estimated monthly income ($)</label>
-          <input
-            id="monthly-income"
-            inputMode="decimal"
-            placeholder="e.g. 4000"
-            className="input-income"
-            disabled={savedCents === undefined}
-            value={amount}
-            onChange={(e) => {
-              errors.touch('amount')
-              setStatus(null)
-              setAmount(e.target.value)
-            }}
-          />
-        </div>
+      <form className="income-row" onSubmit={save} aria-labelledby="income-heading">
+        <h2 id="income-heading">Income</h2>
+        <label htmlFor="monthly-income">Estimated monthly income ($)</label>
+        <input
+          id="monthly-income"
+          inputMode="decimal"
+          placeholder="e.g. 4000"
+          className="input-income"
+          disabled={savedCents === undefined}
+          value={amount}
+          onChange={(e) => {
+            errors.touch('amount')
+            setStatus(null)
+            setAmount(e.target.value)
+          }}
+        />
         <button type="submit" className="button button-primary" disabled={saving || savedCents === undefined}>
           Save
         </button>
-        <span className="muted small">Percent budgets and the remainder are based on this.</span>
       </form>
       {error && (
         <p className="error" role="alert">

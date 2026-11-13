@@ -14,6 +14,7 @@ import {
 import { describeBudget, formatLongDate } from '../budgetText'
 import { useLiveErrors } from '../useLiveErrors'
 import { BudgetInputs } from './BudgetInputs'
+import { HelpTip } from './HelpTip'
 import { PercentSlider } from './PercentSlider'
 import { EditCategoryRow } from './EditCategoryRow'
 
@@ -102,9 +103,6 @@ export function CategoriesSection() {
   return (
     <section className="card" aria-labelledby="categories-heading">
       <h2 id="categories-heading">Categories</h2>
-      <p className="muted section-intro">
-        Bills cost what they cost and are shown neutrally. Expenses are spending you choose, with a limit.
-      </p>
 
       <form className="form-row" onSubmit={add} aria-label="Add a category">
         <div className="field field-grow">
@@ -121,7 +119,21 @@ export function CategoriesSection() {
           />
         </div>
         <div className="field">
-          <label htmlFor="new-category-kind">Kind</label>
+          <div className="label-with-help">
+            <label htmlFor="new-category-kind">Kind</label>
+            <HelpTip label="What are bills and expenses?">
+              <ul className="help-tip-list">
+                <li>
+                  <strong>Bill:</strong> costs what it costs, like rent or electric. It's compared to an estimate and
+                  always shown neutrally.
+                </li>
+                <li>
+                  <strong>Expense:</strong> spending you choose, like groceries or eating out. It has a limit and shows
+                  green when under it and red when over.
+                </li>
+              </ul>
+            </HelpTip>
+          </div>
           <select
             id="new-category-kind"
             title={budget.budgetType === 'REMAINDER' ? 'The remainder is always an expense' : undefined}

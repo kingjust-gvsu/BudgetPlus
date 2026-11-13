@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import type { BudgetType, CategoryKind } from '../api/types'
 import { effectiveBudgetType, type BudgetFormValues } from '../budgetForm'
+import { HelpTip } from './HelpTip'
 
 const FREQUENCIES = [
   { months: 1, label: 'Monthly' },
@@ -33,12 +34,26 @@ export function BudgetInputs({ kind, values, onChange, layout, labelSuffix, rema
   const inputClass = layout === 'cell' ? 'cell-input' : undefined
 
   // Wraps an input in a labelled field for the form layout; labels it for screen readers in a cell
-  const control = (id: string, text: string, render: (props: { id: string; 'aria-label'?: string }) => ReactNode) => {
+  // `help` adds a "?" explanation beside the visible label (form layout only)
+  const control = (
+    id: string,
+    text: string,
+    render: (props: { id: string; 'aria-label'?: string }) => ReactNode,
+    help?: ReactNode,
+  ) => {
     const fullId = `${id}-${labelSuffix}`.replace(/\W+/g, '-')
     if (layout === 'cell') return render({ id: fullId, 'aria-label': `${text} for ${labelSuffix}` })
+    const label = <label htmlFor={fullId}>{text}</label>
     return (
       <div className="field">
-        <label htmlFor={fullId}>{text}</label>
+        {help ? (
+          <div className="label-with-help">
+            {label}
+            {help}
+          </div>
+        ) : (
+          label
+        )}
         {render({ id: fullId })}
       </div>
     )
@@ -60,6 +75,21 @@ export function BudgetInputs({ kind, values, onChange, layout, labelSuffix, rema
               {remainderTaken ? 'Remainder (already used)' : 'Remainder'}
             </option>
           </select>
+        ), (
+          <HelpTip label="What are the budget types?">
+            <ul className="help-tip-list">
+              <li>
+                <strong>Fixed amount:</strong> the same limit every month.
+              </li>
+              <li>
+                <strong>% of income:</strong> a share of your monthly income, so it changes when your income does.
+              </li>
+              <li>
+                <strong>Remainder:</strong> whatever is left after all your other budgets. Only one category can be
+                the remainder.
+              </li>
+            </ul>
+          </HelpTip>
         ))}
       {budgetType === 'FIXED' &&
         control('budget-amount', kind === 'BILL' ? 'Estimate ($)' : 'Amount ($)', (props) => (
