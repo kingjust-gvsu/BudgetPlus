@@ -18,26 +18,43 @@ enum CategoryKind {
   EXPENSE
 }
 
+// How a category's monthly amount is decided. Bills always use FIXED (their estimate).
+enum BudgetType {
+  FIXED // a set amount: budget_cents
+  PERCENT_OF_INCOME // a share of monthly income: budget_percent_hundredths
+  REMAINDER // whatever is left after every other category; only one per user
+}
+
 model User {
-  id           String        @id @default(uuid()) @db.Uuid
+  id                 String        @id @default(uuid()) @db.Uuid
   // Sign-up and login are handled by Firebase; this links our data to the Firebase account.
-  firebaseUid  String        @unique @map("firebase_uid")
-  email        String?
-  createdAt    DateTime      @default(now()) @map("created_at")
-  categories   Category[]
-  transactions Transaction[]
+  firebaseUid        String        @unique @map("firebase_uid")
+  email              String?
+  // Estimated monthly income in whole cents; null until the user enters it
+  monthlyIncomeCents Int?          @map("monthly_income_cents")
+  createdAt          DateTime      @default(now()) @map("created_at")
+  categories         Category[]
+  transactions       Transaction[]
 
   @@map("users")
 }
 
 model Category {
-  id           String        @id @default(uuid()) @db.Uuid
-  userId       String        @map("user_id") @db.Uuid
-  name         String
-  kind         CategoryKind
-  createdAt    DateTime      @default(now()) @map("created_at")
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  transactions Transaction[]
+  id                      String        @id @default(uuid()) @db.Uuid
+  userId                  String        @map("user_id") @db.Uuid
+  name                    String
+  kind                    CategoryKind
+  budgetType              BudgetType    @default(FIXED) @map("budget_type")
+  // FIXED: the amount in whole cents. For a bill, the estimate for each time it's due.
+  budgetCents             Int?          @map("budget_cents")
+  // PERCENT_OF_INCOME: the percentage times 100, so 12.5% is 1250 (whole numbers stay exact)
+  budgetPercentHundredths Int?          @map("budget_percent_hundredths")
+  // Bills only: how often it's due (1 = monthly, 6 = every 6 months) and when it's next due
+  frequencyMonths         Int           @default(1) @map("frequency_months")
+  nextDueDate             DateTime?     @map("next_due_date") @db.Date
+  createdAt               DateTime      @default(now()) @map("created_at")
+  user                    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions            Transaction[]
 
   @@unique([userId, name])
   @@map("categories")
