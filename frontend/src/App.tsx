@@ -4,6 +4,7 @@ import { Layout } from './components/Layout'
 import { BillsPage } from './pages/BillsPage'
 import { BudgetSetupPage } from './pages/BudgetSetupPage'
 import { DashboardPage } from './pages/DashboardPage'
+import { SettingsPage } from './pages/SettingsPage'
 import { SignInPage } from './pages/SignInPage'
 import { TransactionsPage } from './pages/TransactionsPage'
 
@@ -25,6 +26,7 @@ function App() {
         <Route path="transactions" element={<TransactionsPage />} />
         <Route path="bills" element={<BillsPage />} />
         <Route path="budget-setup" element={<BudgetSetupPage />} />
+        <Route path="settings" element={<SettingsPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

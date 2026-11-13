@@ -69,14 +69,6 @@ h1 {
   border-bottom-color: var(--color-accent);
 }
 
-.nav-user {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  color: var(--color-muted);
-  font-size: 14px;
-}
 
 .link-button {
   font: inherit;

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
@@ -59,7 +59,38 @@ describe('App', () => {
     for (const tab of ['Dashboard', 'Transactions', 'Bills & funds', 'Budget setup']) {
       expect(screen.getByRole('link', { name: tab })).toBeInTheDocument()
     }
+  })
+
+  it('keeps the account options in a menu in the corner', () => {
+    renderApp({ user: signedInUser })
+    expect(screen.queryByRole('link', { name: 'Settings' })).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Account menu' }))
+
     expect(screen.getByText('Test User')).toBeInTheDocument()
+    expect(screen.getByText('test@example.com')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Settings' })).toHaveAttribute('href', '/settings')
+    expect(screen.getByRole('button', { name: 'Sign out' })).toBeInTheDocument()
+  })
+
+  it('closes the account menu with Escape', () => {
+    renderApp({ user: signedInUser })
+    fireEvent.click(screen.getByRole('button', { name: 'Account menu' }))
+
+    fireEvent.keyDown(document, { key: 'Escape' })
+
+    expect(screen.queryByRole('button', { name: 'Sign out' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Account menu' })).toHaveAttribute('aria-expanded', 'false')
+  })
+
+  it('signs out from the account menu', () => {
+    const signOut = vi.fn()
+    renderApp({ user: signedInUser, signOut })
+    fireEvent.click(screen.getByRole('button', { name: 'Account menu' }))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Sign out' }))
+
+    expect(signOut).toHaveBeenCalled()
   })
 
   it('shows the page for the current URL and marks its tab', () => {
