@@ -1,9 +1,11 @@
 import cors from 'cors'
 import express, { type ErrorRequestHandler } from 'express'
 import { requireAuth, type FindOrCreateUser, type VerifyToken } from './auth.ts'
+import type { BackupStore } from './backup.ts'
 import type { CategoryStore } from './categories.ts'
 import type { Config } from './config.ts'
 import { ConflictError, NotFoundError, ValidationError } from './errors.ts'
+import { createBackupRouter } from './routes/backup.ts'
 import { createCategoriesRouter } from './routes/categories.ts'
 import { createHealthRouter, type DatabaseCheck } from './routes/health.ts'
 import { createMeRouter } from './routes/me.ts'
@@ -21,6 +23,7 @@ export type AppDependencies = {
   transactions: TransactionStore
   users: UserStore
   summary: SummaryStore
+  backup: BackupStore
 }
 
 // Builds the Express app without starting a server, so tests can call it directly
@@ -29,7 +32,8 @@ export function createApp(config: Pick<Config, 'corsOrigin'>, deps: AppDependenc
   const app = express()
 
   app.use(cors({ origin: config.corsOrigin }))
-  app.use(express.json())
+  // Big enough for a bank CSV import of a few thousand transactions
+  app.use(express.json({ limit: '2mb' }))
 
   // Public routes
   app.use('/api/health', createHealthRouter(deps.checkDatabase))
@@ -40,6 +44,7 @@ export function createApp(config: Pick<Config, 'corsOrigin'>, deps: AppDependenc
   app.use('/api/categories', signedIn, createCategoriesRouter(deps.categories))
   app.use('/api/transactions', signedIn, createTransactionsRouter(deps.transactions))
   app.use('/api/summary', signedIn, createSummaryRouter(deps.summary))
+  app.use('/api/backup', signedIn, createBackupRouter(deps.backup))
 
   app.use('/api', (_req, res) => {
     res.status(404).json({ error: 'Not found' })

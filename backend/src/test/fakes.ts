@@ -180,6 +180,12 @@ export function fakeDependencies(overrides: Partial<AppDependencies> = {}): AppD
     transactions: createFakeTransactionStore(),
     users: createFakeUserStore(),
     summary: { load: async () => ({ categories: [], transactions: [], fundPayments: new Map() }) },
+    backup: {
+      export: async () => {
+        throw new Error('backup not faked in this test')
+      },
+      restore: async (_userId, backup) => ({ categories: backup.categories.length, transactions: backup.transactions.length }),
+    },
     ...overrides,
   }
 }

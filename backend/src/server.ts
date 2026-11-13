@@ -1,5 +1,6 @@
 import { createApp } from './app.ts'
 import { createFirebaseTokenVerifier } from './auth.ts'
+import { createBackupStore } from './backup.ts'
 import { createCategoryStore } from './categories.ts'
 import { loadConfig } from './config.ts'
 import { createDatabase } from './db.ts'
@@ -25,6 +26,7 @@ const app = createApp(config, {
   transactions: createTransactionStore(db),
   users: createUserStore(db),
   summary: createSummaryStore(db),
+  backup: createBackupStore(db),
 })
 
 app.listen(config.port, () => {
