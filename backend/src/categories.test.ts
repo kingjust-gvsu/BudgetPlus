@@ -174,6 +174,33 @@ describe('budget settings', () => {
     expect(response.body).toEqual({ error: 'Only one category can be the remainder' })
   })
 
+  it("doesn't let percent budgets total more than 100%", async () => {
+    const { app } = setup()
+    await request(app).patch(`/api/categories/${groceriesId}`).set(auth).send({ budgetType: 'PERCENT_OF_INCOME', budgetPercent: 60 })
+
+    const tooMuch = await request(app)
+      .post('/api/categories')
+      .set(auth)
+      .send({ name: 'Savings', kind: 'EXPENSE', budgetType: 'PERCENT_OF_INCOME', budgetPercent: 45 })
+    const exactly100 = await request(app)
+      .post('/api/categories')
+      .set(auth)
+      .send({ name: 'Savings', kind: 'EXPENSE', budgetType: 'PERCENT_OF_INCOME', budgetPercent: 40 })
+
+    expect(tooMuch.status).toBe(409)
+    expect(tooMuch.body).toEqual({ error: 'Percent budgets would total 105% of income. The most is 100%.' })
+    expect(exactly100.status).toBe(201)
+  })
+
+  it("counts a category's own old percent only once when it's edited", async () => {
+    const { app } = setup()
+    await request(app).patch(`/api/categories/${groceriesId}`).set(auth).send({ budgetType: 'PERCENT_OF_INCOME', budgetPercent: 60 })
+
+    const response = await request(app).patch(`/api/categories/${groceriesId}`).set(auth).send({ budgetPercent: 90 })
+
+    expect(response.status).toBe(200)
+  })
+
   it.each([
     ['a negative amount', { budgetCents: -100 }, 'Budget amount must be a whole number of cents, zero or more'],
     ['a percent over 100', { budgetType: 'PERCENT_OF_INCOME', budgetPercent: 150 }, 'Budget percent must be a percent above 0 and up to 100'],

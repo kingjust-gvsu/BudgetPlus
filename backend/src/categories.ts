@@ -42,6 +42,12 @@ export type CategoryStore = {
 export const DUPLICATE_NAME = 'You already have a category with that name'
 export const SECOND_REMAINDER = 'Only one category can be the remainder'
 
+// Percent-of-income budgets can't add up to more than all of the income
+export function percentTotalError(totalHundredths: number): string | null {
+  if (totalHundredths <= 10000) return null
+  return `Percent budgets would total ${totalHundredths / 100}% of income. The most is 100%.`
+}
+
 export const DEFAULT_BUDGET_SETTINGS: BudgetSettings = {
   budgetType: 'FIXED',
   budgetCents: null,
@@ -157,6 +163,18 @@ export function createCategoryStore(db: Database): CategoryStore {
     if (other) throw new ConflictError(SECOND_REMAINDER)
   }
 
+  // The other percent-of-income categories plus this one can't go over 100%
+  const checkPercentTotal = async (userId: string, category: Omit<Category, 'id'>, exceptId?: string) => {
+    if (category.budgetType !== 'PERCENT_OF_INCOME' || category.budgetPercent === null) return
+    const others = await db.category.aggregate({
+      where: { userId, budgetType: 'PERCENT_OF_INCOME', ...(exceptId ? { id: { not: exceptId } } : {}) },
+      _sum: { budgetPercentHundredths: true },
+    })
+    const total = (others._sum.budgetPercentHundredths ?? 0) + Math.round(category.budgetPercent * 100)
+    const error = percentTotalError(total)
+    if (error) throw new ConflictError(error)
+  }
+
   const findOwn = async (userId: string, id: string) => {
     const row = await db.category.findFirst({ where: { id, userId }, select: fields })
     return row ? toCategory(row) : null
@@ -171,6 +189,7 @@ export function createCategoryStore(db: Database): CategoryStore {
     create: async (userId, input) => {
       const category = categoryAfterChange(null, input)
       await checkOneRemainder(userId, category)
+      await checkPercentTotal(userId, category)
       try {
         return toCategory(await db.category.create({ data: { userId, ...toRowData(category) }, select: fields }))
       } catch (error) {
@@ -184,6 +203,7 @@ export function createCategoryStore(db: Database): CategoryStore {
       if (!existing) return null
       const category = categoryAfterChange(existing, changes)
       await checkOneRemainder(userId, category, id)
+      await checkPercentTotal(userId, category, id)
       try {
         return toCategory(await db.category.update({ where: { id }, data: toRowData(category), select: fields }))
       } catch (error) {
