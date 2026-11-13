@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { apiGet, apiSend } from '../api/client'
 import type { Category, Transaction, TransactionInput } from '../api/types'
 import { useAuth } from '../auth/useAuth'
+import { CsvImport } from '../components/CsvImport'
 import { EditTransactionRow } from '../components/EditTransactionRow'
 import { TransactionForm } from '../components/TransactionForm'
 import { formatDay, formatMonth, monthOf, shiftMonth, today } from '../dates'
@@ -14,6 +15,8 @@ export function TransactionsPage() {
   const [categories, setCategories] = useState<Category[]>([])
   const [editingId, setEditingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [importing, setImporting] = useState(false)
+  const [notice, setNotice] = useState<string | null>(null)
   // Bumped after a change, so the list reloads even when the month stays the same
   const [version, setVersion] = useState(0)
 
@@ -82,18 +85,50 @@ export function TransactionsPage() {
           <h1>Transactions</h1>
           <p className="page-intro">Add the money you spend, and refunds as negative amounts.</p>
         </div>
-        <div className="month-nav">
-          <button type="button" className="button" aria-label="Previous month" onClick={() => changeMonth(-1)}>
-            ‹
-          </button>
-          <span className="month-name">{formatMonth(month)}</span>
-          <button type="button" className="button" aria-label="Next month" onClick={() => changeMonth(1)}>
-            ›
-          </button>
+        <div className="page-actions">
+          {!importing && (
+            <button
+              type="button"
+              className="button"
+              onClick={() => {
+                setNotice(null)
+                setImporting(true)
+              }}
+            >
+              Import from bank CSV
+            </button>
+          )}
+          <div className="month-nav">
+            <button type="button" className="button" aria-label="Previous month" onClick={() => changeMonth(-1)}>
+              ‹
+            </button>
+            <span className="month-name">{formatMonth(month)}</span>
+            <button type="button" className="button" aria-label="Next month" onClick={() => changeMonth(1)}>
+              ›
+            </button>
+          </div>
         </div>
       </div>
 
-      <TransactionForm categories={categories} onSave={add} />
+      {notice && (
+        <p className="success" role="status">
+          {notice}
+        </p>
+      )}
+
+      {importing ? (
+        <CsvImport
+          categories={categories}
+          onCancel={() => setImporting(false)}
+          onImported={(message) => {
+            setImporting(false)
+            setNotice(message)
+            setVersion((v) => v + 1)
+          }}
+        />
+      ) : (
+        <TransactionForm categories={categories} onSave={add} />
+      )}
 
       {error && (
         <p className="error" role="alert">

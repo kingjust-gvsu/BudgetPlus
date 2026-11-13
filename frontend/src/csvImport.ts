@@ -1,0 +1,149 @@
+import Papa from 'papaparse'
+import type { Category, TransactionInput } from './api/types'
+import { parseDollars } from './money'
+
+// Turns a bank's CSV export into transactions. Banks lay their files out differently, so the user
+// says which column is which (we guess first), and how amounts are shown.
+
+export type CsvFile = {
+  headers: string[]
+  rows: Record<string, string>[]
+}
+
+export type AmountFormat =
+  // One column; `spendingIs` says whether money spent shows as negative or positive numbers
+  | { kind: 'single'; column: string; spendingIs: 'negative' | 'positive' }
+  // Money out in one column, money in in another
+  | { kind: 'split'; debitColumn: string; creditColumn: string }
+
+export type ColumnMapping = {
+  dateColumn: string
+  descriptionColumn: string
+  amount: AmountFormat
+  categoryColumn: string | null // optional: matched to the user's categories by name
+  skipMoneyIn: boolean // leave out paychecks, transfers in, and refunds
+}
+
+export type ImportRow = TransactionInput & { line: number } // line = line number in the file
+
+export type ImportPreview = {
+  ready: ImportRow[]
+  problems: { line: number; error: string }[]
+  skippedMoneyIn: number
+  // Category names in the file that don't match any of the user's categories
+  unmatchedCategories: string[]
+}
+
+export function readCsv(text: string): CsvFile {
+  const result = Papa.parse<Record<string, string>>(text.trim(), {
+    header: true,
+    skipEmptyLines: 'greedy',
+    transformHeader: (header) => header.trim(),
+  })
+  return { headers: (result.meta.fields ?? []).filter((h) => h !== ''), rows: result.data }
+}
+
+const pad = (n: number) => String(n).padStart(2, '0')
+
+// Common bank date formats → YYYY-MM-DD, or null if it can't be read or isn't a real date.
+// Slashed and dashed dates are read month first (US banks): 10/15/2026, 10-15-2026, 10/15/26.
+export function parseDate(text: string): string | null {
+  const value = text.trim()
+  let year: number, month: number, day: number
+  let match = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(value)
+  if (match) {
+    ;[year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])]
+  } else if ((match = /^(\d{1,2})[/-](\d{1,2})[/-](\d{2}|\d{4})$/.exec(value))) {
+    ;[month, day, year] = [Number(match[1]), Number(match[2]), Number(match[3])]
+    if (year < 100) year += 2000
+  } else {
+    return null
+  }
+  const date = new Date(Date.UTC(year, month - 1, day))
+  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return null
+  return `${year}-${pad(month)}-${pad(day)}`
+}
+
+// A money amount as banks write it → cents: "$1,234.56", "-45.00", "+12", "(18.00)" (negative)
+export function parseMoney(text: string): number | null {
+  let value = text.trim()
+  if (value === '') return null
+  const parenthesized = /^\((.*)\)$/.exec(value)
+  if (parenthesized) value = `-${parenthesized[1]}`
+  value = value.replace(/^\+/, '').replace(/^\$-/, '-$')
+  return parseDollars(value)
+}
+
+// Guess which column is which from the header names
+export function guessMapping(file: CsvFile): ColumnMapping {
+  const find = (...patterns: RegExp[]) => {
+    for (const pattern of patterns) {
+      const header = file.headers.find((h) => pattern.test(h))
+      if (header) return header
+    }
+    return null
+  }
+  const dateColumn = find(/^(posting|transaction|trans\.?|post)?\s*date$/i, /date/i) ?? file.headers[0] ?? ''
+  const descriptionColumn = find(/desc/i, /memo/i, /payee/i, /merchant/i, /name/i, /details/i) ?? file.headers[1] ?? ''
+  const amountColumn = find(/^amount$/i, /amount/i)
+  const debitColumn = find(/debit/i, /withdrawal/i, /money out/i)
+  const creditColumn = find(/credit/i, /deposit/i, /money in/i)
+  const categoryColumn = find(/category/i)
+
+  let amount: AmountFormat
+  if (!amountColumn && debitColumn && creditColumn) {
+    amount = { kind: 'split', debitColumn, creditColumn }
+  } else {
+    const column = amountColumn ?? file.headers[2] ?? ''
+    // Most banks show money spent as negative; if most amounts are negative, assume that
+    const values = file.rows.map((r) => parseMoney(r[column] ?? '')).filter((v): v is number => v !== null && v !== 0)
+    const negatives = values.filter((v) => v < 0).length
+    amount = { kind: 'single', column, spendingIs: negatives >= values.length / 2 ? 'negative' : 'positive' }
+  }
+  return { dateColumn, descriptionColumn, amount, categoryColumn, skipMoneyIn: true }
+}
+
+// Amount in our terms: positive = spent, negative = money back; null if it can't be read
+function amountOf(row: Record<string, string>, format: AmountFormat): number | null {
+  if (format.kind === 'single') {
+    const cents = parseMoney(row[format.column] ?? '')
+    if (cents === null) return null
+    return format.spendingIs === 'negative' ? -cents : cents
+  }
+  const debitText = (row[format.debitColumn] ?? '').trim()
+  const creditText = (row[format.creditColumn] ?? '').trim()
+  const debit = debitText ? parseMoney(debitText) : 0
+  const credit = creditText ? parseMoney(creditText) : 0
+  if (debit === null || credit === null || (!debitText && !creditText)) return null
+  return Math.abs(debit) - Math.abs(credit)
+}
+
+export function previewImport(file: CsvFile, mapping: ColumnMapping, categories: Category[]): ImportPreview {
+  const byName = new Map(categories.map((c) => [c.name.trim().toLowerCase(), c.id]))
+  const preview: ImportPreview = { ready: [], problems: [], skippedMoneyIn: 0, unmatchedCategories: [] }
+  const unmatched = new Set<string>()
+
+  file.rows.forEach((row, index) => {
+    const line = index + 2 // the header is line 1
+    const date = parseDate(row[mapping.dateColumn] ?? '')
+    const description = (row[mapping.descriptionColumn] ?? '').trim()
+    const amountCents = amountOf(row, mapping.amount)
+
+    if (date === null) return preview.problems.push({ line, error: `Can't read the date "${row[mapping.dateColumn] ?? ''}"` })
+    if (!description) return preview.problems.push({ line, error: 'No description' })
+    if (amountCents === null) return preview.problems.push({ line, error: "Can't read the amount" })
+    if (amountCents === 0) return preview.problems.push({ line, error: 'The amount is zero' })
+    if (amountCents < 0 && mapping.skipMoneyIn) return void preview.skippedMoneyIn++
+
+    let categoryId: string | null = null
+    const categoryName = mapping.categoryColumn ? (row[mapping.categoryColumn] ?? '').trim() : ''
+    if (categoryName) {
+      categoryId = byName.get(categoryName.toLowerCase()) ?? null
+      if (!categoryId) unmatched.add(categoryName)
+    }
+    preview.ready.push({ line, date, description: description.slice(0, 200), amountCents, categoryId })
+  })
+
+  preview.unmatchedCategories = [...unmatched].sort()
+  return preview
+}
