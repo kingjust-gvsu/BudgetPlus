@@ -179,6 +179,7 @@ export function fakeDependencies(overrides: Partial<AppDependencies> = {}): AppD
     categories: createFakeCategoryStore(),
     transactions: createFakeTransactionStore(),
     users: createFakeUserStore(),
+    summary: { load: async () => ({ categories: [], transactions: [], fundPayments: new Map() }) },
     ...overrides,
   }
 }
