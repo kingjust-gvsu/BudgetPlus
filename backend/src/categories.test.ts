@@ -1,6 +1,7 @@
 import request from 'supertest'
 import { describe, expect, it } from 'vitest'
 import { createApp } from './app.ts'
+import { DEFAULT_BUDGET_SETTINGS } from './categories.ts'
 import { createFakeCategoryStore, fakeDependencies, OTHER_USER_TOKEN, otherUser, testUser, VALID_TOKEN } from './test/fakes.ts'
 
 const config = { corsOrigin: 'http://localhost:5173' }
@@ -28,8 +29,8 @@ describe('GET /api/categories', () => {
 
     expect(response.status).toBe(200)
     expect(response.body).toEqual([
-      { id: groceriesId, name: 'Groceries', kind: 'EXPENSE' },
-      { id: rentId, name: 'Rent', kind: 'BILL' },
+      { id: groceriesId, name: 'Groceries', kind: 'EXPENSE', ...DEFAULT_BUDGET_SETTINGS },
+      { id: rentId, name: 'Rent', kind: 'BILL', ...DEFAULT_BUDGET_SETTINGS },
     ])
   })
 
@@ -49,7 +50,7 @@ describe('POST /api/categories', () => {
     const response = await request(app).post('/api/categories').set(auth).send({ name: '  Electric ', kind: 'BILL' })
 
     expect(response.status).toBe(201)
-    expect(response.body).toEqual({ id: expect.any(String), name: 'Electric', kind: 'BILL' })
+    expect(response.body).toEqual({ id: expect.any(String), name: 'Electric', kind: 'BILL', ...DEFAULT_BUDGET_SETTINGS })
     expect(store.rows).toContainEqual({ ...response.body, userId: testUser.id })
   })
 
@@ -98,7 +99,7 @@ describe('PATCH /api/categories/:id', () => {
       .send({ name: 'Food', kind: 'BILL' })
 
     expect(response.status).toBe(200)
-    expect(response.body).toEqual({ id: groceriesId, name: 'Food', kind: 'BILL' })
+    expect(response.body).toEqual({ id: groceriesId, name: 'Food', kind: 'BILL', ...DEFAULT_BUDGET_SETTINGS })
   })
 
   it('rejects an empty change', async () => {
@@ -132,6 +133,59 @@ describe('PATCH /api/categories/:id', () => {
     const response = await request(app).patch('/api/categories/not-an-id').set(auth).send({ name: 'x' })
 
     expect(response.status).toBe(404)
+  })
+})
+
+describe('budget settings', () => {
+  it('creates a non-monthly bill with its schedule', async () => {
+    const { app } = setup()
+
+    const response = await request(app)
+      .post('/api/categories')
+      .set(auth)
+      .send({ name: 'Car insurance', kind: 'BILL', budgetCents: 60000, frequencyMonths: 6, nextDueDate: '2027-03-15' })
+
+    expect(response.status).toBe(201)
+    expect(response.body).toMatchObject({ budgetType: 'FIXED', budgetCents: 60000, frequencyMonths: 6, nextDueDate: '2027-03-15' })
+  })
+
+  it('sets an expense to a percent of income', async () => {
+    const { app } = setup()
+
+    const response = await request(app)
+      .patch(`/api/categories/${groceriesId}`)
+      .set(auth)
+      .send({ budgetType: 'PERCENT_OF_INCOME', budgetPercent: 12 })
+
+    expect(response.status).toBe(200)
+    expect(response.body).toMatchObject({ budgetType: 'PERCENT_OF_INCOME', budgetPercent: 12, budgetCents: null })
+  })
+
+  it('allows only one remainder category', async () => {
+    const { app } = setup()
+    await request(app).patch(`/api/categories/${groceriesId}`).set(auth).send({ budgetType: 'REMAINDER' })
+
+    const response = await request(app)
+      .post('/api/categories')
+      .set(auth)
+      .send({ name: 'Savings', kind: 'EXPENSE', budgetType: 'REMAINDER' })
+
+    expect(response.status).toBe(409)
+    expect(response.body).toEqual({ error: 'Only one category can be the remainder' })
+  })
+
+  it.each([
+    ['a negative amount', { budgetCents: -100 }, 'Budget amount must be a whole number of cents, zero or more'],
+    ['a percent over 100', { budgetType: 'PERCENT_OF_INCOME', budgetPercent: 150 }, 'Budget percent must be a percent above 0 and up to 100'],
+    ['a percent with three decimals', { budgetType: 'PERCENT_OF_INCOME', budgetPercent: 12.345 }, 'Budget percent can have at most two decimal places'],
+    ['an unknown budget type', { budgetType: 'WEEKLY' }, 'Budget type must be one of: FIXED, PERCENT_OF_INCOME, REMAINDER'],
+  ])('rejects %s', async (_case, change, error) => {
+    const { app } = setup()
+
+    const response = await request(app).patch(`/api/categories/${groceriesId}`).set(auth).send(change)
+
+    expect(response.status).toBe(400)
+    expect(response.body).toEqual({ error })
   })
 })
 

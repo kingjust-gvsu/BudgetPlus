@@ -66,6 +66,41 @@ export function requireCents(value: unknown, field: string): number {
   return value
 }
 
+// A budget amount in whole cents: zero or more
+export function requireBudgetCents(value: unknown, field: string): number {
+  if (typeof value !== 'number' || !Number.isInteger(value) || value < 0) {
+    throw new ValidationError(`${field} must be a whole number of cents, zero or more`)
+  }
+  if (value > MAX_CENTS) {
+    throw new ValidationError(`${field} is too large`)
+  }
+  return value
+}
+
+// A percent above 0 and up to 100, with at most two decimal places (12.5 or 12.25)
+export function requirePercent(value: unknown, field: string): number {
+  if (typeof value !== 'number' || !(value > 0 && value <= 100)) {
+    throw new ValidationError(`${field} must be a percent above 0 and up to 100`)
+  }
+  if (Math.abs(value * 100 - Math.round(value * 100)) > 1e-9) {
+    throw new ValidationError(`${field} can have at most two decimal places`)
+  }
+  return value
+}
+
+// A whole number of months between bills, from 1 (monthly) to 12 (yearly)
+export function requireFrequencyMonths(value: unknown, field: string): number {
+  if (typeof value !== 'number' || !Number.isInteger(value) || value < 1 || value > 12) {
+    throw new ValidationError(`${field} must be a whole number of months from 1 to 12`)
+  }
+  return value
+}
+
+// For fields that can be cleared: null stays null, anything else goes through `check`
+export function nullable<T>(value: unknown, check: (value: unknown) => T): T | null {
+  return value === null ? null : check(value)
+}
+
 // An id in the URL that isn't even a valid id can't match anything, so it's a 404.
 export function requireIdParam(value: string | undefined): string {
   if (!value || !UUID.test(value)) {

@@ -1,7 +1,15 @@
 import { randomUUID } from 'node:crypto'
 import type { AppDependencies } from '../app.ts'
 import type { AuthenticatedUser } from '../auth.ts'
-import { DUPLICATE_NAME, type Category, type CategoryStore } from '../categories.ts'
+import {
+  categoryAfterChange,
+  DEFAULT_BUDGET_SETTINGS,
+  DUPLICATE_NAME,
+  SECOND_REMAINDER,
+  type BudgetSettings,
+  type Category,
+  type CategoryStore,
+} from '../categories.ts'
 import { ConflictError, ValidationError } from '../errors.ts'
 import { CATEGORY_NOT_FOUND, type Transaction, type TransactionStore } from '../transactions.ts'
 
@@ -29,11 +37,27 @@ const usersByToken: Record<string, AuthenticatedUser> = {
 
 type StoredCategory = Category & { userId: string }
 
+// Tests can give just id, name, and kind; the budget settings default like a new category's.
+type CategorySeed = Omit<StoredCategory, keyof BudgetSettings> & Partial<BudgetSettings>
+
 // Behaves like the real category store, but keeps everything in memory.
-export function createFakeCategoryStore(rows: StoredCategory[] = []): CategoryStore & { rows: StoredCategory[] } {
-  const toCategory = ({ id, name, kind }: StoredCategory): Category => ({ id, name, kind })
+export function createFakeCategoryStore(seeds: CategorySeed[] = []): CategoryStore & { rows: StoredCategory[] } {
+  // Fill in defaults on the same objects, so other fakes sharing this list see the changes
+  for (const seed of seeds) {
+    for (const [key, value] of Object.entries(DEFAULT_BUDGET_SETTINGS)) {
+      const field = key as keyof BudgetSettings
+      if (seed[field] === undefined) Object.assign(seed, { [field]: value })
+    }
+  }
+  const rows = seeds as StoredCategory[]
+
+  const toCategory = ({ userId: _userId, ...category }: StoredCategory): Category => category
   const nameTaken = (userId: string, name: string, exceptId?: string) =>
     rows.some((r) => r.userId === userId && r.name === name && r.id !== exceptId)
+  const checkOneRemainder = (userId: string, category: Omit<Category, 'id'>, exceptId?: string) => {
+    const other = rows.some((r) => r.userId === userId && r.budgetType === 'REMAINDER' && r.id !== exceptId)
+    if (category.budgetType === 'REMAINDER' && other) throw new ConflictError(SECOND_REMAINDER)
+  }
 
   return {
     rows,
@@ -43,16 +67,20 @@ export function createFakeCategoryStore(rows: StoredCategory[] = []): CategorySt
         .sort((a, b) => a.name.localeCompare(b.name))
         .map(toCategory),
     create: async (userId, input) => {
-      if (nameTaken(userId, input.name)) throw new ConflictError(DUPLICATE_NAME)
-      const row = { id: randomUUID(), userId, ...input }
+      const category = categoryAfterChange(null, input)
+      checkOneRemainder(userId, category)
+      if (nameTaken(userId, category.name)) throw new ConflictError(DUPLICATE_NAME)
+      const row = { id: randomUUID(), userId, ...category }
       rows.push(row)
       return toCategory(row)
     },
     update: async (userId, id, changes) => {
       const row = rows.find((r) => r.id === id && r.userId === userId)
       if (!row) return null
-      if (changes.name && nameTaken(userId, changes.name, id)) throw new ConflictError(DUPLICATE_NAME)
-      Object.assign(row, changes)
+      const category = categoryAfterChange(toCategory(row), changes)
+      checkOneRemainder(userId, category, id)
+      if (nameTaken(userId, category.name, id)) throw new ConflictError(DUPLICATE_NAME)
+      Object.assign(row, category)
       return toCategory(row)
     },
     delete: async (userId, id) => {
@@ -70,7 +98,7 @@ type StoredTransaction = Transaction & { userId: string }
 // category list it checks ownership against (share it with a fake category store).
 export function createFakeTransactionStore(
   rows: StoredTransaction[] = [],
-  categories: StoredCategory[] = [],
+  categories: Pick<StoredCategory, 'id' | 'userId'>[] = [],
 ): TransactionStore & { rows: StoredTransaction[] } {
   const toTransaction = ({ id, date, description, amountCents, categoryId }: StoredTransaction): Transaction => ({
     id,
