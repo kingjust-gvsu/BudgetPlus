@@ -72,6 +72,7 @@ describe('buildMonthSummary', () => {
     expect(find('car-insurance')).toMatchObject({
       type: 'fundBill',
       setAsideCents: 10000,
+      targetCents: 60000,
       fund: { balanceCents: 20000, nextDueDate: '2027-03-15', monthsLeft: 5 },
     })
   })
