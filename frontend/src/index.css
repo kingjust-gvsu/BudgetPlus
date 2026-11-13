@@ -319,7 +319,7 @@ h2 {
 }
 
 .table-compact {
-  min-width: 360px;
+  min-width: 520px;
 }
 
 .badge {
@@ -337,4 +337,33 @@ h2 {
 .badge-expense {
   background: #e3ecfb;
   color: var(--color-accent);
+}
+
+/* Budget setup */
+
+.small {
+  font-size: 13px;
+}
+
+.success {
+  color: var(--color-good);
+}
+
+.input-income {
+  width: 160px;
+}
+
+.input-percent {
+  width: 80px;
+}
+
+.budget-inputs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* In the add form, the budget fields sit in the same row as the other fields */
+.budget-inputs-form {
+  display: contents;
 }

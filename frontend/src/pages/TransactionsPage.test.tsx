@@ -3,11 +3,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Category, Transaction } from '../api/types'
 import { AuthContext, type AuthState } from '../auth/authContext'
 import { monthOf, shiftMonth, today } from '../dates'
+import { makeCategory } from '../test/factories'
 import { TransactionsPage } from './TransactionsPage'
 
 const thisMonth = monthOf(today())
 
-const categories: Category[] = [{ id: 'cat-groceries', name: 'Groceries', kind: 'EXPENSE' }]
+const categories: Category[] = [makeCategory({ id: 'cat-groceries', name: 'Groceries', kind: 'EXPENSE' })]
 
 let transactions: Transaction[]
 let fetchMock: ReturnType<typeof vi.fn>
