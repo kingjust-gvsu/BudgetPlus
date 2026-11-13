@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_BUDGET_SETTINGS, type Category } from './categories.ts'
+import { fundForMonth } from './fund.ts'
 import { monthStatus, type CategoryStatus } from './monthStatus.ts'
 
 function category(id: string, fields: Partial<Category> & Pick<Category, 'kind'>): Category {
@@ -90,6 +91,24 @@ describe('monthStatus', () => {
 
     expect(statusOf(status.categories, 'car-insurance')).toEqual({ type: 'fundBill', categoryId: 'car-insurance', setAsideCents: 10000 })
     expect(status.billDifferenceCents).toBe(0)
+  })
+
+  it("uses the fund's catch-up set-aside and settles a fund payment against the remainder", () => {
+    // Car insurance added in January, due in March: $300 a month instead of $100
+    const fundBill = { amountCents: 60000, frequencyMonths: 6, nextDueDate: '2027-03-15', startMonth: '2027-01' }
+    const january = fundForMonth(fundBill, new Map(), '2027-01')
+    const withCatchUp = monthStatus(400000, all, [], new Map([['car-insurance', january]]))
+
+    // $200 more set aside than the even $100, so $200 less for the remainder
+    expect(statusOf(withCatchUp.categories, 'car-insurance')).toMatchObject({ setAsideCents: 30000 })
+    expect(withCatchUp.remainderCents).toBe(10000)
+
+    // In March the bill comes in at $630 against the $600 saved: $30 comes out of the remainder
+    const march = fundForMonth(fundBill, new Map([['2027-03', 63000]]), '2027-03')
+    const paid = monthStatus(400000, all, [spend('car-insurance', 63000)], new Map([['car-insurance', march]]))
+
+    expect(paid.billDifferenceCents).toBe(3000)
+    expect(paid.remainderCents).toBe(27000) // $300 - $30
   })
 
   it('totals spending that has no category yet', () => {

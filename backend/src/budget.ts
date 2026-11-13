@@ -35,8 +35,10 @@ export function evenSetAside(billCents: number, frequencyMonths: number): number
   return Math.ceil(billCents / frequencyMonths)
 }
 
-// One category's monthly amount, for every budget type except the remainder
-function monthlyAmount(category: Category, incomeCents: number | null): BudgetLine {
+// One category's monthly amount, for every budget type except the remainder.
+// `setAsides` gives the fund's actual set-aside for bills that aren't monthly (which catches up
+// when the due date is close); without it, the bill is spread evenly.
+function monthlyAmount(category: Category, incomeCents: number | null, setAsides?: ReadonlyMap<string, number>): BudgetLine {
   const line = (monthlyCents: number | null, notSet = false) => ({ categoryId: category.id, monthlyCents, notSet })
 
   if (category.budgetType === 'PERCENT_OF_INCOME') {
@@ -44,14 +46,18 @@ function monthlyAmount(category: Category, incomeCents: number | null): BudgetLi
   }
   if (category.budgetCents === null) return line(null, true)
   if (category.kind === 'BILL' && category.frequencyMonths > 1) {
-    return line(evenSetAside(category.budgetCents, category.frequencyMonths))
+    return line(setAsides?.get(category.id) ?? evenSetAside(category.budgetCents, category.frequencyMonths))
   }
   return line(category.budgetCents)
 }
 
-export function planBudget(incomeCents: number | null, categories: Category[]): BudgetPlan {
+export function planBudget(
+  incomeCents: number | null,
+  categories: Category[],
+  setAsides?: ReadonlyMap<string, number>,
+): BudgetPlan {
   const remainder = categories.find((c) => c.budgetType === 'REMAINDER')
-  const others = categories.filter((c) => c !== remainder).map((c) => monthlyAmount(c, incomeCents))
+  const others = categories.filter((c) => c !== remainder).map((c) => monthlyAmount(c, incomeCents, setAsides))
   const plannedCents = others.reduce((sum, line) => sum + (line.monthlyCents ?? 0), 0)
 
   const leftOver = incomeCents === null ? null : incomeCents - plannedCents
