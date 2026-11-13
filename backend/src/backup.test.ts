@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import request from 'supertest'
 import { describe, expect, it, vi } from 'vitest'
 import { createApp } from './app.ts'
@@ -53,6 +55,21 @@ describe('parseBackup', () => {
     ['a transaction with a bad date', withChanges({ transactions: [{ date: '2026-02-30', description: 'X', amountCents: 1, category: null }] }), 'Transaction 1: Date is not a real date'],
   ])('rejects %s', (_case, input, message) => {
     expect(() => parseBackup(input)).toThrow(message)
+  })
+})
+
+describe('sample backups', () => {
+  it.each([
+    ['full-budget-3-months.json', 11, 72],
+    ['full-budget-12-months.json', 13, 289],
+  ])('sample-data/%s is a valid backup', (name, categories, transactions) => {
+    // Tests run from the backend folder; sample-data/ sits beside it
+    const file = JSON.parse(readFileSync(resolve(process.cwd(), '../sample-data', name), 'utf-8'))
+
+    const backup = parseBackup(file)
+
+    expect(backup.categories).toHaveLength(categories)
+    expect(backup.transactions).toHaveLength(transactions)
   })
 })
 
