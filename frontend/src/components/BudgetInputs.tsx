@@ -26,6 +26,7 @@ type Props = {
 
 // The inputs for a category's budget, which change with its kind and budget type:
 // expenses pick fixed / % of income / remainder; bills get an estimate and how often they're due.
+// The percent slider isn't here: each form shows it on its own row below these inputs.
 export function BudgetInputs({ kind, values, onChange, layout, labelSuffix, remainderTaken }: Props) {
   const budgetType = effectiveBudgetType(kind, values)
   const set = (changes: Partial<BudgetFormValues>) => onChange({ ...values, ...changes })

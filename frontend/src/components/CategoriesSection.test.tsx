@@ -225,6 +225,25 @@ describe('CategoriesSection', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
+  it('sets a percent by dragging the slider, starting after what other categories use', async () => {
+    categories.push(
+      makeCategory({ id: 'cat-savings', name: 'Savings', kind: 'EXPENSE', budgetType: 'PERCENT_OF_INCOME', budgetPercent: 60 }),
+    )
+    renderSection()
+    await screen.findByText('Groceries')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Groceries' }))
+    fireEvent.change(screen.getByLabelText('Budget as for Groceries'), { target: { value: 'PERCENT_OF_INCOME' } })
+    const slider = screen.getByRole('slider', { name: 'Percent of income slider for Groceries' })
+    expect(slider).toHaveAttribute('max', '40')
+
+    fireEvent.change(slider, { target: { value: '15' } })
+    expect(screen.getByLabelText('Percent of income for Groceries')).toHaveValue('15')
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByText('15% of income')).toBeInTheDocument()
+  })
+
   it("shows the API's message for a duplicate name", async () => {
     renderSection()
     await screen.findByText('Rent')

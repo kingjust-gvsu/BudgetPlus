@@ -1,8 +1,16 @@
 import { useState, type KeyboardEvent } from 'react'
 import type { Category, CategoryChanges, CategoryKind } from '../api/types'
-import { budgetErrors, budgetValuesFrom, changedBudgetFields, readBudgetValues, type BudgetFormValues } from '../budgetForm'
+import {
+  budgetErrors,
+  budgetValuesFrom,
+  changedBudgetFields,
+  effectiveBudgetType,
+  readBudgetValues,
+  type BudgetFormValues,
+} from '../budgetForm'
 import { useLiveErrors } from '../useLiveErrors'
 import { BudgetInputs } from './BudgetInputs'
+import { PercentSlider } from './PercentSlider'
 
 type Props = {
   category: Category
@@ -102,6 +110,18 @@ export function EditCategoryRow({ category, remainderTaken, otherPercentTotal, o
           </button>
         </td>
       </tr>
+      {effectiveBudgetType(kind, budget) === 'PERCENT_OF_INCOME' && (
+        <tr className="editing-row editing-row-extra" onKeyDown={handleKeyDown}>
+          <td colSpan={4}>
+            <PercentSlider
+              otherTotal={otherPercentTotal}
+              value={budget.percent}
+              onChange={(percent) => changeBudget({ ...budget, percent })}
+              label={`Percent of income slider for ${category.name}`}
+            />
+          </td>
+        </tr>
+      )}
       {errors.error && (
         <tr>
           <td colSpan={4} className="error" role="alert">

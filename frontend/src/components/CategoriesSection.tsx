@@ -5,6 +5,7 @@ import { useAuth } from '../auth/useAuth'
 import {
   budgetErrors,
   changedBudgetFields,
+  effectiveBudgetType,
   EMPTY_BUDGET_VALUES,
   percentTotal,
   readBudgetValues,
@@ -13,6 +14,7 @@ import {
 import { describeBudget, formatLongDate } from '../budgetText'
 import { useLiveErrors } from '../useLiveErrors'
 import { BudgetInputs } from './BudgetInputs'
+import { PercentSlider } from './PercentSlider'
 import { EditCategoryRow } from './EditCategoryRow'
 
 const KIND_LABELS: Record<CategoryKind, string> = { BILL: 'Bill', EXPENSE: 'Expense' }
@@ -145,6 +147,16 @@ export function CategoriesSection() {
         <button type="submit" className="button button-primary" disabled={adding}>
           Add
         </button>
+        {effectiveBudgetType(kind, budget) === 'PERCENT_OF_INCOME' && (
+          <div className="form-row-full">
+            <PercentSlider
+              otherTotal={percentTotal(categories ?? [])}
+              value={budget.percent}
+              onChange={(percent) => changeBudget({ ...budget, percent })}
+              label="Percent of income slider for new-category"
+            />
+          </div>
+        )}
       </form>
       {addErrors.error && (
         <p className="error" role="alert">
