@@ -159,6 +159,43 @@ describe('CategoriesSection', () => {
     expect(within(form).getByLabelText('Kind')).toBeEnabled()
   })
 
+  it('shows and clears problems while typing, before Add is clicked', async () => {
+    renderSection()
+    await screen.findByText('Rent')
+    const form = screen.getByRole('form', { name: 'Add a category' })
+
+    fireEvent.change(within(form).getByLabelText('Amount ($)'), { target: { value: '12x' } })
+    expect(screen.getByRole('alert')).toHaveTextContent('Enter an amount like 480 or 480.00.')
+
+    fireEvent.change(within(form).getByLabelText('Amount ($)'), { target: { value: '12' } })
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it("doesn't complain about fields that haven't been typed in until Add is clicked", async () => {
+    renderSection()
+    await screen.findByText('Rent')
+    const form = screen.getByRole('form', { name: 'Add a category' })
+
+    fireEvent.change(within(form).getByLabelText('Budget as'), { target: { value: 'PERCENT_OF_INCOME' } })
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+
+    fireEvent.click(within(form).getByRole('button', { name: 'Add' }))
+    expect(screen.getByRole('alert')).toHaveTextContent('Enter a name.')
+  })
+
+  it('shows problems in an edited row as you type', async () => {
+    renderSection()
+    await screen.findByText('Groceries')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Groceries' }))
+    fireEvent.change(screen.getByLabelText('Budget as for Groceries'), { target: { value: 'PERCENT_OF_INCOME' } })
+    fireEvent.change(screen.getByLabelText('Percent of income for Groceries'), { target: { value: '150' } })
+    expect(screen.getByRole('alert')).toHaveTextContent('Enter a percent above 0 and up to 100.')
+
+    fireEvent.change(screen.getByLabelText('Percent of income for Groceries'), { target: { value: '15' } })
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
   it("shows the API's message for a duplicate name", async () => {
     renderSection()
     await screen.findByText('Rent')

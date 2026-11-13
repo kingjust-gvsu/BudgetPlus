@@ -2,8 +2,15 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { apiGet, apiSend } from '../api/client'
 import type { Category, CategoryChanges, CategoryKind } from '../api/types'
 import { useAuth } from '../auth/useAuth'
-import { EMPTY_BUDGET_VALUES, readBudgetValues } from '../budgetForm'
+import {
+  budgetErrors,
+  changedBudgetFields,
+  EMPTY_BUDGET_VALUES,
+  readBudgetValues,
+  type BudgetFormValues,
+} from '../budgetForm'
 import { describeBudget, formatLongDate } from '../budgetText'
+import { useLiveErrors } from '../useLiveErrors'
 import { BudgetInputs } from './BudgetInputs'
 import { EditCategoryRow } from './EditCategoryRow'
 
@@ -21,7 +28,6 @@ export function CategoriesSection() {
   const [name, setName] = useState('')
   const [kind, setKind] = useState<CategoryKind>('EXPENSE')
   const [budget, setBudget] = useState(EMPTY_BUDGET_VALUES)
-  const [addError, setAddError] = useState<string | null>(null)
   const [adding, setAdding] = useState(false)
 
   useEffect(() => {
@@ -44,26 +50,28 @@ export function CategoriesSection() {
   // Only one category can be the remainder
   const remainder = categories?.find((c) => c.budgetType === 'REMAINDER')
 
+  const addErrors = useLiveErrors({
+    name: name.trim() ? undefined : 'Enter a name.',
+    ...budgetErrors(kind, budget),
+  })
+
+  const changeBudget = (next: BudgetFormValues) => {
+    addErrors.touch(...changedBudgetFields(budget, next))
+    setBudget(next)
+  }
+
   const add = async (event: FormEvent) => {
     event.preventDefault()
-    if (!name.trim()) {
-      setAddError('Enter a name.')
-      return
-    }
-    const settings = readBudgetValues(kind, budget)
-    if (typeof settings === 'string') {
-      setAddError(settings)
-      return
-    }
-    setAddError(null)
+    if (!addErrors.trySubmit()) return
     setAdding(true)
     try {
-      await apiSend('POST', '/categories', await getToken(), { name: name.trim(), kind, ...settings })
+      await apiSend('POST', '/categories', await getToken(), { name: name.trim(), kind, ...readBudgetValues(kind, budget) })
       setName('')
       setBudget(EMPTY_BUDGET_VALUES)
+      addErrors.reset()
       setVersion((v) => v + 1)
     } catch (error) {
-      setAddError(error instanceof Error ? error.message : 'Adding failed. Please try again.')
+      addErrors.setServerError(error instanceof Error ? error.message : 'Adding failed. Please try again.')
     } finally {
       setAdding(false)
     }
@@ -103,7 +111,10 @@ export function CategoriesSection() {
             placeholder="e.g. Groceries"
             maxLength={100}
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => {
+              addErrors.touch('name')
+              setName(e.target.value)
+            }}
           />
         </div>
         <div className="field">
@@ -113,7 +124,10 @@ export function CategoriesSection() {
             title={budget.budgetType === 'REMAINDER' ? 'The remainder is always an expense' : undefined}
             disabled={budget.budgetType === 'REMAINDER'}
             value={kind}
-            onChange={(e) => setKind(e.target.value as CategoryKind)}
+            onChange={(e) => {
+              addErrors.touch()
+              setKind(e.target.value as CategoryKind)
+            }}
           >
             <option value="EXPENSE">Expense</option>
             <option value="BILL">Bill</option>
@@ -122,7 +136,7 @@ export function CategoriesSection() {
         <BudgetInputs
           kind={kind}
           values={budget}
-          onChange={setBudget}
+          onChange={changeBudget}
           layout="form"
           labelSuffix="new-category"
           remainderTaken={remainder !== undefined}
@@ -131,9 +145,9 @@ export function CategoriesSection() {
           Add
         </button>
       </form>
-      {addError && (
+      {addErrors.error && (
         <p className="error" role="alert">
-          {addError}
+          {addErrors.error}
         </p>
       )}
 

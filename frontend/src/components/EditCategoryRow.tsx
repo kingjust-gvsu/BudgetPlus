@@ -1,6 +1,7 @@
 import { useState, type KeyboardEvent } from 'react'
 import type { Category, CategoryChanges, CategoryKind } from '../api/types'
-import { budgetValuesFrom, readBudgetValues } from '../budgetForm'
+import { budgetErrors, budgetValuesFrom, changedBudgetFields, readBudgetValues, type BudgetFormValues } from '../budgetForm'
+import { useLiveErrors } from '../useLiveErrors'
 import { BudgetInputs } from './BudgetInputs'
 
 type Props = {
@@ -12,30 +13,29 @@ type Props = {
 }
 
 // A table row whose cells become inputs, for editing a category and its budget in place.
-// Enter saves and Escape cancels.
+// Enter saves and Escape cancels. Problems show as you type.
 export function EditCategoryRow({ category, remainderTaken, onSave, onCancel }: Props) {
   const [name, setName] = useState(category.name)
   const [kind, setKind] = useState<CategoryKind>(category.kind)
   const [budget, setBudget] = useState(budgetValuesFrom(category))
-  const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const errors = useLiveErrors({
+    name: name.trim() ? undefined : 'Enter a name.',
+    ...budgetErrors(kind, budget),
+  })
+
+  const changeBudget = (next: BudgetFormValues) => {
+    errors.touch(...changedBudgetFields(budget, next))
+    setBudget(next)
+  }
 
   const save = async () => {
-    if (!name.trim()) {
-      setError('Enter a name.')
-      return
-    }
-    const settings = readBudgetValues(kind, budget)
-    if (typeof settings === 'string') {
-      setError(settings)
-      return
-    }
-    setError(null)
+    if (!errors.trySubmit()) return
     setSaving(true)
     try {
-      await onSave({ name: name.trim(), kind, ...settings })
+      await onSave({ name: name.trim(), kind, ...readBudgetValues(kind, budget) })
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : 'Saving failed. Please try again.')
+      errors.setServerError(saveError instanceof Error ? saveError.message : 'Saving failed. Please try again.')
       setSaving(false)
     }
   }
@@ -59,7 +59,10 @@ export function EditCategoryRow({ category, remainderTaken, onSave, onCancel }: 
             maxLength={100}
             autoFocus
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => {
+              errors.touch('name')
+              setName(e.target.value)
+            }}
           />
         </td>
         <td>
@@ -69,7 +72,10 @@ export function EditCategoryRow({ category, remainderTaken, onSave, onCancel }: 
             title={budget.budgetType === 'REMAINDER' ? 'The remainder is always an expense' : undefined}
             disabled={budget.budgetType === 'REMAINDER'}
             value={kind}
-            onChange={(e) => setKind(e.target.value as CategoryKind)}
+            onChange={(e) => {
+              errors.touch()
+              setKind(e.target.value as CategoryKind)
+            }}
           >
             <option value="EXPENSE">Expense</option>
             <option value="BILL">Bill</option>
@@ -79,7 +85,7 @@ export function EditCategoryRow({ category, remainderTaken, onSave, onCancel }: 
           <BudgetInputs
             kind={kind}
             values={budget}
-            onChange={setBudget}
+            onChange={changeBudget}
             layout="cell"
             labelSuffix={category.name}
             remainderTaken={remainderTaken}
@@ -94,10 +100,10 @@ export function EditCategoryRow({ category, remainderTaken, onSave, onCancel }: 
           </button>
         </td>
       </tr>
-      {error && (
+      {errors.error && (
         <tr>
           <td colSpan={4} className="error" role="alert">
-            {error}
+            {errors.error}
           </td>
         </tr>
       )}
