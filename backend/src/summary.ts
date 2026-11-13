@@ -18,8 +18,10 @@ export type SummaryData = {
   fundPayments: Map<string, Map<string, number>>
 }
 
-// For a bill that isn't monthly, `targetCents` is the full bill its fund is saving toward
-export type CategorySummary = Pick<Category, 'id' | 'name' | 'kind' | 'budgetType'> & CategoryStatus & { targetCents?: number | null }
+// For a bill that isn't monthly, `targetCents` is the full bill its fund is saving toward and
+// `frequencyMonths` is how often it's due
+export type CategorySummary = Pick<Category, 'id' | 'name' | 'kind' | 'budgetType'> &
+  CategoryStatus & { targetCents?: number | null; frequencyMonths?: number }
 
 export type MonthSummary = {
   month: string
@@ -80,7 +82,7 @@ export function buildMonthSummary(month: string, incomeCents: number | null, dat
       if (s.state === 'paid') totals.monthlyBillsPaid += 1
     } else if (s.type === 'fundBill') {
       totals.billsPlannedCents += s.setAsideCents ?? 0
-      return { id: category.id, name: category.name, kind: category.kind, budgetType: category.budgetType, ...s, targetCents: category.budgetCents }
+      return { id: category.id, name: category.name, kind: category.kind, budgetType: category.budgetType, ...s, targetCents: category.budgetCents, frequencyMonths: category.frequencyMonths }
     } else if (category.budgetType !== 'REMAINDER') {
       totals.expensesLimitCents += s.limitCents ?? 0
       totals.expensesSpentCents += s.spentCents

@@ -69,6 +69,7 @@ export type FundBillStatus = {
   type: 'fundBill'
   setAsideCents: number | null
   targetCents: number | null // the full bill the fund is saving toward
+  frequencyMonths: number // how often it's due, e.g. 6
   fund?: FundMonth
 }
 

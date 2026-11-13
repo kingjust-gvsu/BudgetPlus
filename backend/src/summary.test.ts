@@ -73,6 +73,7 @@ describe('buildMonthSummary', () => {
       type: 'fundBill',
       setAsideCents: 10000,
       targetCents: 60000,
+      frequencyMonths: 6,
       fund: { balanceCents: 20000, nextDueDate: '2027-03-15', monthsLeft: 5 },
     })
   })
