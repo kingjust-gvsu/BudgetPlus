@@ -5,6 +5,31 @@ import { fakeDependencies, testUser, VALID_TOKEN } from './test/fakes.ts'
 
 const config = { corsOrigin: 'http://localhost:5173' }
 
+describe('PATCH /api/me', () => {
+  it('sets the monthly income', async () => {
+    const app = createApp(config, fakeDependencies())
+
+    const response = await request(app)
+      .patch('/api/me')
+      .set('Authorization', `Bearer ${VALID_TOKEN}`)
+      .send({ monthlyIncomeCents: 400000 })
+
+    expect(response.status).toBe(200)
+    expect(response.body).toEqual({ ...testUser, monthlyIncomeCents: 400000 })
+  })
+
+  it('rejects an income that is not whole cents', async () => {
+    const app = createApp(config, fakeDependencies())
+
+    const response = await request(app)
+      .patch('/api/me')
+      .set('Authorization', `Bearer ${VALID_TOKEN}`)
+      .send({ monthlyIncomeCents: 4000.5 })
+
+    expect(response.status).toBe(400)
+  })
+})
+
 describe('GET /api/me', () => {
   it('returns the signed-in user', async () => {
     const app = createApp(config, fakeDependencies())

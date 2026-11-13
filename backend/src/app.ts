@@ -6,9 +6,10 @@ import type { Config } from './config.ts'
 import { ConflictError, NotFoundError, ValidationError } from './errors.ts'
 import { createCategoriesRouter } from './routes/categories.ts'
 import { createHealthRouter, type DatabaseCheck } from './routes/health.ts'
-import { meRouter } from './routes/me.ts'
+import { createMeRouter } from './routes/me.ts'
 import { createTransactionsRouter } from './routes/transactions.ts'
 import type { TransactionStore } from './transactions.ts'
+import type { UserStore } from './users.ts'
 
 export type AppDependencies = {
   checkDatabase: DatabaseCheck
@@ -16,6 +17,7 @@ export type AppDependencies = {
   findOrCreateUser: FindOrCreateUser
   categories: CategoryStore
   transactions: TransactionStore
+  users: UserStore
 }
 
 // Builds the Express app without starting a server, so tests can call it directly
@@ -31,7 +33,7 @@ export function createApp(config: Pick<Config, 'corsOrigin'>, deps: AppDependenc
 
   // Routes below require a signed-in user
   const signedIn = requireAuth(deps.verifyToken, deps.findOrCreateUser)
-  app.use('/api/me', signedIn, meRouter)
+  app.use('/api/me', signedIn, createMeRouter(deps.users))
   app.use('/api/categories', signedIn, createCategoriesRouter(deps.categories))
   app.use('/api/transactions', signedIn, createTransactionsRouter(deps.transactions))
 

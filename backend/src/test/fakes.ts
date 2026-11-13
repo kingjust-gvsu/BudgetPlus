@@ -12,6 +12,7 @@ import {
 } from '../categories.ts'
 import { ConflictError, ValidationError } from '../errors.ts'
 import { CATEGORY_NOT_FOUND, type Transaction, type TransactionStore } from '../transactions.ts'
+import type { UserStore } from '../users.ts'
 
 // Test stand-ins for the database and Firebase, so tests run without either.
 
@@ -22,12 +23,14 @@ export const testUser: AuthenticatedUser = {
   id: '00000000-0000-0000-0000-000000000001',
   firebaseUid: 'firebase-uid-1',
   email: 'test@example.com',
+  monthlyIncomeCents: null,
 }
 
 export const otherUser: AuthenticatedUser = {
   id: '00000000-0000-0000-0000-000000000002',
   firebaseUid: 'firebase-uid-2',
   email: 'other@example.com',
+  monthlyIncomeCents: null,
 }
 
 const usersByToken: Record<string, AuthenticatedUser> = {
@@ -88,6 +91,17 @@ export function createFakeCategoryStore(seeds: CategorySeed[] = []): CategorySto
       if (index === -1) return false
       rows.splice(index, 1)
       return true
+    },
+  }
+}
+
+// Keeps each user's income in memory.
+export function createFakeUserStore(users: AuthenticatedUser[] = [testUser, otherUser]): UserStore {
+  return {
+    setMonthlyIncome: async (userId, monthlyIncomeCents) => {
+      const user = users.find((u) => u.id === userId)
+      if (!user) throw new Error('unknown user')
+      return { ...user, monthlyIncomeCents }
     },
   }
 }
@@ -153,6 +167,7 @@ export function fakeDependencies(overrides: Partial<AppDependencies> = {}): AppD
     findOrCreateUser: async ({ uid }) => (uid === otherUser.firebaseUid ? otherUser : testUser),
     categories: createFakeCategoryStore(),
     transactions: createFakeTransactionStore(),
+    users: createFakeUserStore(),
     ...overrides,
   }
 }

@@ -4,7 +4,7 @@ import { createCategoryStore } from './categories.ts'
 import { loadConfig } from './config.ts'
 import { createDatabase } from './db.ts'
 import { createTransactionStore } from './transactions.ts'
-import { createFindOrCreateUser } from './users.ts'
+import { createFindOrCreateUser, createUserStore } from './users.ts'
 
 const config = loadConfig()
 const db = createDatabase(config.databaseUrl)
@@ -22,6 +22,7 @@ const app = createApp(config, {
   findOrCreateUser: createFindOrCreateUser(db),
   categories: createCategoryStore(db),
   transactions: createTransactionStore(db),
+  users: createUserStore(db),
 })
 
 app.listen(config.port, () => {

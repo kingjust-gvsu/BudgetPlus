@@ -13,6 +13,8 @@ export type AuthenticatedUser = {
   id: string
   firebaseUid: string
   email: string | null
+  // Estimated monthly income in whole cents; null until the user enters it
+  monthlyIncomeCents: number | null
 }
 
 // Checks a sign-in token and returns who it belongs to. Throws if the token is invalid or expired.
