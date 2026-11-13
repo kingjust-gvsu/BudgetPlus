@@ -36,3 +36,59 @@ export type Transaction = {
 }
 
 export type TransactionInput = Omit<Transaction, 'id'>
+
+// GET /api/summary?month=YYYY-MM: one month at a glance
+
+export type ExpenseStatus = {
+  type: 'expense'
+  limitCents: number | null
+  spentCents: number
+  leftCents: number | null // negative when over
+  state: 'under' | 'over' | 'noLimit'
+}
+
+export type BillStatus = {
+  type: 'bill'
+  estimateCents: number | null
+  paidCents: number
+  differenceCents: number // paid minus estimate once paid; positive = came in higher
+  state: 'paid' | 'pending'
+}
+
+export type FundMonth = {
+  setAsideCents: number
+  balanceCents: number
+  nextDueDate: string // YYYY-MM-DD
+  monthsLeft: number
+  paidCents: number
+  remainderChangeCents: number
+}
+
+// A bill paid every few months, saved for monthly
+export type FundBillStatus = {
+  type: 'fundBill'
+  setAsideCents: number | null
+  targetCents: number | null // the full bill the fund is saving toward
+  fund?: FundMonth
+}
+
+export type CategorySummary = Pick<Category, 'id' | 'name' | 'kind' | 'budgetType'> &
+  (ExpenseStatus | BillStatus | FundBillStatus)
+
+export type MonthSummary = {
+  month: string
+  incomeCents: number | null
+  remainderCents: number | null
+  overPlannedCents: number
+  billDifferenceCents: number
+  uncategorizedCents: number
+  totals: {
+    billsPlannedCents: number
+    billsPaidCents: number
+    monthlyBillsPaid: number
+    monthlyBills: number
+    expensesLimitCents: number
+    expensesSpentCents: number
+  }
+  categories: CategorySummary[]
+}

@@ -1,0 +1,165 @@
+/* Dashboard */
+
+.dash-notice {
+  margin: 0 0 16px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: #e3ecfb;
+  color: var(--color-text);
+}
+
+.dash-notice--warning {
+  background: #fdecec;
+}
+
+/* Month summary cards */
+
+.dash-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.dash-tile {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 18px;
+}
+
+.dash-tile-label {
+  color: var(--color-muted);
+  font-size: 14px;
+}
+
+.dash-tile-value {
+  margin-top: 4px;
+  font-size: 28px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-tile-note {
+  color: var(--color-muted);
+  font-size: 14px;
+}
+
+/* Two columns: expenses, then bills and funds; stacked on phones */
+
+.dash-columns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.dash-main {
+  flex: 999 1 480px;
+  min-width: 0;
+}
+
+.dash-side {
+  flex: 1 1 320px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.dash-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dash-row-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-row-name {
+  font-weight: 500;
+}
+
+.dash-row-note {
+  margin-top: 4px;
+  font-size: 13px;
+}
+
+.dash-row-note--under {
+  color: var(--color-good);
+}
+
+.dash-row-note--over {
+  color: var(--color-bad);
+}
+
+.dash-row-note--noLimit {
+  color: var(--color-muted);
+}
+
+.progress {
+  height: 10px;
+  margin-top: 6px;
+  border-radius: 5px;
+  background: #ececea;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 5px;
+}
+
+.progress-fill--good {
+  background: var(--color-good);
+}
+
+.progress-fill--bad {
+  background: var(--color-bad);
+}
+
+.progress-fill--neutral {
+  background: var(--color-neutral);
+}
+
+/* Bills: always neutral */
+
+.dash-bills {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dash-bill {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #ececea;
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-bill:last-child {
+  border-bottom: 0;
+}
+
+.dash-uncategorized {
+  margin: 20px 0 0;
+}
+
+.dash-empty {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.dash-empty .button {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}

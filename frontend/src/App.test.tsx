@@ -3,6 +3,7 @@ import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import { AuthContext, type AuthState } from './auth/authContext'
+import { formatMonth, monthOf, today } from './dates'
 
 function renderApp(auth: Partial<AuthState>, path = '/') {
   const value: AuthState = {
@@ -22,7 +23,20 @@ function renderApp(auth: Partial<AuthState>, path = '/') {
 }
 
 const signedInUser = { email: 'test@example.com', displayName: 'Test User' }
-const okResponse = () => Promise.resolve(Response.json({ status: 'ok' }))
+const thisMonth = formatMonth(monthOf(today()))
+
+const emptySummary = {
+  month: '2026-11',
+  incomeCents: null,
+  remainderCents: null,
+  overPlannedCents: 0,
+  billDifferenceCents: 0,
+  uncategorizedCents: 0,
+  totals: { billsPlannedCents: 0, billsPaidCents: 0, monthlyBillsPaid: 0, monthlyBills: 0, expensesLimitCents: 0, expensesSpentCents: 0 },
+  categories: [],
+}
+const okResponse = (url: string) =>
+  Promise.resolve(Response.json(url.startsWith('/api/summary') ? emptySummary : { status: 'ok' }))
 
 describe('App', () => {
   beforeEach(() => {
@@ -58,21 +72,21 @@ describe('App', () => {
   it('sends unknown URLs to the dashboard', () => {
     renderApp({ user: signedInUser }, '/not-a-page')
 
-    expect(screen.getByRole('heading', { name: 'Dashboard' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: thisMonth })).toBeInTheDocument()
   })
 
   it('sends the sign-in token to the API', async () => {
     renderApp({ user: signedInUser })
-    await screen.findByText('API: online')
+    await screen.findByRole('heading', { name: 'Set up your budget' })
 
     expect(fetch).toHaveBeenCalledWith('/api/me', { headers: { Authorization: 'Bearer test-token' } })
   })
 
-  it('shows the API as offline when requests fail', async () => {
+  it("shows an error when the dashboard can't load", async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')))
 
     renderApp({ user: signedInUser })
 
-    expect(await screen.findByText('API: offline')).toBeInTheDocument()
+    expect(await screen.findByRole('alert')).toHaveTextContent("Couldn't load this month")
   })
 })
