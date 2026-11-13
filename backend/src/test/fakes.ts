@@ -5,6 +5,7 @@ import {
   categoryAfterChange,
   DEFAULT_BUDGET_SETTINGS,
   DUPLICATE_NAME,
+  percentTotalError,
   SECOND_REMAINDER,
   type BudgetSettings,
   type Category,
@@ -61,6 +62,14 @@ export function createFakeCategoryStore(seeds: CategorySeed[] = []): CategorySto
     const other = rows.some((r) => r.userId === userId && r.budgetType === 'REMAINDER' && r.id !== exceptId)
     if (category.budgetType === 'REMAINDER' && other) throw new ConflictError(SECOND_REMAINDER)
   }
+  const checkPercentTotal = (userId: string, category: Omit<Category, 'id'>, exceptId?: string) => {
+    if (category.budgetType !== 'PERCENT_OF_INCOME' || category.budgetPercent === null) return
+    const others = rows
+      .filter((r) => r.userId === userId && r.budgetType === 'PERCENT_OF_INCOME' && r.id !== exceptId)
+      .reduce((sum, r) => sum + Math.round((r.budgetPercent ?? 0) * 100), 0)
+    const error = percentTotalError(others + Math.round(category.budgetPercent * 100))
+    if (error) throw new ConflictError(error)
+  }
 
   return {
     rows,
@@ -72,6 +81,7 @@ export function createFakeCategoryStore(seeds: CategorySeed[] = []): CategorySto
     create: async (userId, input) => {
       const category = categoryAfterChange(null, input)
       checkOneRemainder(userId, category)
+      checkPercentTotal(userId, category)
       if (nameTaken(userId, category.name)) throw new ConflictError(DUPLICATE_NAME)
       const row = { id: randomUUID(), userId, ...category }
       rows.push(row)
@@ -82,6 +92,7 @@ export function createFakeCategoryStore(seeds: CategorySeed[] = []): CategorySto
       if (!row) return null
       const category = categoryAfterChange(toCategory(row), changes)
       checkOneRemainder(userId, category, id)
+      checkPercentTotal(userId, category, id)
       if (nameTaken(userId, category.name, id)) throw new ConflictError(DUPLICATE_NAME)
       Object.assign(row, category)
       return toCategory(row)

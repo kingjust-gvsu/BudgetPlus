@@ -1,4 +1,4 @@
-import type { BudgetSettings, BudgetType, CategoryKind } from './api/types'
+import type { BudgetSettings, BudgetType, Category, CategoryKind } from './api/types'
 import { centsToInput, parseDollars } from './money'
 
 // What the budget inputs hold while someone is typing (amounts as typed, in dollars)
@@ -37,7 +37,13 @@ export function effectiveBudgetType(kind: CategoryKind, values: BudgetFormValues
 export type BudgetField = 'amount' | 'percent' | 'nextDueDate'
 
 // Problems with what's been typed so far, by field. The API checks the rest.
-export function budgetErrors(kind: CategoryKind, values: BudgetFormValues): Partial<Record<BudgetField, string>> {
+// otherPercentTotal: what the user's other percent-of-income categories add up to (e.g. 60 for 60%),
+// since all of them together can't be more than 100%.
+export function budgetErrors(
+  kind: CategoryKind,
+  values: BudgetFormValues,
+  otherPercentTotal = 0,
+): Partial<Record<BudgetField, string>> {
   const budgetType = effectiveBudgetType(kind, values)
   const errors: Partial<Record<BudgetField, string>> = {}
   if (budgetType === 'FIXED' && values.amount.trim()) {
@@ -50,6 +56,10 @@ export function budgetErrors(kind: CategoryKind, values: BudgetFormValues): Part
       errors.percent = 'Enter a percent like 12 or 12.5.'
     } else if (percent <= 0 || percent > 100) {
       errors.percent = 'Enter a percent above 0 and up to 100.'
+    } else {
+      // Whole hundredths, so 33.3 + 66.7 is exactly 100
+      const total = Math.round(otherPercentTotal * 100) + Math.round(percent * 100)
+      if (total > 10000) errors.percent = `Percent budgets would total ${total / 100}% of income. The most is 100%.`
     }
   }
   if (kind === 'BILL' && values.frequencyMonths > 1 && !values.nextDueDate) {
@@ -81,3 +91,10 @@ export function readBudgetValues(kind: CategoryKind, values: BudgetFormValues): 
   }
 }
 
+// What the percent-of-income categories add up to, leaving out one (the one being edited)
+export function percentTotal(categories: Category[], exceptId?: string): number {
+  const hundredths = categories
+    .filter((c) => c.budgetType === 'PERCENT_OF_INCOME' && c.id !== exceptId)
+    .reduce((sum, c) => sum + Math.round((c.budgetPercent ?? 0) * 100), 0)
+  return hundredths / 100
+}

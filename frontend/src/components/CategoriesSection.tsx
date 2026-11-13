@@ -6,6 +6,7 @@ import {
   budgetErrors,
   changedBudgetFields,
   EMPTY_BUDGET_VALUES,
+  percentTotal,
   readBudgetValues,
   type BudgetFormValues,
 } from '../budgetForm'
@@ -52,7 +53,7 @@ export function CategoriesSection() {
 
   const addErrors = useLiveErrors({
     name: name.trim() ? undefined : 'Enter a name.',
-    ...budgetErrors(kind, budget),
+    ...budgetErrors(kind, budget, percentTotal(categories ?? [])),
   })
 
   const changeBudget = (next: BudgetFormValues) => {
@@ -181,6 +182,7 @@ export function CategoriesSection() {
                     key={category.id}
                     category={category}
                     remainderTaken={remainder !== undefined && remainder.id !== category.id}
+                    otherPercentTotal={percentTotal(categories, category.id)}
                     onSave={(changes) => update(category.id, changes)}
                     onCancel={() => setEditingId(null)}
                   />

@@ -196,6 +196,35 @@ describe('CategoriesSection', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
+  it('warns as you type when percent budgets would total more than 100%', async () => {
+    categories.push(
+      makeCategory({ id: 'cat-savings', name: 'Savings', kind: 'EXPENSE', budgetType: 'PERCENT_OF_INCOME', budgetPercent: 60 }),
+    )
+    renderSection()
+    await screen.findByText('Groceries')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Groceries' }))
+    fireEvent.change(screen.getByLabelText('Budget as for Groceries'), { target: { value: 'PERCENT_OF_INCOME' } })
+    fireEvent.change(screen.getByLabelText('Percent of income for Groceries'), { target: { value: '45' } })
+    expect(screen.getByRole('alert')).toHaveTextContent('Percent budgets would total 105% of income. The most is 100%.')
+
+    fireEvent.change(screen.getByLabelText('Percent of income for Groceries'), { target: { value: '40' } })
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it("doesn't count the edited category's own old percent", async () => {
+    categories.push(
+      makeCategory({ id: 'cat-savings', name: 'Savings', kind: 'EXPENSE', budgetType: 'PERCENT_OF_INCOME', budgetPercent: 60 }),
+    )
+    renderSection()
+    await screen.findByText('Savings')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Savings' }))
+    fireEvent.change(screen.getByLabelText('Percent of income for Savings'), { target: { value: '90' } })
+
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
   it("shows the API's message for a duplicate name", async () => {
     renderSection()
     await screen.findByText('Rent')

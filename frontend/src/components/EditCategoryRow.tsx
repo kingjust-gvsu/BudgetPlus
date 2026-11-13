@@ -8,20 +8,22 @@ type Props = {
   category: Category
   // Another category is already the remainder, so this one can't be
   remainderTaken: boolean
+  // What the other percent-of-income categories add up to, e.g. 60 for 60%
+  otherPercentTotal: number
   onSave: (changes: CategoryChanges) => Promise<void>
   onCancel: () => void
 }
 
 // A table row whose cells become inputs, for editing a category and its budget in place.
 // Enter saves and Escape cancels. Problems show as you type.
-export function EditCategoryRow({ category, remainderTaken, onSave, onCancel }: Props) {
+export function EditCategoryRow({ category, remainderTaken, otherPercentTotal, onSave, onCancel }: Props) {
   const [name, setName] = useState(category.name)
   const [kind, setKind] = useState<CategoryKind>(category.kind)
   const [budget, setBudget] = useState(budgetValuesFrom(category))
   const [saving, setSaving] = useState(false)
   const errors = useLiveErrors({
     name: name.trim() ? undefined : 'Enter a name.',
-    ...budgetErrors(kind, budget),
+    ...budgetErrors(kind, budget, otherPercentTotal),
   })
 
   const changeBudget = (next: BudgetFormValues) => {
