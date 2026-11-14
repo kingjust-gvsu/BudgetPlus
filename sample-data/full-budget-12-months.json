@@ -1,0 +1,1874 @@
+{
+  "format": "budget-plus-backup",
+  "version": 1,
+  "exportedAt": "2026-11-13T12:00:00.000Z",
+  "monthlyIncomeCents": 400000,
+  "categories": [
+    {
+      "name": "Car insurance",
+      "kind": "BILL",
+      "budgetType": "FIXED",
+      "budgetCents": 60000,
+      "budgetPercent": null,
+      "frequencyMonths": 6,
+      "nextDueDate": "2027-03-15",
+      "createdOn": "2025-09-01"
+    },
+    {
+      "name": "Car registration",
+      "kind": "BILL",
+      "budgetType": "FIXED",
+      "budgetCents": 12000,
+      "budgetPercent": null,
+      "frequencyMonths": 12,
+      "nextDueDate": "2027-06-01",
+      "createdOn": "2025-06-01"
+    },
+    {
+      "name": "Eating out",
+      "kind": "EXPENSE",
+      "budgetType": "FIXED",
+      "budgetCents": 20000,
+      "budgetPercent": null,
+      "frequencyMonths": 1,
+      "nextDueDate": null,
+      "createdOn": "2025-12-01"
+    },
+    {
+      "name": "Electric",
+      "kind": "BILL",
+      "budgetType": "FIXED",
+      "budgetCents": 12000,
+      "budgetPercent": null,
+      "frequencyMonths": 1,
+      "nextDueDate": null,
+      "createdOn": "2025-12-01"
+    },
+    {
+      "name": "Entertainment",
+      "kind": "EXPENSE",
+      "budgetType": "FIXED",
+      "budgetCents": 10000,
+      "budgetPercent": null,
+      "frequencyMonths": 1,
+      "nextDueDate": null,
+      "createdOn": "2025-12-01"
+    },
+    {
+      "name": "Gas",
+      "kind": "EXPENSE",
+      "budgetType": "FIXED",
+      "budgetCents": 16000,
+      "budgetPercent": null,
+      "frequencyMonths": 1,
+      "nextDueDate": null,
+      "createdOn": "2025-12-01"
+    },
+    {
+      "name": "Gifts",
+      "kind": "EXPENSE",
+      "budgetType": "FIXED",
+      "budgetCents": 5000,
+      "budgetPercent": null,
+      "frequencyMonths": 1,
+      "nextDueDate": null,
+      "createdOn": "2025-12-01"
+    },
+    {
+      "name": "Groceries",
+      "kind": "EXPENSE",
+      "budgetType": "PERCENT_OF_INCOME",
+      "budgetCents": null,
+      "budgetPercent": 12,
+      "frequencyMonths": 1,
+      "nextDueDate": null,
+      "createdOn": "2025-12-01"
+    },
+    {
+      "name": "Household",
+      "kind": "EXPENSE",
+      "budgetType": "FIXED",
+      "budgetCents": 12000,
+      "budgetPercent": null,
+      "frequencyMonths": 1,
+      "nextDueDate": null,
+      "createdOn": "2025-12-01"
+    },
+    {
+      "name": "Internet",
+      "kind": "BILL",
+      "budgetType": "FIXED",
+      "budgetCents": 6500,
+      "budgetPercent": null,
+      "frequencyMonths": 1,
+      "nextDueDate": null,
+      "createdOn": "2025-12-01"
+    },
+    {
+      "name": "Phone",
+      "kind": "BILL",
+      "budgetType": "FIXED",
+      "budgetCents": 4500,
+      "budgetPercent": null,
+      "frequencyMonths": 1,
+      "nextDueDate": null,
+      "createdOn": "2025-12-01"
+    },
+    {
+      "name": "Rent",
+      "kind": "BILL",
+      "budgetType": "FIXED",
+      "budgetCents": 120000,
+      "budgetPercent": null,
+      "frequencyMonths": 1,
+      "nextDueDate": null,
+      "createdOn": "2025-12-01"
+    },
+    {
+      "name": "Savings",
+      "kind": "EXPENSE",
+      "budgetType": "REMAINDER",
+      "budgetCents": null,
+      "budgetPercent": null,
+      "frequencyMonths": 1,
+      "nextDueDate": null,
+      "createdOn": "2025-12-01"
+    }
+  ],
+  "transactions": [
+    {
+      "date": "2025-12-01",
+      "description": "Landlord - Rent",
+      "amountCents": 120000,
+      "category": "Rent"
+    },
+    {
+      "date": "2025-12-03",
+      "description": "SQ *COFFEE CORNER",
+      "amountCents": 506,
+      "category": null
+    },
+    {
+      "date": "2025-12-04",
+      "description": "Chipotle",
+      "amountCents": 4006,
+      "category": "Eating out"
+    },
+    {
+      "date": "2025-12-06",
+      "description": "Meijer",
+      "amountCents": 13961,
+      "category": "Groceries"
+    },
+    {
+      "date": "2025-12-06",
+      "description": "Target",
+      "amountCents": 4813,
+      "category": "Gifts"
+    },
+    {
+      "date": "2025-12-07",
+      "description": "Biggby Coffee",
+      "amountCents": 733,
+      "category": null
+    },
+    {
+      "date": "2025-12-07",
+      "description": "Home Depot",
+      "amountCents": 2989,
+      "category": "Household"
+    },
+    {
+      "date": "2025-12-08",
+      "description": "Local Diner",
+      "amountCents": 3658,
+      "category": "Eating out"
+    },
+    {
+      "date": "2025-12-08",
+      "description": "Spectrum Internet",
+      "amountCents": 6500,
+      "category": "Internet"
+    },
+    {
+      "date": "2025-12-12",
+      "description": "Consumers Energy",
+      "amountCents": 15543,
+      "category": "Electric"
+    },
+    {
+      "date": "2025-12-12",
+      "description": "Sushi Place",
+      "amountCents": 3071,
+      "category": "Eating out"
+    },
+    {
+      "date": "2025-12-13",
+      "description": "Costco",
+      "amountCents": 12028,
+      "category": "Groceries"
+    },
+    {
+      "date": "2025-12-13",
+      "description": "Target",
+      "amountCents": 6694,
+      "category": "Gifts"
+    },
+    {
+      "date": "2025-12-15",
+      "description": "Marathon",
+      "amountCents": 5445,
+      "category": "Gas"
+    },
+    {
+      "date": "2025-12-17",
+      "description": "Biggby Coffee",
+      "amountCents": 713,
+      "category": null
+    },
+    {
+      "date": "2025-12-18",
+      "description": "Etsy",
+      "amountCents": 6984,
+      "category": "Gifts"
+    },
+    {
+      "date": "2025-12-20",
+      "description": "Chipotle",
+      "amountCents": 3048,
+      "category": "Eating out"
+    },
+    {
+      "date": "2025-12-20",
+      "description": "SQ *COFFEE CORNER",
+      "amountCents": 576,
+      "category": null
+    },
+    {
+      "date": "2025-12-20",
+      "description": "Trader Joe's",
+      "amountCents": 11599,
+      "category": "Groceries"
+    },
+    {
+      "date": "2025-12-20",
+      "description": "Verizon Wireless",
+      "amountCents": 4500,
+      "category": "Phone"
+    },
+    {
+      "date": "2025-12-21",
+      "description": "Local Diner",
+      "amountCents": 2299,
+      "category": "Eating out"
+    },
+    {
+      "date": "2025-12-23",
+      "description": "Pizza Hut",
+      "amountCents": 3137,
+      "category": "Eating out"
+    },
+    {
+      "date": "2025-12-24",
+      "description": "Sushi Place",
+      "amountCents": 1855,
+      "category": "Eating out"
+    },
+    {
+      "date": "2025-12-26",
+      "description": "Home Depot",
+      "amountCents": 4147,
+      "category": "Household"
+    },
+    {
+      "date": "2025-12-26",
+      "description": "Shell",
+      "amountCents": 4597,
+      "category": "Gas"
+    },
+    {
+      "date": "2025-12-27",
+      "description": "Meijer",
+      "amountCents": 11104,
+      "category": "Groceries"
+    },
+    {
+      "date": "2025-12-29",
+      "description": "Starbucks",
+      "amountCents": 467,
+      "category": null
+    },
+    {
+      "date": "2025-12-30",
+      "description": "Target",
+      "amountCents": 3350,
+      "category": "Household"
+    },
+    {
+      "date": "2025-12-31",
+      "description": "Walmart",
+      "amountCents": 4717,
+      "category": "Household"
+    },
+    {
+      "date": "2026-01-01",
+      "description": "Landlord - Rent",
+      "amountCents": 120000,
+      "category": "Rent"
+    },
+    {
+      "date": "2026-01-03",
+      "description": "Costco",
+      "amountCents": 11762,
+      "category": "Groceries"
+    },
+    {
+      "date": "2026-01-03",
+      "description": "SQ *COFFEE CORNER",
+      "amountCents": 682,
+      "category": null
+    },
+    {
+      "date": "2026-01-06",
+      "description": "Sushi Place",
+      "amountCents": 2348,
+      "category": "Eating out"
+    },
+    {
+      "date": "2026-01-08",
+      "description": "Spectrum Internet",
+      "amountCents": 6500,
+      "category": "Internet"
+    },
+    {
+      "date": "2026-01-10",
+      "description": "Amazon",
+      "amountCents": 5049,
+      "category": "Household"
+    },
+    {
+      "date": "2026-01-10",
+      "description": "Kroger",
+      "amountCents": 12316,
+      "category": "Groceries"
+    },
+    {
+      "date": "2026-01-11",
+      "description": "Chipotle",
+      "amountCents": 2163,
+      "category": "Eating out"
+    },
+    {
+      "date": "2026-01-11",
+      "description": "Target",
+      "amountCents": 1884,
+      "category": "Household"
+    },
+    {
+      "date": "2026-01-12",
+      "description": "Consumers Energy",
+      "amountCents": 16061,
+      "category": "Electric"
+    },
+    {
+      "date": "2026-01-16",
+      "description": "Sushi Place",
+      "amountCents": 2553,
+      "category": "Eating out"
+    },
+    {
+      "date": "2026-01-17",
+      "description": "Meijer",
+      "amountCents": 9716,
+      "category": "Groceries"
+    },
+    {
+      "date": "2026-01-19",
+      "description": "Biggby Coffee",
+      "amountCents": 514,
+      "category": null
+    },
+    {
+      "date": "2026-01-20",
+      "description": "Verizon Wireless",
+      "amountCents": 4500,
+      "category": "Phone"
+    },
+    {
+      "date": "2026-01-22",
+      "description": "Bowling Alley",
+      "amountCents": 2961,
+      "category": "Entertainment"
+    },
+    {
+      "date": "2026-01-23",
+      "description": "Biggby Coffee",
+      "amountCents": 585,
+      "category": null
+    },
+    {
+      "date": "2026-01-23",
+      "description": "Sushi Place",
+      "amountCents": 3631,
+      "category": "Eating out"
+    },
+    {
+      "date": "2026-01-24",
+      "description": "Kroger",
+      "amountCents": 11092,
+      "category": "Groceries"
+    },
+    {
+      "date": "2026-01-24",
+      "description": "Target",
+      "amountCents": 4071,
+      "category": "Household"
+    },
+    {
+      "date": "2026-01-31",
+      "description": "Chipotle",
+      "amountCents": 3384,
+      "category": "Eating out"
+    },
+    {
+      "date": "2026-01-31",
+      "description": "Kroger",
+      "amountCents": 9065,
+      "category": "Groceries"
+    },
+    {
+      "date": "2026-02-01",
+      "description": "Landlord - Rent",
+      "amountCents": 120000,
+      "category": "Rent"
+    },
+    {
+      "date": "2026-02-02",
+      "description": "Biggby Coffee",
+      "amountCents": 547,
+      "category": null
+    },
+    {
+      "date": "2026-02-02",
+      "description": "Sushi Place",
+      "amountCents": 2794,
+      "category": "Eating out"
+    },
+    {
+      "date": "2026-02-04",
+      "description": "Amazon",
+      "amountCents": 5347,
+      "category": "Household"
+    },
+    {
+      "date": "2026-02-07",
+      "description": "Meijer",
+      "amountCents": 11948,
+      "category": "Groceries"
+    },
+    {
+      "date": "2026-02-08",
+      "description": "Spectrum Internet",
+      "amountCents": 6500,
+      "category": "Internet"
+    },
+    {
+      "date": "2026-02-11",
+      "description": "Thai Kitchen",
+      "amountCents": 1559,
+      "category": "Eating out"
+    },
+    {
+      "date": "2026-02-12",
+      "description": "Consumers Energy",
+      "amountCents": 15405,
+      "category": "Electric"
+    },
+    {
+      "date": "2026-02-12",
+      "description": "Taco Bell",
+      "amountCents": 3273,
+      "category": "Eating out"
+    },
+    {
+      "date": "2026-02-14",
+      "description": "Kroger",
+      "amountCents": 11608,
+      "category": "Groceries"
+    },
+    {
+      "date": "2026-02-18",
+      "description": "Home Depot",
+      "amountCents": 4261,
+      "category": "Household"
+    },
+    {
+      "date": "2026-02-18",
+      "description": "Starbucks",
+      "amountCents": 729,
+      "category": null
+    },
+    {
+      "date": "2026-02-19",
+      "description": "Biggby Coffee",
+      "amountCents": 579,
+      "category": null
+    },
+    {
+      "date": "2026-02-19",
+      "description": "Concert Tickets",
+      "amountCents": 1708,
+      "category": "Entertainment"
+    },
+    {
+      "date": "2026-02-20",
+      "description": "Verizon Wireless",
+      "amountCents": 4500,
+      "category": "Phone"
+    },
+    {
+      "date": "2026-02-21",
+      "description": "Speedway",
+      "amountCents": 5103,
+      "category": "Gas"
+    },
+    {
+      "date": "2026-02-21",
+      "description": "Thai Kitchen",
+      "amountCents": 2300,
+      "category": "Eating out"
+    },
+    {
+      "date": "2026-02-21",
+      "description": "Trader Joe's",
+      "amountCents": 9887,
+      "category": "Groceries"
+    },
+    {
+      "date": "2026-02-25",
+      "description": "Concert Tickets",
+      "amountCents": 1182,
+      "category": "Entertainment"
+    },
+    {
+      "date": "2026-02-26",
+      "description": "Target - Return",
+      "amountCents": -2838,
+      "category": "Household"
+    },
+    {
+      "date": "2026-02-28",
+      "description": "Kroger",
+      "amountCents": 8650,
+      "category": "Groceries"
+    },
+    {
+      "date": "2026-02-28",
+      "description": "Taco Bell",
+      "amountCents": 2699,
+      "category": "Eating out"
+    },
+    {
+      "date": "2026-03-01",
+      "description": "Landlord - Rent",
+      "amountCents": 120000,
+      "category": "Rent"
+    },
+    {
+      "date": "2026-03-01",
+      "description": "Taco Bell",
+      "amountCents": 1464,
+      "category": "Eating out"
+    },
+    {
+      "date": "2026-03-04",
+      "description": "Speedway",
+      "amountCents": 5355,
+      "category": "Gas"
+    },
+    {
+      "date": "2026-03-05",
+      "description": "Local Diner",
+      "amountCents": 2079,
+      "category": "Eating out"
+    },
+    {
+      "date": "2026-03-05",
+      "description": "Walmart",
+      "amountCents": 2358,
+      "category": "Household"
+    },
+    {
+      "date": "2026-03-07",
+      "description": "Aldi",
+      "amountCents": 10789,
+      "category": "Groceries"
+    },
+    {
+      "date": "2026-03-08",
+      "description": "Spectrum Internet",
+      "amountCents": 6500,
+      "category": "Internet"
+    },
+    {
+      "date": "2026-03-12",
+      "description": "Consumers Energy",
+      "amountCents": 12822,
+      "category": "Electric"
+    },
+    {
+      "date": "2026-03-13",
+      "description": "Biggby Coffee",
+      "amountCents": 658,
+      "category": null
+    },
+    {
+      "date": "2026-03-13",
+      "description": "Target - Return",
+      "amountCents": -2915,
+      "category": "Household"
+    },
+    {
+      "date": "2026-03-14",
+      "description": "Aldi",
+      "amountCents": 12186,
+      "category": "Groceries"
+    },
+    {
+      "date": "2026-03-14",
+      "description": "Target",
+      "amountCents": 1738,
+      "category": "Household"
+    },
+    {
+      "date": "2026-03-15",
+      "description": "Progressive Car Insurance",
+      "amountCents": 60000,
+      "category": "Car insurance"
+    },
+    {
+      "date": "2026-03-20",
+      "description": "Speedway",
+      "amountCents": 5313,
+      "category": "Gas"
+    },
+    {
+      "date": "2026-03-20",
+      "description": "Verizon Wireless",
+      "amountCents": 4500,
+      "category": "Phone"
+    },
+    {
+      "date": "2026-03-21",
+      "description": "Aldi",
+      "amountCents": 8971,
+      "category": "Groceries"
+    },
+    {
+      "date": "2026-03-22",
+      "description": "Speedway",
+      "amountCents": 5127,
+      "category": "Gas"
+    },
+    {
+      "date": "2026-03-24",
+      "description": "Pizza Hut",
+      "amountCents": 3492,
+      "category": "Eating out"
+    },
+    {
+      "date": "2026-03-25",
+      "description": "Sushi Place",
+      "amountCents": 3944,
+      "category": "Eating out"
+    },
+    {
+      "date": "2026-03-26",
+      "description": "Marathon",
+      "amountCents": 4508,
+      "category": "Gas"
+    },
+    {
+      "date": "2026-03-27",
+      "description": "Mini Golf",
+      "amountCents": 2853,
+      "category": "Entertainment"
+    },
+    {
+      "date": "2026-03-28",
+      "description": "Starbucks",
+      "amountCents": 518,
+      "category": null
+    },
+    {
+      "date": "2026-03-28",
+      "description": "Trader Joe's",
+      "amountCents": 11773,
+      "category": "Groceries"
+    },
+    {
+      "date": "2026-03-29",
+      "description": "Marathon",
+      "amountCents": 3988,
+      "category": "Gas"
+    },
+    {
+      "date": "2026-03-29",
+      "description": "Target",
+      "amountCents": 4567,
+      "category": "Household"
+    },
+    {
+      "date": "2026-03-29",
+      "description": "Thai Kitchen",
+      "amountCents": 2244,
+      "category": "Eating out"
+    },
+    {
+      "date": "2026-04-01",
+      "description": "Landlord - Rent",
+      "amountCents": 120000,
+      "category": "Rent"
+    },
+    {
+      "date": "2026-04-02",
+      "description": "Walmart",
+      "amountCents": 3075,
+      "category": "Household"
+    },
+    {
+      "date": "2026-04-04",
+      "description": "Costco",
+      "amountCents": 8607,
+      "category": "Groceries"
+    },
+    {
+      "date": "2026-04-07",
+      "description": "Speedway",
+      "amountCents": 4874,
+      "category": "Gas"
+    },
+    {
+      "date": "2026-04-08",
+      "description": "Amazon",
+      "amountCents": 4944,
+      "category": "Household"
+    },
+    {
+      "date": "2026-04-08",
+      "description": "Shell",
+      "amountCents": 4716,
+      "category": "Gas"
+    },
+    {
+      "date": "2026-04-08",
+      "description": "Spectrum Internet",
+      "amountCents": 6500,
+      "category": "Internet"
+    },
+    {
+      "date": "2026-04-09",
+      "description": "Speedway",
+      "amountCents": 5132,
+      "category": "Gas"
+    },
+    {
+      "date": "2026-04-10",
+      "description": "Speedway",
+      "amountCents": 3814,
+      "category": "Gas"
+    },
+    {
+      "date": "2026-04-11",
+      "description": "Costco",
+      "amountCents": 9186,
+      "category": "Groceries"
+    },
+    {
+      "date": "2026-04-11",
+      "description": "Starbucks",
+      "amountCents": 566,
+      "category": null
+    },
+    {
+      "date": "2026-04-12",
+      "description": "Concert Tickets",
+      "amountCents": 1366,
+      "category": "Entertainment"
+    },
+    {
+      "date": "2026-04-12",
+      "description": "Consumers Energy",
+      "amountCents": 9684,
+      "category": "Electric"
+    },
+    {
+      "date": "2026-04-14",
+      "description": "SQ *COFFEE CORNER",
+      "amountCents": 516,
+      "category": null
+    },
+    {
+      "date": "2026-04-16",
+      "description": "Thai Kitchen",
+      "amountCents": 2520,
+      "category": "Eating out"
+    },
+    {
+      "date": "2026-04-17",
+      "description": "Sushi Place",
+      "amountCents": 3239,
+      "category": "Eating out"
+    },
+    {
+      "date": "2026-04-18",
+      "description": "Kroger",
+      "amountCents": 8840,
+      "category": "Groceries"
+    },
+    {
+      "date": "2026-04-19",
+      "description": "Target",
+      "amountCents": 2859,
+      "category": "Gifts"
+    },
+    {
+      "date": "2026-04-20",
+      "description": "Verizon Wireless",
+      "amountCents": 4500,
+      "category": "Phone"
+    },
+    {
+      "date": "2026-04-24",
+      "description": "Sushi Place",
+      "amountCents": 3761,
+      "category": "Eating out"
+    },
+    {
+      "date": "2026-04-24",
+      "description": "Target",
+      "amountCents": 1894,
+      "category": "Household"
+    },
+    {
+      "date": "2026-04-25",
+      "description": "Meijer",
+      "amountCents": 11964,
+      "category": "Groceries"
+    },
+    {
+      "date": "2026-04-27",
+      "description": "Walmart",
+      "amountCents": 4363,
+      "category": "Household"
+    },
+    {
+      "date": "2026-04-29",
+      "description": "Panera Bread",
+      "amountCents": 3840,
+      "category": "Eating out"
+    },
+    {
+      "date": "2026-05-01",
+      "description": "Landlord - Rent",
+      "amountCents": 120000,
+      "category": "Rent"
+    },
+    {
+      "date": "2026-05-02",
+      "description": "Aldi",
+      "amountCents": 10322,
+      "category": "Groceries"
+    },
+    {
+      "date": "2026-05-06",
+      "description": "Amazon",
+      "amountCents": 3086,
+      "category": "Household"
+    },
+    {
+      "date": "2026-05-08",
+      "description": "Pizza Hut",
+      "amountCents": 2081,
+      "category": "Eating out"
+    },
+    {
+      "date": "2026-05-08",
+      "description": "Spectrum Internet",
+      "amountCents": 6500,
+      "category": "Internet"
+    },
+    {
+      "date": "2026-05-09",
+      "description": "Aldi",
+      "amountCents": 10283,
+      "category": "Groceries"
+    },
+    {
+      "date": "2026-05-11",
+      "description": "Speedway",
+      "amountCents": 4457,
+      "category": "Gas"
+    },
+    {
+      "date": "2026-05-11",
+      "description": "Target",
+      "amountCents": 4620,
+      "category": "Household"
+    },
+    {
+      "date": "2026-05-12",
+      "description": "Chipotle",
+      "amountCents": 1981,
+      "category": "Eating out"
+    },
+    {
+      "date": "2026-05-12",
+      "description": "Consumers Energy",
+      "amountCents": 9276,
+      "category": "Electric"
+    },
+    {
+      "date": "2026-05-13",
+      "description": "Panera Bread",
+      "amountCents": 2169,
+      "category": "Eating out"
+    },
+    {
+      "date": "2026-05-14",
+      "description": "Marathon",
+      "amountCents": 5343,
+      "category": "Gas"
+    },
+    {
+      "date": "2026-05-15",
+      "description": "Amazon",
+      "amountCents": 2939,
+      "category": "Household"
+    },
+    {
+      "date": "2026-05-16",
+      "description": "Sushi Place",
+      "amountCents": 3432,
+      "category": "Eating out"
+    },
+    {
+      "date": "2026-05-16",
+      "description": "Trader Joe's",
+      "amountCents": 9243,
+      "category": "Groceries"
+    },
+    {
+      "date": "2026-05-20",
+      "description": "Verizon Wireless",
+      "amountCents": 4500,
+      "category": "Phone"
+    },
+    {
+      "date": "2026-05-21",
+      "description": "Home Depot",
+      "amountCents": 3659,
+      "category": "Household"
+    },
+    {
+      "date": "2026-05-23",
+      "description": "Aldi",
+      "amountCents": 9965,
+      "category": "Groceries"
+    },
+    {
+      "date": "2026-05-24",
+      "description": "Speedway",
+      "amountCents": 5030,
+      "category": "Gas"
+    },
+    {
+      "date": "2026-05-27",
+      "description": "Bowling Alley",
+      "amountCents": 2582,
+      "category": "Entertainment"
+    },
+    {
+      "date": "2026-05-28",
+      "description": "AMC Theaters",
+      "amountCents": 2204,
+      "category": "Entertainment"
+    },
+    {
+      "date": "2026-05-28",
+      "description": "Amazon",
+      "amountCents": 3408,
+      "category": "Household"
+    },
+    {
+      "date": "2026-05-29",
+      "description": "Thai Kitchen",
+      "amountCents": 2555,
+      "category": "Eating out"
+    },
+    {
+      "date": "2026-05-30",
+      "description": "Home Depot",
+      "amountCents": 5330,
+      "category": "Household"
+    },
+    {
+      "date": "2026-05-30",
+      "description": "Kroger",
+      "amountCents": 8509,
+      "category": "Groceries"
+    },
+    {
+      "date": "2026-05-30",
+      "description": "Pizza Hut",
+      "amountCents": 1923,
+      "category": "Eating out"
+    },
+    {
+      "date": "2026-05-31",
+      "description": "SQ *COFFEE CORNER",
+      "amountCents": 505,
+      "category": null
+    },
+    {
+      "date": "2026-06-01",
+      "description": "Biggby Coffee",
+      "amountCents": 648,
+      "category": null
+    },
+    {
+      "date": "2026-06-01",
+      "description": "Landlord - Rent",
+      "amountCents": 120000,
+      "category": "Rent"
+    },
+    {
+      "date": "2026-06-01",
+      "description": "Secretary of State - Registration",
+      "amountCents": 12000,
+      "category": "Car registration"
+    },
+    {
+      "date": "2026-06-02",
+      "description": "Home Depot",
+      "amountCents": 3175,
+      "category": "Household"
+    },
+    {
+      "date": "2026-06-02",
+      "description": "Marathon",
+      "amountCents": 5507,
+      "category": "Gas"
+    },
+    {
+      "date": "2026-06-04",
+      "description": "Starbucks",
+      "amountCents": 743,
+      "category": null
+    },
+    {
+      "date": "2026-06-05",
+      "description": "SQ *COFFEE CORNER",
+      "amountCents": 515,
+      "category": null
+    },
+    {
+      "date": "2026-06-06",
+      "description": "Trader Joe's",
+      "amountCents": 9285,
+      "category": "Groceries"
+    },
+    {
+      "date": "2026-06-07",
+      "description": "Starbucks",
+      "amountCents": 488,
+      "category": null
+    },
+    {
+      "date": "2026-06-07",
+      "description": "Target",
+      "amountCents": 2291,
+      "category": "Household"
+    },
+    {
+      "date": "2026-06-08",
+      "description": "Local Diner",
+      "amountCents": 3944,
+      "category": "Eating out"
+    },
+    {
+      "date": "2026-06-08",
+      "description": "Spectrum Internet",
+      "amountCents": 6500,
+      "category": "Internet"
+    },
+    {
+      "date": "2026-06-09",
+      "description": "SQ *COFFEE CORNER",
+      "amountCents": 687,
+      "category": null
+    },
+    {
+      "date": "2026-06-11",
+      "description": "Panera Bread",
+      "amountCents": 3608,
+      "category": "Eating out"
+    },
+    {
+      "date": "2026-06-12",
+      "description": "Consumers Energy",
+      "amountCents": 13269,
+      "category": "Electric"
+    },
+    {
+      "date": "2026-06-12",
+      "description": "Walmart",
+      "amountCents": 4052,
+      "category": "Household"
+    },
+    {
+      "date": "2026-06-13",
+      "description": "Costco",
+      "amountCents": 8701,
+      "category": "Groceries"
+    },
+    {
+      "date": "2026-06-16",
+      "description": "Panera Bread",
+      "amountCents": 2363,
+      "category": "Eating out"
+    },
+    {
+      "date": "2026-06-18",
+      "description": "Bowling Alley",
+      "amountCents": 1384,
+      "category": "Entertainment"
+    },
+    {
+      "date": "2026-06-18",
+      "description": "Home Depot",
+      "amountCents": 2327,
+      "category": "Household"
+    },
+    {
+      "date": "2026-06-20",
+      "description": "Meijer",
+      "amountCents": 9965,
+      "category": "Groceries"
+    },
+    {
+      "date": "2026-06-20",
+      "description": "Verizon Wireless",
+      "amountCents": 4500,
+      "category": "Phone"
+    },
+    {
+      "date": "2026-06-21",
+      "description": "BP",
+      "amountCents": 5589,
+      "category": "Gas"
+    },
+    {
+      "date": "2026-06-23",
+      "description": "Taco Bell",
+      "amountCents": 3994,
+      "category": "Eating out"
+    },
+    {
+      "date": "2026-06-23",
+      "description": "Target",
+      "amountCents": 3435,
+      "category": "Household"
+    },
+    {
+      "date": "2026-06-26",
+      "description": "Chipotle",
+      "amountCents": 3360,
+      "category": "Eating out"
+    },
+    {
+      "date": "2026-06-27",
+      "description": "Aldi",
+      "amountCents": 11836,
+      "category": "Groceries"
+    },
+    {
+      "date": "2026-07-01",
+      "description": "Landlord - Rent",
+      "amountCents": 120000,
+      "category": "Rent"
+    },
+    {
+      "date": "2026-07-04",
+      "description": "Amazon",
+      "amountCents": 5140,
+      "category": "Household"
+    },
+    {
+      "date": "2026-07-04",
+      "description": "Marathon",
+      "amountCents": 4488,
+      "category": "Gas"
+    },
+    {
+      "date": "2026-07-04",
+      "description": "Meijer",
+      "amountCents": 11083,
+      "category": "Groceries"
+    },
+    {
+      "date": "2026-07-05",
+      "description": "Sushi Place",
+      "amountCents": 4009,
+      "category": "Eating out"
+    },
+    {
+      "date": "2026-07-07",
+      "description": "Home Depot",
+      "amountCents": 5228,
+      "category": "Household"
+    },
+    {
+      "date": "2026-07-08",
+      "description": "Spectrum Internet",
+      "amountCents": 6500,
+      "category": "Internet"
+    },
+    {
+      "date": "2026-07-09",
+      "description": "Speedway",
+      "amountCents": 4344,
+      "category": "Gas"
+    },
+    {
+      "date": "2026-07-10",
+      "description": "Mini Golf",
+      "amountCents": 1001,
+      "category": "Entertainment"
+    },
+    {
+      "date": "2026-07-10",
+      "description": "SQ *COFFEE CORNER",
+      "amountCents": 471,
+      "category": null
+    },
+    {
+      "date": "2026-07-11",
+      "description": "Chipotle",
+      "amountCents": 1272,
+      "category": "Eating out"
+    },
+    {
+      "date": "2026-07-11",
+      "description": "Kroger",
+      "amountCents": 11099,
+      "category": "Groceries"
+    },
+    {
+      "date": "2026-07-12",
+      "description": "Consumers Energy",
+      "amountCents": 16277,
+      "category": "Electric"
+    },
+    {
+      "date": "2026-07-13",
+      "description": "Chipotle",
+      "amountCents": 2477,
+      "category": "Eating out"
+    },
+    {
+      "date": "2026-07-15",
+      "description": "Shell",
+      "amountCents": 4425,
+      "category": "Gas"
+    },
+    {
+      "date": "2026-07-16",
+      "description": "Home Depot",
+      "amountCents": 1522,
+      "category": "Household"
+    },
+    {
+      "date": "2026-07-16",
+      "description": "SQ *COFFEE CORNER",
+      "amountCents": 608,
+      "category": null
+    },
+    {
+      "date": "2026-07-18",
+      "description": "Meijer",
+      "amountCents": 9881,
+      "category": "Groceries"
+    },
+    {
+      "date": "2026-07-18",
+      "description": "SQ *COFFEE CORNER",
+      "amountCents": 664,
+      "category": null
+    },
+    {
+      "date": "2026-07-20",
+      "description": "Verizon Wireless",
+      "amountCents": 4500,
+      "category": "Phone"
+    },
+    {
+      "date": "2026-07-22",
+      "description": "Steam Games",
+      "amountCents": 2993,
+      "category": "Entertainment"
+    },
+    {
+      "date": "2026-07-23",
+      "description": "Marathon",
+      "amountCents": 4051,
+      "category": "Gas"
+    },
+    {
+      "date": "2026-07-25",
+      "description": "Trader Joe's",
+      "amountCents": 10428,
+      "category": "Groceries"
+    },
+    {
+      "date": "2026-07-27",
+      "description": "Thai Kitchen",
+      "amountCents": 2496,
+      "category": "Eating out"
+    },
+    {
+      "date": "2026-07-28",
+      "description": "BP",
+      "amountCents": 4043,
+      "category": "Gas"
+    },
+    {
+      "date": "2026-07-30",
+      "description": "Biggby Coffee",
+      "amountCents": 518,
+      "category": null
+    },
+    {
+      "date": "2026-07-30",
+      "description": "Mini Golf",
+      "amountCents": 1712,
+      "category": "Entertainment"
+    },
+    {
+      "date": "2026-07-31",
+      "description": "Bowling Alley",
+      "amountCents": 1557,
+      "category": "Entertainment"
+    },
+    {
+      "date": "2026-08-01",
+      "description": "Landlord - Rent",
+      "amountCents": 120000,
+      "category": "Rent"
+    },
+    {
+      "date": "2026-08-01",
+      "description": "Meijer",
+      "amountCents": 11712,
+      "category": "Groceries"
+    },
+    {
+      "date": "2026-08-06",
+      "description": "Target",
+      "amountCents": 3441,
+      "category": "Gifts"
+    },
+    {
+      "date": "2026-08-08",
+      "description": "BP",
+      "amountCents": 4622,
+      "category": "Gas"
+    },
+    {
+      "date": "2026-08-08",
+      "description": "Chipotle",
+      "amountCents": 1281,
+      "category": "Eating out"
+    },
+    {
+      "date": "2026-08-08",
+      "description": "Meijer",
+      "amountCents": 9216,
+      "category": "Groceries"
+    },
+    {
+      "date": "2026-08-08",
+      "description": "Spectrum Internet",
+      "amountCents": 6500,
+      "category": "Internet"
+    },
+    {
+      "date": "2026-08-11",
+      "description": "BP",
+      "amountCents": 4044,
+      "category": "Gas"
+    },
+    {
+      "date": "2026-08-11",
+      "description": "Sushi Place",
+      "amountCents": 1416,
+      "category": "Eating out"
+    },
+    {
+      "date": "2026-08-12",
+      "description": "Biggby Coffee",
+      "amountCents": 513,
+      "category": null
+    },
+    {
+      "date": "2026-08-12",
+      "description": "Consumers Energy",
+      "amountCents": 16156,
+      "category": "Electric"
+    },
+    {
+      "date": "2026-08-13",
+      "description": "Target - Return",
+      "amountCents": -2908,
+      "category": "Household"
+    },
+    {
+      "date": "2026-08-14",
+      "description": "AMC Theaters",
+      "amountCents": 2330,
+      "category": "Entertainment"
+    },
+    {
+      "date": "2026-08-14",
+      "description": "Amazon",
+      "amountCents": 3733,
+      "category": "Household"
+    },
+    {
+      "date": "2026-08-15",
+      "description": "Meijer",
+      "amountCents": 10084,
+      "category": "Groceries"
+    },
+    {
+      "date": "2026-08-15",
+      "description": "Speedway",
+      "amountCents": 5085,
+      "category": "Gas"
+    },
+    {
+      "date": "2026-08-16",
+      "description": "Panera Bread",
+      "amountCents": 4140,
+      "category": "Eating out"
+    },
+    {
+      "date": "2026-08-18",
+      "description": "Local Diner",
+      "amountCents": 1745,
+      "category": "Eating out"
+    },
+    {
+      "date": "2026-08-20",
+      "description": "Verizon Wireless",
+      "amountCents": 4500,
+      "category": "Phone"
+    },
+    {
+      "date": "2026-08-22",
+      "description": "Costco",
+      "amountCents": 10400,
+      "category": "Groceries"
+    },
+    {
+      "date": "2026-08-22",
+      "description": "Sushi Place",
+      "amountCents": 1248,
+      "category": "Eating out"
+    },
+    {
+      "date": "2026-08-27",
+      "description": "Speedway",
+      "amountCents": 4601,
+      "category": "Gas"
+    },
+    {
+      "date": "2026-08-28",
+      "description": "Amazon",
+      "amountCents": 1696,
+      "category": "Household"
+    },
+    {
+      "date": "2026-08-29",
+      "description": "Aldi",
+      "amountCents": 9435,
+      "category": "Groceries"
+    },
+    {
+      "date": "2026-09-01",
+      "description": "Landlord - Rent",
+      "amountCents": 120000,
+      "category": "Rent"
+    },
+    {
+      "date": "2026-09-03",
+      "description": "BP",
+      "amountCents": 4918,
+      "category": "Gas"
+    },
+    {
+      "date": "2026-09-03",
+      "description": "Local Diner",
+      "amountCents": 3346,
+      "category": "Eating out"
+    },
+    {
+      "date": "2026-09-05",
+      "description": "Trader Joe's",
+      "amountCents": 10178,
+      "category": "Groceries"
+    },
+    {
+      "date": "2026-09-06",
+      "description": "Local Diner",
+      "amountCents": 3320,
+      "category": "Eating out"
+    },
+    {
+      "date": "2026-09-07",
+      "description": "AMC Theaters",
+      "amountCents": 2738,
+      "category": "Entertainment"
+    },
+    {
+      "date": "2026-09-07",
+      "description": "Speedway",
+      "amountCents": 4142,
+      "category": "Gas"
+    },
+    {
+      "date": "2026-09-08",
+      "description": "Spectrum Internet",
+      "amountCents": 6500,
+      "category": "Internet"
+    },
+    {
+      "date": "2026-09-10",
+      "description": "Taco Bell",
+      "amountCents": 2998,
+      "category": "Eating out"
+    },
+    {
+      "date": "2026-09-12",
+      "description": "Consumers Energy",
+      "amountCents": 12004,
+      "category": "Electric"
+    },
+    {
+      "date": "2026-09-12",
+      "description": "Trader Joe's",
+      "amountCents": 10941,
+      "category": "Groceries"
+    },
+    {
+      "date": "2026-09-14",
+      "description": "Biggby Coffee",
+      "amountCents": 744,
+      "category": null
+    },
+    {
+      "date": "2026-09-15",
+      "description": "Pizza Hut",
+      "amountCents": 4187,
+      "category": "Eating out"
+    },
+    {
+      "date": "2026-09-15",
+      "description": "Progressive Car Insurance",
+      "amountCents": 60000,
+      "category": "Car insurance"
+    },
+    {
+      "date": "2026-09-15",
+      "description": "Speedway",
+      "amountCents": 4243,
+      "category": "Gas"
+    },
+    {
+      "date": "2026-09-18",
+      "description": "Walmart",
+      "amountCents": 4114,
+      "category": "Household"
+    },
+    {
+      "date": "2026-09-19",
+      "description": "Aldi",
+      "amountCents": 11022,
+      "category": "Groceries"
+    },
+    {
+      "date": "2026-09-20",
+      "description": "Verizon Wireless",
+      "amountCents": 4500,
+      "category": "Phone"
+    },
+    {
+      "date": "2026-09-22",
+      "description": "Thai Kitchen",
+      "amountCents": 1489,
+      "category": "Eating out"
+    },
+    {
+      "date": "2026-09-23",
+      "description": "Local Diner",
+      "amountCents": 2961,
+      "category": "Eating out"
+    },
+    {
+      "date": "2026-09-24",
+      "description": "Amazon",
+      "amountCents": 4086,
+      "category": "Household"
+    },
+    {
+      "date": "2026-09-25",
+      "description": "Starbucks",
+      "amountCents": 669,
+      "category": null
+    },
+    {
+      "date": "2026-09-25",
+      "description": "Steam Games",
+      "amountCents": 1975,
+      "category": "Entertainment"
+    },
+    {
+      "date": "2026-09-26",
+      "description": "Meijer",
+      "amountCents": 9556,
+      "category": "Groceries"
+    },
+    {
+      "date": "2026-09-26",
+      "description": "Sushi Place",
+      "amountCents": 2011,
+      "category": "Eating out"
+    },
+    {
+      "date": "2026-09-28",
+      "description": "Chipotle",
+      "amountCents": 1669,
+      "category": "Eating out"
+    },
+    {
+      "date": "2026-09-29",
+      "description": "SQ *COFFEE CORNER",
+      "amountCents": 631,
+      "category": null
+    },
+    {
+      "date": "2026-10-01",
+      "description": "Landlord - Rent",
+      "amountCents": 120000,
+      "category": "Rent"
+    },
+    {
+      "date": "2026-10-03",
+      "description": "Costco",
+      "amountCents": 11055,
+      "category": "Groceries"
+    },
+    {
+      "date": "2026-10-04",
+      "description": "BP",
+      "amountCents": 4166,
+      "category": "Gas"
+    },
+    {
+      "date": "2026-10-07",
+      "description": "Local Diner",
+      "amountCents": 2293,
+      "category": "Eating out"
+    },
+    {
+      "date": "2026-10-08",
+      "description": "Spectrum Internet",
+      "amountCents": 6500,
+      "category": "Internet"
+    },
+    {
+      "date": "2026-10-10",
+      "description": "Bowling Alley",
+      "amountCents": 2634,
+      "category": "Entertainment"
+    },
+    {
+      "date": "2026-10-10",
+      "description": "Meijer",
+      "amountCents": 10633,
+      "category": "Groceries"
+    },
+    {
+      "date": "2026-10-10",
+      "description": "Starbucks",
+      "amountCents": 703,
+      "category": null
+    },
+    {
+      "date": "2026-10-11",
+      "description": "Local Diner",
+      "amountCents": 4070,
+      "category": "Eating out"
+    },
+    {
+      "date": "2026-10-12",
+      "description": "Consumers Energy",
+      "amountCents": 9901,
+      "category": "Electric"
+    },
+    {
+      "date": "2026-10-15",
+      "description": "Biggby Coffee",
+      "amountCents": 589,
+      "category": null
+    },
+    {
+      "date": "2026-10-16",
+      "description": "Marathon",
+      "amountCents": 5492,
+      "category": "Gas"
+    },
+    {
+      "date": "2026-10-16",
+      "description": "Starbucks",
+      "amountCents": 610,
+      "category": null
+    },
+    {
+      "date": "2026-10-16",
+      "description": "Thai Kitchen",
+      "amountCents": 2144,
+      "category": "Eating out"
+    },
+    {
+      "date": "2026-10-17",
+      "description": "Trader Joe's",
+      "amountCents": 12365,
+      "category": "Groceries"
+    },
+    {
+      "date": "2026-10-20",
+      "description": "Verizon Wireless",
+      "amountCents": 4500,
+      "category": "Phone"
+    },
+    {
+      "date": "2026-10-21",
+      "description": "Chipotle",
+      "amountCents": 1959,
+      "category": "Eating out"
+    },
+    {
+      "date": "2026-10-24",
+      "description": "Trader Joe's",
+      "amountCents": 10051,
+      "category": "Groceries"
+    },
+    {
+      "date": "2026-10-25",
+      "description": "Local Diner",
+      "amountCents": 3077,
+      "category": "Eating out"
+    },
+    {
+      "date": "2026-10-26",
+      "description": "Home Depot",
+      "amountCents": 2972,
+      "category": "Household"
+    },
+    {
+      "date": "2026-10-27",
+      "description": "Target - Return",
+      "amountCents": -2538,
+      "category": "Household"
+    },
+    {
+      "date": "2026-10-28",
+      "description": "Mini Golf",
+      "amountCents": 3023,
+      "category": "Entertainment"
+    },
+    {
+      "date": "2026-10-31",
+      "description": "Chipotle",
+      "amountCents": 3521,
+      "category": "Eating out"
+    },
+    {
+      "date": "2026-10-31",
+      "description": "Kroger",
+      "amountCents": 8672,
+      "category": "Groceries"
+    },
+    {
+      "date": "2026-11-01",
+      "description": "Amazon",
+      "amountCents": 3412,
+      "category": "Household"
+    },
+    {
+      "date": "2026-11-01",
+      "description": "Landlord - Rent",
+      "amountCents": 120000,
+      "category": "Rent"
+    },
+    {
+      "date": "2026-11-06",
+      "description": "Panera Bread",
+      "amountCents": 3555,
+      "category": "Eating out"
+    },
+    {
+      "date": "2026-11-07",
+      "description": "Starbucks",
+      "amountCents": 550,
+      "category": null
+    },
+    {
+      "date": "2026-11-07",
+      "description": "Trader Joe's",
+      "amountCents": 10157,
+      "category": "Groceries"
+    },
+    {
+      "date": "2026-11-08",
+      "description": "Spectrum Internet",
+      "amountCents": 6500,
+      "category": "Internet"
+    },
+    {
+      "date": "2026-11-08",
+      "description": "Thai Kitchen",
+      "amountCents": 2307,
+      "category": "Eating out"
+    },
+    {
+      "date": "2026-11-10",
+      "description": "Steam Games",
+      "amountCents": 1162,
+      "category": "Entertainment"
+    },
+    {
+      "date": "2026-11-12",
+      "description": "Consumers Energy",
+      "amountCents": 12934,
+      "category": "Electric"
+    },
+    {
+      "date": "2026-11-12",
+      "description": "Panera Bread",
+      "amountCents": 2067,
+      "category": "Eating out"
+    }
+  ]
+}
