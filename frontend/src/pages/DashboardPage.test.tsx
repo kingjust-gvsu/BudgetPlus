@@ -35,6 +35,7 @@ const october: MonthSummary = {
       type: 'fundBill',
       setAsideCents: 10000,
       targetCents: 60000,
+      frequencyMonths: 6,
       fund: { setAsideCents: 10000, balanceCents: 30000, nextDueDate: '2027-03-15', monthsLeft: 4, paidCents: 0, remainderChangeCents: 0 },
     },
     { id: 'groceries', name: 'Groceries', kind: 'EXPENSE', budgetType: 'PERCENT_OF_INCOME', type: 'expense', limitCents: 48000, spentCents: 31000, leftCents: 17000, state: 'under' },

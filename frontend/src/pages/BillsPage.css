@@ -1,0 +1,67 @@
+/* Bills & funds */
+
+.table tfoot th,
+.table tfoot td {
+  padding: 12px 8px;
+  border-top: 2px solid var(--color-border);
+  font-weight: 700;
+  text-align: left;
+}
+
+.table tfoot td.amount {
+  text-align: right;
+}
+
+/* One card per bill that isn't monthly */
+
+.fund-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.fund-card {
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.fund-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.fund-card-amount {
+  margin-top: 8px;
+  font-size: 22px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.fund-card-amount .muted {
+  font-size: 15px;
+  font-weight: 400;
+}
+
+.fund-card-note,
+.fund-card-setup {
+  margin: 8px 0 0;
+}
+
+.fund-card-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 120px;
+  border-style: dashed;
+  border-color: #c8c8c2;
+  color: var(--color-accent);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.fund-card-add:hover {
+  background: #f6f8fc;
+}

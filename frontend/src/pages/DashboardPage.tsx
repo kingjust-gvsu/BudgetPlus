@@ -4,6 +4,7 @@ import { apiGet } from '../api/client'
 import type { BillStatus, CategorySummary, ExpenseStatus, FundBillStatus, MonthSummary } from '../api/types'
 import { useAuth } from '../auth/useAuth'
 import { formatLongDate } from '../budgetText'
+import { ProgressBar } from '../components/ProgressBar'
 import { formatMonth, monthOf, shiftMonth, today } from '../dates'
 import { formatCents } from '../money'
 import './DashboardPage.css'
@@ -14,14 +15,6 @@ type FundBill = CategorySummary & FundBillStatus
 
 // "+$25.00" / "-$14.00"
 const signed = (cents: number) => (cents > 0 ? `+${formatCents(cents)}` : formatCents(cents))
-
-function ProgressBar({ percent, tone }: { percent: number; tone: 'good' | 'bad' | 'neutral' }) {
-  return (
-    <div className="progress" aria-hidden="true">
-      <div className={`progress-fill progress-fill--${tone}`} style={{ width: `${Math.min(100, Math.max(0, percent))}%` }} />
-    </div>
-  )
-}
 
 function ExpenseRow({ expense }: { expense: Expense }) {
   const { limitCents, spentCents, leftCents, state } = expense
