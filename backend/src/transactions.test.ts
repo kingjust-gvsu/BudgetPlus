@@ -56,10 +56,19 @@ describe('GET /api/transactions', () => {
     ])
   })
 
-  it('requires a month', async () => {
+  it('lists all of the user\'s transactions when no month is given', async () => {
     const { app } = setup()
 
     const response = await request(app).get('/api/transactions').set(auth)
+
+    expect(response.status).toBe(200)
+    expect(response.body.map((t: { id: string }) => t.id)).toEqual([meijerId, shellId, septemberId])
+  })
+
+  it('rejects a month it cannot read', async () => {
+    const { app } = setup()
+
+    const response = await request(app).get('/api/transactions?month=October').set(auth)
 
     expect(response.status).toBe(400)
     expect(response.body).toEqual({ error: 'month must be a month like 2026-10' })

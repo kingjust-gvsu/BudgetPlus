@@ -26,10 +26,11 @@ function optionalCategoryId(value: unknown): string | null {
 export function createTransactionsRouter(store: TransactionStore) {
   const router = Router()
 
-  // GET /api/transactions?month=2026-10: the month's transactions, newest first
+  // GET /api/transactions?month=2026-10: the month's transactions, newest first.
+  // Leave out the month to get all of them (used for exporting to CSV).
   router.get('/', async (req, res) => {
-    const month = requireMonth(req.query.month, 'month')
-    res.json(await store.listByMonth(currentUser(res).id, month))
+    const month = req.query.month === undefined ? undefined : requireMonth(req.query.month, 'month')
+    res.json(await store.list(currentUser(res).id, month))
   })
 
   // POST /api/transactions { date, description, amountCents, categoryId? }: add a transaction

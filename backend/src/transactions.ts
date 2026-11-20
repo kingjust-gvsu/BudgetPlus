@@ -16,8 +16,8 @@ export type TransactionChanges = Partial<TransactionInput>
 // Reads and writes a user's transactions. Every method is scoped to one user, so a user can
 // never see or change another user's transactions.
 export type TransactionStore = {
-  // The month's transactions, newest first. month = YYYY-MM.
-  listByMonth(userId: string, month: string): Promise<Transaction[]>
+  // The user's transactions, newest first: just one month's (month = YYYY-MM), or all of them
+  list(userId: string, month?: string): Promise<Transaction[]>
   // Throws ValidationError if categoryId isn't one of the user's categories
   create(userId: string, input: TransactionInput): Promise<Transaction>
   // Returns null if the transaction doesn't exist or belongs to another user
@@ -81,10 +81,10 @@ export function createTransactionStore(db: Database): TransactionStore {
   }
 
   return {
-    listByMonth: async (userId, month) => {
-      const { start, end } = monthRange(month)
+    list: async (userId, month) => {
+      const range = month ? monthRange(month) : null
       const rows = await db.transaction.findMany({
-        where: { userId, date: { gte: start, lt: end } },
+        where: { userId, ...(range && { date: { gte: range.start, lt: range.end } }) },
         select: fields,
         orderBy: [{ date: 'desc' }, { createdAt: 'desc' }],
       })

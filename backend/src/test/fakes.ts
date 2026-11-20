@@ -140,9 +140,9 @@ export function createFakeTransactionStore(
 
   return {
     rows,
-    listByMonth: async (userId, month) =>
+    list: async (userId, month) =>
       rows
-        .filter((r) => r.userId === userId && r.date.startsWith(`${month}-`))
+        .filter((r) => r.userId === userId && (!month || r.date.startsWith(`${month}-`)))
         .sort((a, b) => b.date.localeCompare(a.date))
         .map(toTransaction),
     create: async (userId, input) => {
