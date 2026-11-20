@@ -21,7 +21,7 @@
 
 .income-item {
   display: grid;
-  grid-template-columns: minmax(120px, 1fr) 130px 1fr 120px;
+  grid-template-columns: minmax(120px, 220px) 130px 1fr auto;
   align-items: center;
   gap: 4px 16px;
   min-height: 48px;
@@ -39,7 +39,7 @@
   font-weight: 500;
 }
 
-/* Leave the column after the amount empty, so the actions stay on the right */
+/* Name and amount sit together on the left; Edit and Delete go to the right edge */
 .income-amount {
   grid-column: 2;
   text-align: right;
@@ -91,4 +91,9 @@
   .income-amount {
     grid-column: auto;
   }
+}
+
+.income-item .row-actions {
+  grid-column: 4;
+  justify-self: end;
 }
