@@ -4,6 +4,7 @@ import { createApp } from './app.ts'
 import { monthsEnding, spendingSummary } from './spending.ts'
 import {
   createFakeCategoryStore,
+  createFakeIncomeStore,
   createFakeTransactionStore,
   fakeDependencies,
   otherUser,
@@ -72,20 +73,25 @@ describe('GET /api/spending', () => {
       ],
       categoryRows,
     )
+    // A raise in November
+    const income = createFakeIncomeStore()
+    income.data.set(testUser.id, {
+      sources: [{ id: 'job', name: 'Job', amounts: [{ month: '2026-01', amountCents: 400000 }, { month: '2026-11', amountCents: 450000 }] }],
+      other: new Map(),
+    })
     return createApp(
       { corsOrigin: 'http://localhost:5173' },
-      fakeDependencies({ categories: createFakeCategoryStore(categoryRows), transactions }),
+      fakeDependencies({ categories: createFakeCategoryStore(categoryRows), transactions, income }),
     )
   }
 
-  it("summarizes the user's spending for the months asked for", async () => {
+  it("summarizes the user's spending and income for the months asked for", async () => {
     const response = await request(setup()).get('/api/spending?to=2026-11&months=2').set(auth)
 
     expect(response.status).toBe(200)
-    expect(response.body.incomeCents).toBe(testUser.monthlyIncomeCents)
     expect(response.body.months).toEqual([
-      { month: '2026-10', billsCents: 0, expensesCents: 8412 },
-      { month: '2026-11', billsCents: 120000, expensesCents: 0 },
+      { month: '2026-10', billsCents: 0, expensesCents: 8412, incomeCents: 400000 },
+      { month: '2026-11', billsCents: 120000, expensesCents: 0, incomeCents: 450000 },
     ])
     expect(response.body.categories.map((c: { name: string }) => c.name)).toEqual(['Rent', 'Groceries'])
   })

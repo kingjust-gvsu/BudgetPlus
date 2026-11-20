@@ -13,7 +13,7 @@ import {
 } from '../categories.ts'
 import { ConflictError, ValidationError } from '../errors.ts'
 import { CATEGORY_NOT_FOUND, withoutDuplicates, type Transaction, type TransactionStore } from '../transactions.ts'
-import type { UserStore } from '../users.ts'
+import { SOURCE_NAME_TAKEN, type IncomeData, type IncomeStore } from '../income.ts'
 
 // Test stand-ins for the database and Firebase, so tests run without either.
 
@@ -24,14 +24,12 @@ export const testUser: AuthenticatedUser = {
   id: '00000000-0000-0000-0000-000000000001',
   firebaseUid: 'firebase-uid-1',
   email: 'test@example.com',
-  monthlyIncomeCents: null,
 }
 
 export const otherUser: AuthenticatedUser = {
   id: '00000000-0000-0000-0000-000000000002',
   firebaseUid: 'firebase-uid-2',
   email: 'other@example.com',
-  monthlyIncomeCents: null,
 }
 
 const usersByToken: Record<string, AuthenticatedUser> = {
@@ -106,13 +104,49 @@ export function createFakeCategoryStore(seeds: CategorySeed[] = []): CategorySto
   }
 }
 
-// Keeps each user's income in memory.
-export function createFakeUserStore(users: AuthenticatedUser[] = [testUser, otherUser]): UserStore {
+// Keeps each user's income in memory, like the real income store.
+export function createFakeIncomeStore(): IncomeStore & { data: Map<string, IncomeData> } {
+  const data = new Map<string, IncomeData>()
+  const of = (userId: string) => {
+    if (!data.has(userId)) data.set(userId, { sources: [], other: new Map() })
+    return data.get(userId)!
+  }
+  const find = (userId: string, id: string) => of(userId).sources.find((s) => s.id === id)
+
   return {
-    setMonthlyIncome: async (userId, monthlyIncomeCents) => {
-      const user = users.find((u) => u.id === userId)
-      if (!user) throw new Error('unknown user')
-      return { ...user, monthlyIncomeCents }
+    data,
+    load: async (userId) => of(userId),
+    createSource: async (userId, name, month, amountCents) => {
+      if (of(userId).sources.some((s) => s.name === name)) throw new ConflictError(SOURCE_NAME_TAKEN)
+      of(userId).sources.push({ id: randomUUID(), name, amounts: [{ month, amountCents }] })
+    },
+    renameSource: async (userId, id, name) => {
+      const source = find(userId, id)
+      if (!source) return false
+      if (of(userId).sources.some((s) => s.name === name && s.id !== id)) throw new ConflictError(SOURCE_NAME_TAKEN)
+      source.name = name
+      return true
+    },
+    stopSource: async (userId, id, month) => {
+      const sources = of(userId).sources
+      const source = sources.find((s) => s.id === id)
+      if (!source) return false
+      source.amounts = source.amounts.filter((a) => a.month < month)
+      if (source.amounts.length === 0) sources.splice(sources.indexOf(source), 1)
+      else source.amounts.push({ month, amountCents: 0 })
+      return true
+    },
+    setAmount: async (userId, id, month, amountCents) => {
+      const source = find(userId, id)
+      if (!source) return false
+      source.amounts = [...source.amounts.filter((a) => a.month !== month), { month, amountCents }].sort((x, y) =>
+        x.month.localeCompare(y.month),
+      )
+      return true
+    },
+    setOther: async (userId, month, amountCents) => {
+      if (amountCents === 0) of(userId).other.delete(month)
+      else of(userId).other.set(month, amountCents)
     },
   }
 }
@@ -184,7 +218,7 @@ export function fakeDependencies(overrides: Partial<AppDependencies> = {}): AppD
     findOrCreateUser: async ({ uid }) => (uid === otherUser.firebaseUid ? otherUser : testUser),
     categories: createFakeCategoryStore(),
     transactions: createFakeTransactionStore(),
-    users: createFakeUserStore(),
+    income: createFakeIncomeStore(),
     summary: { load: async () => ({ categories: [], transactions: [], fundPayments: new Map() }) },
     backup: {
       export: async () => {

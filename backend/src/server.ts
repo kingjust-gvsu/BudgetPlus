@@ -2,11 +2,12 @@ import { createApp } from './app.ts'
 import { createFirebaseTokenVerifier } from './auth.ts'
 import { createBackupStore } from './backup.ts'
 import { createCategoryStore } from './categories.ts'
+import { createIncomeStore } from './income.ts'
 import { loadConfig } from './config.ts'
 import { createDatabase } from './db.ts'
 import { createSummaryStore } from './summary.ts'
 import { createTransactionStore } from './transactions.ts'
-import { createFindOrCreateUser, createUserStore } from './users.ts'
+import { createFindOrCreateUser } from './users.ts'
 
 const config = loadConfig()
 const db = createDatabase(config.databaseUrl)
@@ -24,7 +25,7 @@ const app = createApp(config, {
   findOrCreateUser: createFindOrCreateUser(db),
   categories: createCategoryStore(db),
   transactions: createTransactionStore(db),
-  users: createUserStore(db),
+  income: createIncomeStore(db),
   summary: createSummaryStore(db),
   backup: createBackupStore(db),
 })

@@ -4,17 +4,18 @@ import { requireAuth, type FindOrCreateUser, type VerifyToken } from './auth.ts'
 import type { BackupStore } from './backup.ts'
 import type { CategoryStore } from './categories.ts'
 import type { Config } from './config.ts'
+import type { IncomeStore } from './income.ts'
 import { ConflictError, NotFoundError, ValidationError } from './errors.ts'
 import { createBackupRouter } from './routes/backup.ts'
 import { createCategoriesRouter } from './routes/categories.ts'
 import { createHealthRouter, type DatabaseCheck } from './routes/health.ts'
+import { createIncomeRouter } from './routes/income.ts'
 import { createMeRouter } from './routes/me.ts'
 import { createSpendingRouter } from './routes/spending.ts'
 import { createSummaryRouter } from './routes/summary.ts'
 import { createTransactionsRouter } from './routes/transactions.ts'
 import type { SummaryStore } from './summary.ts'
 import type { TransactionStore } from './transactions.ts'
-import type { UserStore } from './users.ts'
 
 export type AppDependencies = {
   checkDatabase: DatabaseCheck
@@ -22,7 +23,7 @@ export type AppDependencies = {
   findOrCreateUser: FindOrCreateUser
   categories: CategoryStore
   transactions: TransactionStore
-  users: UserStore
+  income: IncomeStore
   summary: SummaryStore
   backup: BackupStore
 }
@@ -41,11 +42,12 @@ export function createApp(config: Pick<Config, 'corsOrigin'>, deps: AppDependenc
 
   // Routes below require a signed-in user
   const signedIn = requireAuth(deps.verifyToken, deps.findOrCreateUser)
-  app.use('/api/me', signedIn, createMeRouter(deps.users))
+  app.use('/api/me', signedIn, createMeRouter())
+  app.use('/api/income', signedIn, createIncomeRouter(deps.income))
   app.use('/api/categories', signedIn, createCategoriesRouter(deps.categories))
   app.use('/api/transactions', signedIn, createTransactionsRouter(deps.transactions))
-  app.use('/api/summary', signedIn, createSummaryRouter(deps.summary))
-  app.use('/api/spending', signedIn, createSpendingRouter(deps.categories, deps.transactions))
+  app.use('/api/summary', signedIn, createSummaryRouter(deps.summary, deps.income))
+  app.use('/api/spending', signedIn, createSpendingRouter(deps.categories, deps.transactions, deps.income))
   app.use('/api/backup', signedIn, createBackupRouter(deps.backup))
 
   app.use('/api', (_req, res) => {

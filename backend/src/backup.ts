@@ -14,18 +14,21 @@ import {
   requireCents,
   requireDate,
   requireFrequencyMonths,
+  requireMonth,
   requireObject,
   requireOneOf,
   requirePercent,
   requireText,
 } from './validation.ts'
 
-// A whole account's data in one file: income, categories with their budgets, and transactions.
+// A whole account's data in one file: income by month, categories with their budgets, and transactions.
 // Transactions name their category rather than using database ids, so a backup can be restored
 // into any account. Restoring replaces everything the user had.
 
 export const BACKUP_FORMAT = 'budget-plus-backup'
-export const BACKUP_VERSION = 1
+// Version 2 keeps income month by month; version 1 files (one monthly income) can still be restored
+export const BACKUP_VERSION = 2
+const MAX_INCOME_ROWS = 2000
 const MAX_CATEGORIES = 500
 const MAX_TRANSACTIONS = 20000
 
@@ -41,11 +44,17 @@ export type BackupTransaction = {
   category: string | null // the category's name
 }
 
+// Income sources with every amount they've had (each from its month on), plus one-off other income
+export type BackupIncome = {
+  sources: { name: string; amounts: { month: string; amountCents: number }[] }[]
+  other: { month: string; amountCents: number }[]
+}
+
 export type Backup = {
   format: typeof BACKUP_FORMAT
   version: typeof BACKUP_VERSION
   exportedAt: string
-  monthlyIncomeCents: number | null
+  income: BackupIncome
   categories: BackupCategory[]
   transactions: BackupTransaction[]
 }
@@ -55,9 +64,9 @@ export type Backup = {
 export function parseBackup(raw: unknown): Backup {
   const body = requireObject(raw)
   if (body.format !== BACKUP_FORMAT) throw new ValidationError("This isn't a Budget+ backup file")
-  if (body.version !== BACKUP_VERSION) throw new ValidationError(`This backup is version ${String(body.version)}; only version ${BACKUP_VERSION} can be restored`)
-
-  const monthlyIncomeCents = nullable(body.monthlyIncomeCents ?? null, (v) => requireBudgetCents(v, 'Monthly income'))
+  if (body.version !== 1 && body.version !== BACKUP_VERSION) {
+    throw new ValidationError(`This backup is version ${String(body.version)}; only versions 1 and ${BACKUP_VERSION} can be restored`)
+  }
 
   if (!Array.isArray(body.categories)) throw new ValidationError('The backup has no categories list')
   if (body.categories.length > MAX_CATEGORIES) throw new ValidationError(`A backup can have at most ${MAX_CATEGORIES} categories`)
@@ -112,7 +121,53 @@ export function parseBackup(raw: unknown): Backup {
     }
   })
 
-  return { format: BACKUP_FORMAT, version: BACKUP_VERSION, exportedAt: String(body.exportedAt ?? ''), monthlyIncomeCents, categories, transactions }
+  const income =
+    body.version === 1
+      ? incomeFromVersion1(body.monthlyIncomeCents, categories, transactions)
+      : parseIncome(body.income)
+
+  return { format: BACKUP_FORMAT, version: BACKUP_VERSION, exportedAt: String(body.exportedAt ?? ''), income, categories, transactions }
+}
+
+// A list of { month, amountCents } with each month at most once
+function parseMonthAmounts(raw: unknown, what: string): { month: string; amountCents: number }[] {
+  if (!Array.isArray(raw)) throw new ValidationError(`${what} has no list of amounts`)
+  if (raw.length > MAX_INCOME_ROWS) throw new ValidationError(`${what} has too many amounts`)
+  const seen = new Set<string>()
+  const amounts = raw.map((item: unknown) => {
+    const a = requireObject(item)
+    const month = requireMonth(a.month, `${what} month`)
+    if (seen.has(month)) throw new ValidationError(`${what} has ${month} twice`)
+    seen.add(month)
+    return { month, amountCents: requireBudgetCents(a.amountCents, `${what} amount`) }
+  })
+  return amounts.sort((a, b) => a.month.localeCompare(b.month))
+}
+
+function parseIncome(raw: unknown): BackupIncome {
+  const income = requireObject(raw ?? {})
+  const rawSources = income.sources ?? []
+  if (!Array.isArray(rawSources)) throw new ValidationError('The backup has no income sources list')
+  const names = new Set<string>()
+  const sources = rawSources.map((item: unknown, index: number) => {
+    const source = requireObject(item)
+    const name = requireText(source.name, `Income source ${index + 1} name`, 100)
+    if (names.has(name)) throw new ValidationError(`Two income sources are named "${name}"`)
+    names.add(name)
+    return { name, amounts: parseMonthAmounts(source.amounts, `Income source "${name}"`) }
+  })
+  const other = parseMonthAmounts(income.other ?? [], 'Other income').filter((o) => o.amountCents > 0)
+  return { sources, other }
+}
+
+// A version 1 backup has one monthly income; it becomes a source called "Income" that starts in
+// the earliest month the backup has data for, so every month in it has that income.
+function incomeFromVersion1(raw: unknown, categories: BackupCategory[], transactions: BackupTransaction[]): BackupIncome {
+  const amountCents = nullable(raw ?? null, (v) => requireBudgetCents(v, 'Monthly income'))
+  if (amountCents === null) return { sources: [], other: [] }
+  const dates = [...categories.map((c) => c.createdOn), ...transactions.map((t) => t.date), new Date().toISOString().slice(0, 10)]
+  const month = dates.sort()[0].slice(0, 7)
+  return { sources: [{ name: 'Income', amounts: [{ month, amountCents }] }], other: [] }
 }
 
 export type RestoreResult = { categories: number; transactions: number }
@@ -131,7 +186,12 @@ const toDay = (date: string) => new Date(`${date}T00:00:00Z`)
 export function createBackupStore(db: Database): BackupStore {
   return {
     export: async (userId) => {
-      const user = await db.user.findUniqueOrThrow({ where: { id: userId }, select: { monthlyIncomeCents: true } })
+      const sources = await db.incomeSource.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'asc' },
+        select: { name: true, amounts: { orderBy: { month: 'asc' }, select: { month: true, amountCents: true } } },
+      })
+      const other = await db.otherIncome.findMany({ where: { userId }, orderBy: { month: 'asc' }, select: { month: true, amountCents: true } })
       const categories = await db.category.findMany({ where: { userId }, orderBy: { name: 'asc' } })
       const transactions = await db.transaction.findMany({
         where: { userId },
@@ -142,7 +202,7 @@ export function createBackupStore(db: Database): BackupStore {
         format: BACKUP_FORMAT,
         version: BACKUP_VERSION,
         exportedAt: new Date().toISOString(),
-        monthlyIncomeCents: user.monthlyIncomeCents,
+        income: { sources, other },
         categories: categories.map((c) => ({
           name: c.name,
           kind: c.kind,
@@ -167,7 +227,12 @@ export function createBackupStore(db: Database): BackupStore {
       db.$transaction(async (tx) => {
         await tx.transaction.deleteMany({ where: { userId } })
         await tx.category.deleteMany({ where: { userId } })
-        await tx.user.update({ where: { id: userId }, data: { monthlyIncomeCents: backup.monthlyIncomeCents } })
+        await tx.incomeSource.deleteMany({ where: { userId } })
+        await tx.otherIncome.deleteMany({ where: { userId } })
+        for (const source of backup.income.sources) {
+          await tx.incomeSource.create({ data: { userId, name: source.name, amounts: { create: source.amounts } } })
+        }
+        await tx.otherIncome.createMany({ data: backup.income.other.map((o) => ({ userId, ...o })) })
 
         const idByName = new Map<string, string>()
         for (const c of backup.categories) {
