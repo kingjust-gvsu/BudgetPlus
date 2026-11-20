@@ -9,6 +9,7 @@ import { createBackupRouter } from './routes/backup.ts'
 import { createCategoriesRouter } from './routes/categories.ts'
 import { createHealthRouter, type DatabaseCheck } from './routes/health.ts'
 import { createMeRouter } from './routes/me.ts'
+import { createSpendingRouter } from './routes/spending.ts'
 import { createSummaryRouter } from './routes/summary.ts'
 import { createTransactionsRouter } from './routes/transactions.ts'
 import type { SummaryStore } from './summary.ts'
@@ -44,6 +45,7 @@ export function createApp(config: Pick<Config, 'corsOrigin'>, deps: AppDependenc
   app.use('/api/categories', signedIn, createCategoriesRouter(deps.categories))
   app.use('/api/transactions', signedIn, createTransactionsRouter(deps.transactions))
   app.use('/api/summary', signedIn, createSummaryRouter(deps.summary))
+  app.use('/api/spending', signedIn, createSpendingRouter(deps.categories, deps.transactions))
   app.use('/api/backup', signedIn, createBackupRouter(deps.backup))
 
   app.use('/api', (_req, res) => {
