@@ -1,8 +1,107 @@
 {
   "format": "budget-plus-backup",
-  "version": 1,
+  "version": 2,
   "exportedAt": "2026-11-19T12:00:00.000Z",
-  "monthlyIncomeCents": 400000,
+  "income": {
+    "sources": [
+      {
+        "name": "Income 1",
+        "amounts": [
+          {
+            "month": "2021-12",
+            "amountCents": 340000
+          },
+          {
+            "month": "2023-03",
+            "amountCents": 355000
+          },
+          {
+            "month": "2024-09",
+            "amountCents": 380000
+          },
+          {
+            "month": "2026-03",
+            "amountCents": 395000
+          }
+        ]
+      },
+      {
+        "name": "Income 2",
+        "amounts": [
+          {
+            "month": "2024-01",
+            "amountCents": 90000
+          },
+          {
+            "month": "2025-06",
+            "amountCents": 150000
+          }
+        ]
+      }
+    ],
+    "other": [
+      {
+        "month": "2021-12",
+        "amountCents": 40000
+      },
+      {
+        "month": "2022-03",
+        "amountCents": 220000
+      },
+      {
+        "month": "2022-04",
+        "amountCents": 102100
+      },
+      {
+        "month": "2022-12",
+        "amountCents": 40000
+      },
+      {
+        "month": "2023-03",
+        "amountCents": 156000
+      },
+      {
+        "month": "2023-04",
+        "amountCents": 80300
+      },
+      {
+        "month": "2023-12",
+        "amountCents": 40000
+      },
+      {
+        "month": "2024-03",
+        "amountCents": 158500
+      },
+      {
+        "month": "2024-04",
+        "amountCents": 67100
+      },
+      {
+        "month": "2024-12",
+        "amountCents": 40000
+      },
+      {
+        "month": "2025-03",
+        "amountCents": 223000
+      },
+      {
+        "month": "2025-04",
+        "amountCents": 92100
+      },
+      {
+        "month": "2025-12",
+        "amountCents": 40000
+      },
+      {
+        "month": "2026-03",
+        "amountCents": 162000
+      },
+      {
+        "month": "2026-04",
+        "amountCents": 84300
+      }
+    ]
+  },
   "categories": [
     {
       "name": "Car insurance",
