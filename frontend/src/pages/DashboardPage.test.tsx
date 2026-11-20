@@ -48,8 +48,7 @@ const october: MonthSummary = {
 let fetchMock: ReturnType<typeof vi.fn>
 
 const spending: SpendingSummary = {
-  incomeCents: 400000,
-  months: [{ month: '2026-10', billsCents: 120000, expensesCents: 30000 }],
+  months: [{ month: '2026-10', billsCents: 120000, expensesCents: 30000, incomeCents: 400000 }],
   categories: [
     { id: 'rent', name: 'Rent', kind: 'BILL', spentCents: 120000, byMonthCents: [120000] },
     { id: 'groceries', name: 'Groceries', kind: 'EXPENSE', spentCents: 30000, byMonthCents: [30000] },

@@ -341,38 +341,6 @@ h2 {
   color: var(--color-good);
 }
 
-/* The income card fits on one line: heading, label, amount, Save, and a hint */
-.income-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px 16px;
-}
-
-.income-row h2 {
-  margin: 0 8px 0 0;
-}
-
-.income-row label {
-  font-weight: 500;
-}
-
-.input-income {
-  font: inherit;
-  min-height: 44px;
-  width: 180px;
-  box-sizing: border-box;
-  padding: 0 12px;
-  border: 1px solid #d0d0ca;
-  border-radius: 8px;
-  background: var(--color-surface);
-  color: var(--color-text);
-}
-
-.income-row ~ p {
-  margin-bottom: 0;
-}
-
 .input-percent {
   width: 80px;
 }

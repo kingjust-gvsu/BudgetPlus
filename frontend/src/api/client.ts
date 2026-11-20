@@ -36,7 +36,7 @@ export async function apiGet<T>(path: string, token?: string | null): Promise<T>
 
 // POST, PATCH, or DELETE. Returns the response body, or undefined when there is none (204).
 export async function apiSend<T = void>(
-  method: 'POST' | 'PATCH' | 'DELETE',
+  method: 'POST' | 'PUT' | 'PATCH' | 'DELETE',
   path: string,
   token: string | null,
   body?: unknown,

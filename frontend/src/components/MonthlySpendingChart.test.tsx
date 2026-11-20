@@ -17,8 +17,8 @@ describe('niceScale', () => {
 
 describe('MonthlySpendingChart', () => {
   const months = [
-    { month: '2026-10', billsCents: 150000, expensesCents: 50000 },
-    { month: '2026-11', billsCents: 100000, expensesCents: 25000 },
+    { month: '2026-10', billsCents: 150000, expensesCents: 50000, incomeCents: null },
+    { month: '2026-11', billsCents: 100000, expensesCents: 25000, incomeCents: null },
   ]
 
   it('labels the months and the dollar scale', () => {
@@ -47,10 +47,21 @@ describe('MonthlySpendingChart', () => {
   })
 
   it('draws income as a line and says how each month compared', () => {
-    render(<MonthlySpendingChart months={months} incomeCents={180000} />)
+    render(<MonthlySpendingChart months={months.map((m) => ({ ...m, incomeCents: 180000 }))} />)
 
-    expect(screen.getByText(/Income \$1,800/)).toBeInTheDocument()
+    expect(screen.getByText(/Income \$1,800/)).toBeInTheDocument() // the same every month, so the legend names it
     expect(screen.getByText('▲ $200').parentElement).toHaveClass('bad') // October: $2,000 spent
     expect(screen.getByText('▼ $550').parentElement).toHaveClass('good') // November: $1,250 spent
+  })
+
+  it("uses each month's own income", () => {
+    const { container } = render(
+      <MonthlySpendingChart months={[{ ...months[0], incomeCents: 180000 }, { ...months[1], incomeCents: 200000 }]} />,
+    )
+
+    expect(container.querySelector('.chart-legend')).toHaveTextContent(/Income$/) // changes, so no single amount
+    expect(screen.getByText('▲ $200').parentElement).toHaveClass('bad') // October: $2,000 vs $1,800
+    expect(screen.getByText('▼ $750').parentElement).toHaveClass('good') // November: $1,250 vs $2,000
+    expect(container.querySelectorAll('.month-chart-income')).toHaveLength(2)
   })
 })

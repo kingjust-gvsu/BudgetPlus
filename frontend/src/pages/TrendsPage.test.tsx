@@ -9,11 +9,10 @@ import { TrendsPage } from './TrendsPage'
 const thisMonth = monthOf(today())
 
 const spending: SpendingSummary = {
-  incomeCents: 400000,
   months: [
-    { month: '2026-09', billsCents: 150000, expensesCents: 60000 },
-    { month: '2026-10', billsCents: 140000, expensesCents: 50000 },
-    { month: '2026-11', billsCents: 0, expensesCents: 0 },
+    { month: '2026-09', billsCents: 150000, expensesCents: 60000, incomeCents: 400000 },
+    { month: '2026-10', billsCents: 140000, expensesCents: 50000, incomeCents: 400000 },
+    { month: '2026-11', billsCents: 0, expensesCents: 0, incomeCents: 400000 },
   ],
   categories: [
     { id: 'rent', name: 'Rent', kind: 'BILL', spentCents: 240000, byMonthCents: [120000, 120000, 0] },
@@ -65,7 +64,7 @@ describe('TrendsPage', () => {
 
     const table = await screen.findByRole('table', { name: 'Spending by month' })
     const september = within(table).getByRole('row', { name: /September 2026/ })
-    expect(september).toHaveTextContent('$1,500.00$600.00$2,100.00')
+    expect(september).toHaveTextContent('$1,500.00$600.00$2,100.00$4,000.00$1,900 left')
   })
 
   it('shows a small chart for each category, largest first', async () => {
@@ -103,7 +102,7 @@ describe('TrendsPage', () => {
   })
 
   it('says so when there is no spending yet', async () => {
-    renderTrends({ incomeCents: null, months: [{ month: thisMonth, billsCents: 0, expensesCents: 0 }], categories: [] })
+    renderTrends({ months: [{ month: thisMonth, billsCents: 0, expensesCents: 0, incomeCents: null }], categories: [] })
 
     expect(await screen.findByText('No spending to show yet.')).toBeInTheDocument()
   })

@@ -11,9 +11,9 @@ const wholeDollars = (cents: number) => formatCents(cents).replace(/\.00$/, '')
 const positive = (cents: number) => Math.max(0, cents)
 
 type Props = {
+  // Each month's income (when set) is drawn as a dashed line, and each month says how far under or
+  // over it spending was
   months: MonthSpending[]
-  // Monthly income, drawn as a dashed line; each month says how far under or over it spending was
-  incomeCents?: number | null
   height?: number
 }
 
@@ -24,10 +24,14 @@ function vsIncome(totalCents: number, incomeCents: number) {
 }
 
 // A stacked bar for each month: bills on the bottom, expenses on top
-export function MonthlySpendingChart({ months, incomeCents = null, height = 220 }: Props) {
+export function MonthlySpendingChart({ months, height = 220 }: Props) {
   const [hovered, setHovered] = useState<string | null>(null)
-  const income = incomeCents && incomeCents > 0 ? incomeCents : null
-  const biggest = Math.max(income ?? 0, ...months.map((m) => positive(m.billsCents) + positive(m.expensesCents)))
+  const incomeOf = (m: MonthSpending) => (m.incomeCents && m.incomeCents > 0 ? m.incomeCents : null)
+  const incomes = months.map(incomeOf).filter((c): c is number => c !== null)
+  const hasIncome = incomes.length > 0
+  // The legend names the amount only when it's the same every month
+  const steadyIncome = hasIncome && incomes.length === months.length && incomes.every((c) => c === incomes[0]) ? incomes[0] : null
+  const biggest = Math.max(0, ...incomes, ...months.map((m) => positive(m.billsCents) + positive(m.expensesCents)))
   const { top: max, step } = niceScale(biggest)
   const ticks = Math.round(max / step)
   const percent = (cents: number) => `${(positive(cents) / max) * 100}%`
@@ -45,9 +49,9 @@ export function MonthlySpendingChart({ months, incomeCents = null, height = 220 
         <span className="chart-key">
           <span className="chart-swatch chart-swatch--expenses" /> Expenses
         </span>
-        {income !== null && (
+        {hasIncome && (
           <span className="chart-key">
-            <span className="chart-swatch-line" /> Income {wholeDollars(income)}
+            <span className="chart-swatch-line" /> Income{steadyIncome !== null && ` ${wholeDollars(steadyIncome)}`}
           </span>
         )}
       </div>
@@ -62,6 +66,7 @@ export function MonthlySpendingChart({ months, incomeCents = null, height = 220 
         <div className="month-chart-bars">
           {months.map((m, i) => {
             const total = m.billsCents + m.expensesCents
+            const income = incomeOf(m)
             return (
               <div
                 key={m.month}
@@ -77,6 +82,7 @@ export function MonthlySpendingChart({ months, incomeCents = null, height = 220 
                     <div className="month-chart-segment chart-fill--bills" style={{ height: percent(m.billsCents) }} />
                   )}
                 </div>
+                {income !== null && <div className="month-chart-income" style={{ bottom: percent(income) }} />}
                 {hovered === m.month && (
                   <div className="chart-tooltip">
                     <strong>{formatMonth(m.month)}</strong>
@@ -99,9 +105,6 @@ export function MonthlySpendingChart({ months, incomeCents = null, height = 220 
           })}
         </div>
 
-        {income !== null && (
-          <div className="month-chart-income" style={{ bottom: percent(income) }} />
-        )}
       </div>
 
       <div
@@ -110,6 +113,7 @@ export function MonthlySpendingChart({ months, incomeCents = null, height = 220 
       >
         {months.map((m, i) => {
           const total = m.billsCents + m.expensesCents
+          const income = incomeOf(m)
           const over = income !== null && total > income
           return (
             <span key={m.month}>
@@ -136,7 +140,8 @@ export function MonthlySpendingChart({ months, incomeCents = null, height = 220 
             <th scope="col">Bills</th>
             <th scope="col">Expenses</th>
             <th scope="col">Total</th>
-            {income !== null && <th scope="col">Compared with income</th>}
+            {hasIncome && <th scope="col">Income</th>}
+            {hasIncome && <th scope="col">Compared with income</th>}
           </tr>
         </thead>
         <tbody>
@@ -146,7 +151,8 @@ export function MonthlySpendingChart({ months, incomeCents = null, height = 220 
               <td>{formatCents(m.billsCents)}</td>
               <td>{formatCents(m.expensesCents)}</td>
               <td>{formatCents(m.billsCents + m.expensesCents)}</td>
-              {income !== null && <td>{vsIncome(m.billsCents + m.expensesCents, income)}</td>}
+              {hasIncome && <td>{incomeOf(m) === null ? 'Not set' : formatCents(incomeOf(m)!)}</td>}
+              {hasIncome && <td>{incomeOf(m) === null ? '' : vsIncome(m.billsCents + m.expensesCents, incomeOf(m)!)}</td>}
             </tr>
           ))}
         </tbody>

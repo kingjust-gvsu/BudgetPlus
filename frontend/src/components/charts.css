@@ -167,11 +167,11 @@
   color: var(--color-bad);
 }
 
-/* Income: a dashed line across the bars */
+/* Income: a dashed line at each month's income, so a raise shows as a step */
 .month-chart-income {
   position: absolute;
-  left: 0;
-  right: 0;
+  left: -4px;
+  right: -4px;
   border-top: 2px dashed var(--color-text);
   pointer-events: none;
 }

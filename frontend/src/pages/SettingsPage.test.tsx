@@ -55,6 +55,15 @@ describe('SettingsPage', () => {
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
+  it('describes the income in a version 2 backup', async () => {
+    renderSettings(() => Promise.resolve(Response.json({})))
+
+    const { monthlyIncomeCents: _old, ...rest } = backup
+    chooseBackup(JSON.stringify({ ...rest, version: 2, income: { sources: [{ name: 'A', amounts: [] }, { name: 'B', amounts: [] }], other: [] } }))
+
+    expect(await screen.findByText(/with 2 income sources\./)).toBeInTheDocument()
+  })
+
   it('replaces the data after the user confirms', async () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true)
     const fetchMock = renderSettings(() => Promise.resolve(Response.json({ categories: 2, transactions: 2 })))

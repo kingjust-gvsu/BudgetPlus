@@ -3,7 +3,15 @@
 export type User = {
   id: string
   email: string | null
-  monthlyIncomeCents: number | null // null until the user enters it
+}
+
+// GET /api/income?month=: a month's income. `sources` are the ones paying that month, each
+// carried over from the month it was last set in (`setIn`); other income is for that month only.
+export type MonthIncome = {
+  month: string
+  sources: { id: string; name: string; amountCents: number; setIn: string }[]
+  otherCents: number
+  totalCents: number | null // null when there's no income at all yet
 }
 
 export type CategoryKind = 'BILL' | 'EXPENSE'
@@ -99,6 +107,7 @@ export type MonthSpending = {
   month: string // YYYY-MM
   billsCents: number
   expensesCents: number // includes uncategorized spending
+  incomeCents: number | null // that month's income
 }
 
 export type CategorySpending = {
@@ -110,7 +119,6 @@ export type CategorySpending = {
 }
 
 export type SpendingSummary = {
-  incomeCents: number | null // monthly income, to compare spending against
   months: MonthSpending[]
   categories: CategorySpending[] // largest first
 }

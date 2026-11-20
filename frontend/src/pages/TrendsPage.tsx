@@ -85,7 +85,7 @@ export function TrendsPage() {
         <>
           <section className="card" aria-labelledby="by-month-heading">
             <h2 id="by-month-heading">Spending by month</h2>
-            <MonthlySpendingChart months={spending.months} incomeCents={spending.incomeCents} />
+            <MonthlySpendingChart months={spending.months} />
           </section>
           <section className="card" aria-labelledby="by-category-heading">
             <h2 id="by-category-heading">By category</h2>
