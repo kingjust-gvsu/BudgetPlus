@@ -62,6 +62,7 @@ describe('sample backups', () => {
   it.each([
     ['full-budget-3-months.json', 11, 72],
     ['full-budget-12-months.json', 13, 289],
+    ['full-budget-5-years.json', 15, 1699],
   ])('sample-data/%s is a valid backup', (name, categories, transactions) => {
     // Tests run from the backend folder; sample-data/ sits beside it
     const file = JSON.parse(readFileSync(resolve(process.cwd(), '../sample-data', name), 'utf-8'))
