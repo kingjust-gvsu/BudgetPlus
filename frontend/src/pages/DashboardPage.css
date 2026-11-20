@@ -138,3 +138,10 @@
   align-items: center;
   text-decoration: none;
 }
+
+.dash-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
