@@ -8,6 +8,7 @@ const tabs = [
   { to: '/', label: 'Dashboard' },
   { to: '/transactions', label: 'Transactions' },
   { to: '/bills', label: 'Bills & funds' },
+  { to: '/trends', label: 'Trends' },
   { to: '/budget-setup', label: 'Budget setup' },
 ]
 

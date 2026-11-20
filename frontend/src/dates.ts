@@ -30,6 +30,12 @@ export function formatMonth(month: string): string {
   return `${MONTH_NAMES[m - 1]} ${year}`
 }
 
+// "2026-10" → "Oct", or "Oct '26" with the year
+export function formatShortMonth(month: string, withYear = false): string {
+  const name = SHORT_MONTH_NAMES[Number(month.slice(5, 7)) - 1]
+  return withYear ? `${name} '${month.slice(2, 4)}` : name
+}
+
 // "2026-10-05" → "Oct 5"
 export function formatDay(date: string): string {
   const [, m, d] = date.split('-').map(Number)

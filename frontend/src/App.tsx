@@ -7,6 +7,7 @@ import { DashboardPage } from './pages/DashboardPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { SignInPage } from './pages/SignInPage'
 import { TransactionsPage } from './pages/TransactionsPage'
+import { TrendsPage } from './pages/TrendsPage'
 
 function App() {
   const { user } = useAuth()
@@ -25,6 +26,7 @@ function App() {
         <Route index element={<DashboardPage />} />
         <Route path="transactions" element={<TransactionsPage />} />
         <Route path="bills" element={<BillsPage />} />
+        <Route path="trends" element={<TrendsPage />} />
         <Route path="budget-setup" element={<BudgetSetupPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
