@@ -41,31 +41,22 @@ describe('parseMoney', () => {
 })
 
 describe('guessMapping', () => {
-  it('finds the columns of a single-amount bank file and sees spending is negative', () => {
+  it('finds the columns of a bank file and sees spending is negative', () => {
     const file = readCsv('Posting Date,Description,Amount,Balance\n10/15/2026,MEIJER,-84.12,900\n10/16/2026,PAYROLL,2000.00,2900\n10/17/2026,SHELL,-48.30,2851')
 
     expect(guessMapping(file)).toEqual({
       dateColumn: 'Posting Date',
       descriptionColumn: 'Description',
-      amount: { kind: 'single', column: 'Amount', spendingIs: 'negative' },
+      amountColumn: 'Amount',
       categoryColumn: null,
-      skipMoneyIn: true,
-    })
-  })
-
-  it('finds separate debit and credit columns', () => {
-    const file = readCsv('Date,Memo,Debit,Credit\n2026-10-15,Meijer,84.12,\n2026-10-16,Paycheck,,2000.00')
-
-    expect(guessMapping(file)).toMatchObject({
-      descriptionColumn: 'Memo',
-      amount: { kind: 'split', debitColumn: 'Debit', creditColumn: 'Credit' },
+      invertAmounts: true,
     })
   })
 
   it('finds a category column', () => {
     const file = readCsv('Date,Description,Amount,Category\n2026-10-15,Meijer,84.12,Groceries')
 
-    expect(guessMapping(file)).toMatchObject({ categoryColumn: 'Category', amount: { spendingIs: 'positive' } })
+    expect(guessMapping(file)).toMatchObject({ categoryColumn: 'Category', invertAmounts: false })
   })
 })
 
@@ -73,9 +64,9 @@ describe('previewImport', () => {
   const singleNegative: ColumnMapping = {
     dateColumn: 'Date',
     descriptionColumn: 'Description',
-    amount: { kind: 'single', column: 'Amount', spendingIs: 'negative' },
+    amountColumn: 'Amount',
     categoryColumn: 'Category',
-    skipMoneyIn: true,
+    invertAmounts: true,
   }
 
   it('turns rows into transactions, matching categories by name', () => {
@@ -90,25 +81,12 @@ describe('previewImport', () => {
     expect(preview.unmatchedCategories).toEqual(['Fuel'])
   })
 
-  it('leaves out money coming in unless asked to keep it', () => {
-    const file = readCsv('Date,Description,Amount,Category\n10/15/2026,Meijer,-84.12,\n10/16/2026,Paycheck,2000.00,\n10/17/2026,Refund,18.00,')
+  it('flips amounts only when asked to', () => {
+    const file = readCsv('Date,Description,Amount,Category\n10/15/2026,Meijer,-84.12,\n10/17/2026,Refund,18.00,')
 
-    expect(previewImport(file, singleNegative, categories)).toMatchObject({ skippedMoneyIn: 2 })
-    const kept = previewImport(file, { ...singleNegative, skipMoneyIn: false }, categories)
-    expect(kept.ready.map((r) => r.amountCents)).toEqual([8412, -200000, -1800])
-  })
-
-  it('handles debit and credit columns', () => {
-    const file = readCsv('Date,Memo,Debit,Credit\n2026-10-15,Meijer,84.12,\n2026-10-16,Refund,,18.00')
-    const mapping: ColumnMapping = {
-      dateColumn: 'Date',
-      descriptionColumn: 'Memo',
-      amount: { kind: 'split', debitColumn: 'Debit', creditColumn: 'Credit' },
-      categoryColumn: null,
-      skipMoneyIn: false,
-    }
-
-    expect(previewImport(file, mapping, categories).ready.map((r) => r.amountCents)).toEqual([8412, -1800])
+    expect(previewImport(file, singleNegative, categories).ready.map((r) => r.amountCents)).toEqual([8412, -1800])
+    const asIs = previewImport(file, { ...singleNegative, invertAmounts: false }, categories)
+    expect(asIs.ready.map((r) => r.amountCents)).toEqual([-8412, 1800])
   })
 
   it('reports rows it cannot use, with their line numbers', () => {

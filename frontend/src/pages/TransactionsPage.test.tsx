@@ -185,6 +185,29 @@ describe('TransactionsPage', () => {
     await vi.waitFor(() => expect(screen.queryByText('Meijer')).not.toBeInTheDocument())
   })
 
+  it('opens the import for a picked CSV file', async () => {
+    renderPage()
+    await screen.findByText('Meijer')
+
+    const csv = 'Date,Description,Amount\n10/15/2026,MEIJER,-84.12\n'
+    fireEvent.change(screen.getByLabelText('CSV file to import'), {
+      target: { files: [new File([csv], 'october.csv', { type: 'text/csv' })] },
+    })
+
+    expect(await screen.findByRole('heading', { name: 'Import october.csv' })).toBeInTheDocument()
+  })
+
+  it('explains a picked file that is not a usable CSV', async () => {
+    renderPage()
+    await screen.findByText('Meijer')
+
+    fireEvent.change(screen.getByLabelText('CSV file to import'), {
+      target: { files: [new File(['just some text'], 'notes.txt')] },
+    })
+
+    expect(await screen.findByRole('alert')).toHaveTextContent("doesn't look like a CSV")
+  })
+
   it('loads the previous month', async () => {
     renderPage()
     await screen.findByText('Meijer')

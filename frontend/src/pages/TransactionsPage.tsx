@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { apiGet, apiSend } from '../api/client'
 import type { Category, Transaction, TransactionInput } from '../api/types'
 import { useAuth } from '../auth/useAuth'
 import { CsvImport } from '../components/CsvImport'
+import { readCsv, type CsvFile } from '../csvImport'
 import { EditTransactionRow } from '../components/EditTransactionRow'
 import { TransactionForm } from '../components/TransactionForm'
 import { formatDay, formatMonth, monthOf, shiftMonth, today } from '../dates'
@@ -15,7 +16,9 @@ export function TransactionsPage() {
   const [categories, setCategories] = useState<Category[]>([])
   const [editingId, setEditingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [importing, setImporting] = useState(false)
+  // The CSV file being imported, once the user has picked one
+  const [importFile, setImportFile] = useState<{ name: string; csv: CsvFile } | null>(null)
+  const filePicker = useRef<HTMLInputElement>(null)
   const [notice, setNotice] = useState<string | null>(null)
   // Bumped after a change, so the list reloads even when the month stays the same
   const [version, setVersion] = useState(0)
@@ -73,6 +76,19 @@ export function TransactionsPage() {
     }
   }
 
+  const pickImportFile = async (file: File | undefined) => {
+    if (filePicker.current) filePicker.current.value = '' // so picking the same file again still works
+    if (!file) return
+    setNotice(null)
+    const csv = readCsv(await file.text())
+    if (csv.headers.length < 2 || csv.rows.length === 0) {
+      setError("That file doesn't look like a CSV with a header row and transactions.")
+      return
+    }
+    setError(null)
+    setImportFile({ name: file.name, csv })
+  }
+
   const changeMonth = (by: number) => {
     setEditingId(null)
     setMonth(shiftMonth(month, by))
@@ -86,16 +102,18 @@ export function TransactionsPage() {
           <p className="page-intro">Add the money you spend, and refunds as negative amounts.</p>
         </div>
         <div className="page-actions">
-          {!importing && (
-            <button
-              type="button"
-              className="button"
-              onClick={() => {
-                setNotice(null)
-                setImporting(true)
-              }}
-            >
-              Import from bank CSV
+          <input
+            ref={filePicker}
+            type="file"
+            accept=".csv,text/csv"
+            className="visually-hidden"
+            aria-label="CSV file to import"
+            tabIndex={-1}
+            onChange={(e) => pickImportFile(e.target.files?.[0])}
+          />
+          {!importFile && (
+            <button type="button" className="button" onClick={() => filePicker.current?.click()}>
+              Import from CSV
             </button>
           )}
           <div className="month-nav">
@@ -116,12 +134,15 @@ export function TransactionsPage() {
         </p>
       )}
 
-      {importing ? (
+      {importFile ? (
         <CsvImport
+          key={importFile.name}
+          fileName={importFile.name}
+          file={importFile.csv}
           categories={categories}
-          onCancel={() => setImporting(false)}
+          onCancel={() => setImportFile(null)}
           onImported={(message) => {
-            setImporting(false)
+            setImportFile(null)
             setNotice(message)
             setVersion((v) => v + 1)
           }}

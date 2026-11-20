@@ -25,17 +25,17 @@ const categories = [
   'Savings',
 ].map((name, i) => makeCategory({ id: `c${i}`, name, kind: 'EXPENSE' }))
 
-function importOf(name: string, skipMoneyIn = true) {
+function importOf(name: string) {
   const file = sample(name)
-  const mapping = { ...guessMapping(file), skipMoneyIn }
+  const mapping = guessMapping(file)
   return { mapping, preview: previewImport(file, mapping, categories) }
 }
 
 describe('sample data', () => {
   it('budget-plus-3-months.csv imports cleanly into the README categories', () => {
-    const { mapping, preview } = importOf('budget-plus-3-months.csv', false)
+    const { mapping, preview } = importOf('budget-plus-3-months.csv')
 
-    expect(mapping.amount).toMatchObject({ kind: 'single', spendingIs: 'positive' })
+    expect(mapping.invertAmounts).toBe(false)
     expect(preview.problems).toEqual([])
     expect(preview.unmatchedCategories).toEqual([])
     expect(preview.ready).toHaveLength(72)
@@ -43,29 +43,19 @@ describe('sample data', () => {
     expect(preview.ready.some((r) => r.amountCents < 0)).toBe(true) // and there's a refund
   })
 
-  it('checking-account-style.csv is read as negative spending and leaves out paychecks', () => {
+  it('checking-account-style.csv is read as negative spending', () => {
     const { mapping, preview } = importOf('checking-account-style.csv')
 
-    expect(mapping).toMatchObject({ dateColumn: 'Posting Date', amount: { kind: 'single', column: 'Amount', spendingIs: 'negative' } })
+    expect(mapping).toMatchObject({ dateColumn: 'Posting Date', amountColumn: 'Amount', invertAmounts: true })
     expect(preview.problems).toEqual([])
-    expect(preview.skippedMoneyIn).toBe(3)
     expect(preview.ready).toHaveLength(27)
-  })
-
-  it('debit-credit-columns.csv uses its debit and credit columns', () => {
-    const { mapping, preview } = importOf('debit-credit-columns.csv')
-
-    expect(mapping.amount).toEqual({ kind: 'split', debitColumn: 'Debit', creditColumn: 'Credit' })
-    expect(preview.problems).toEqual([])
-    expect(preview.skippedMoneyIn).toBe(3)
   })
 
   it('messy-rows.csv reads every odd format and reports the five bad rows', () => {
     const { preview } = importOf('messy-rows.csv')
 
     // Spending is negative in this file, so "(18.00)" (accounting-style negative) is $18 spent
-    expect(preview.ready.map((r) => r.amountCents)).toEqual([1200, 850, 2000, 1525, 3275, 1800, 105000])
-    expect(preview.skippedMoneyIn).toBe(1)
+    expect(preview.ready.map((r) => r.amountCents)).toEqual([1200, 850, 2000, 1525, 3275, 1800, 105000, -4500])
     expect(preview.problems.map((p) => p.line)).toEqual([10, 11, 12, 13, 14])
   })
 

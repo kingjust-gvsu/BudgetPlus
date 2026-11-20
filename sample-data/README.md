@@ -1,8 +1,19 @@
 # Sample data
 
-CSV files for testing the import on the Transactions page (**Import from bank CSV**).
+Files for testing imports: full backups for **Settings → Import a backup**, and CSV files for **Import from CSV** on the Transactions page.
 
-## Set up these categories first
+## Full backups (quickest)
+
+These replace all of your data, including income and categories, so there's nothing to set up first.
+
+| File | What's in it |
+| --- | --- |
+| `full-budget-3-months.json` | The $4,000 budget below with Sep–Nov 2026 transactions. |
+| `full-budget-12-months.json` | The same budget plus Car registration and Gifts, with a year of transactions (Dec 2025 – Nov 2026). |
+
+## CSV files
+
+### Set up these categories first
 
 Set income to **$4,000** on Budget setup, then add:
 
@@ -20,13 +31,12 @@ Set income to **$4,000** on Budget setup, then add:
 | Entertainment | Expense | $100 |
 | Savings | Expense | Remainder |
 
-## Files
+### Files
 
 | File | What it tests |
 | --- | --- |
-| `budget-plus-3-months.csv` | Sep–Nov 2026 with a **Category** column matching the table above, including the car insurance payment, a refund, and some uncategorized coffee. Uncheck "Leave out money coming in" to import the refund. |
-| `checking-account-style.csv` | A typical checking export: spending is negative, paychecks positive, no categories. Paychecks are left out by default. |
-| `debit-credit-columns.csv` | Separate **Debit** and **Credit** columns. |
+| `budget-plus-3-months.csv` | Sep–Nov 2026 with a **Category** column matching the table above, including the car insurance payment, a refund, and some uncategorized coffee. |
+| `checking-account-style.csv` | A typical checking export: spending is negative and there are no categories, so **Invert amounts** starts checked. Paychecks are left out of this file, since income isn't a transaction in Budget+. |
 | `messy-rows.csv` | Odd but valid formats (short dates, `$` signs, `(18.00)`, quoted commas) and 5 bad rows the preview should report. |
 | `5000-transactions.csv` | A year of 5,000 transactions, for checking the dashboard stays fast (NFR-4). |
 

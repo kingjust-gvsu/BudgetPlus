@@ -2,26 +2,21 @@ import Papa from 'papaparse'
 import type { Category, TransactionInput } from './api/types'
 import { parseDollars } from './money'
 
-// Turns a bank's CSV export into transactions. Banks lay their files out differently, so the user
-// says which column is which (we guess first), and how amounts are shown.
+// Turns a CSV file (a bank's export, or Budget+'s own) into transactions. Files are laid out
+// differently, so the user says which column is which (we guess first).
 
 export type CsvFile = {
   headers: string[]
   rows: Record<string, string>[]
 }
 
-export type AmountFormat =
-  // One column; `spendingIs` says whether money spent shows as negative or positive numbers
-  | { kind: 'single'; column: string; spendingIs: 'negative' | 'positive' }
-  // Money out in one column, money in in another
-  | { kind: 'split'; debitColumn: string; creditColumn: string }
-
 export type ColumnMapping = {
   dateColumn: string
   descriptionColumn: string
-  amount: AmountFormat
+  amountColumn: string
   categoryColumn: string | null // optional: matched to the user's categories by name
-  skipMoneyIn: boolean // leave out paychecks, transfers in, and refunds
+  // Budget+ counts money spent as positive. Many banks show it as negative, so flip every amount.
+  invertAmounts: boolean
 }
 
 export type ImportRow = TransactionInput & { line: number } // line = line number in the file
@@ -29,7 +24,6 @@ export type ImportRow = TransactionInput & { line: number } // line = line numbe
 export type ImportPreview = {
   ready: ImportRow[]
   problems: { line: number; error: string }[]
-  skippedMoneyIn: number
   // Category names in the file that don't match any of the user's categories
   unmatchedCategories: string[]
 }
@@ -85,55 +79,30 @@ export function guessMapping(file: CsvFile): ColumnMapping {
   }
   const dateColumn = find(/^(posting|transaction|trans\.?|post)?\s*date$/i, /date/i) ?? file.headers[0] ?? ''
   const descriptionColumn = find(/desc/i, /memo/i, /payee/i, /merchant/i, /name/i, /details/i) ?? file.headers[1] ?? ''
-  const amountColumn = find(/^amount$/i, /amount/i)
-  const debitColumn = find(/debit/i, /withdrawal/i, /money out/i)
-  const creditColumn = find(/credit/i, /deposit/i, /money in/i)
+  const amountColumn = find(/^amount$/i, /amount/i) ?? file.headers[2] ?? ''
   const categoryColumn = find(/category/i)
-
-  let amount: AmountFormat
-  if (!amountColumn && debitColumn && creditColumn) {
-    amount = { kind: 'split', debitColumn, creditColumn }
-  } else {
-    const column = amountColumn ?? file.headers[2] ?? ''
-    // Most banks show money spent as negative; if most amounts are negative, assume that
-    const values = file.rows.map((r) => parseMoney(r[column] ?? '')).filter((v): v is number => v !== null && v !== 0)
-    const negatives = values.filter((v) => v < 0).length
-    amount = { kind: 'single', column, spendingIs: negatives >= values.length / 2 ? 'negative' : 'positive' }
-  }
-  return { dateColumn, descriptionColumn, amount, categoryColumn, skipMoneyIn: true }
-}
-
-// Amount in our terms: positive = spent, negative = money back; null if it can't be read
-function amountOf(row: Record<string, string>, format: AmountFormat): number | null {
-  if (format.kind === 'single') {
-    const cents = parseMoney(row[format.column] ?? '')
-    if (cents === null) return null
-    return format.spendingIs === 'negative' ? -cents : cents
-  }
-  const debitText = (row[format.debitColumn] ?? '').trim()
-  const creditText = (row[format.creditColumn] ?? '').trim()
-  const debit = debitText ? parseMoney(debitText) : 0
-  const credit = creditText ? parseMoney(creditText) : 0
-  if (debit === null || credit === null || (!debitText && !creditText)) return null
-  return Math.abs(debit) - Math.abs(credit)
+  // If most amounts are negative, money spent is probably shown as negative (like most banks)
+  const values = file.rows.map((r) => parseMoney(r[amountColumn] ?? '')).filter((v): v is number => v !== null && v !== 0)
+  const invertAmounts = values.filter((v) => v < 0).length > values.length / 2
+  return { dateColumn, descriptionColumn, amountColumn, categoryColumn, invertAmounts }
 }
 
 export function previewImport(file: CsvFile, mapping: ColumnMapping, categories: Category[]): ImportPreview {
   const byName = new Map(categories.map((c) => [c.name.trim().toLowerCase(), c.id]))
-  const preview: ImportPreview = { ready: [], problems: [], skippedMoneyIn: 0, unmatchedCategories: [] }
+  const preview: ImportPreview = { ready: [], problems: [], unmatchedCategories: [] }
   const unmatched = new Set<string>()
 
   file.rows.forEach((row, index) => {
     const line = index + 2 // the header is line 1
     const date = parseDate(row[mapping.dateColumn] ?? '')
     const description = (row[mapping.descriptionColumn] ?? '').trim()
-    const amountCents = amountOf(row, mapping.amount)
+    const amount = parseMoney(row[mapping.amountColumn] ?? '')
+    const amountCents = amount !== null && mapping.invertAmounts ? -amount : amount
 
     if (date === null) return preview.problems.push({ line, error: `Can't read the date "${row[mapping.dateColumn] ?? ''}"` })
     if (!description) return preview.problems.push({ line, error: 'No description' })
     if (amountCents === null) return preview.problems.push({ line, error: "Can't read the amount" })
     if (amountCents === 0) return preview.problems.push({ line, error: 'The amount is zero' })
-    if (amountCents < 0 && mapping.skipMoneyIn) return void preview.skippedMoneyIn++
 
     let categoryId: string | null = null
     const categoryName = mapping.categoryColumn ? (row[mapping.categoryColumn] ?? '').trim() : ''
