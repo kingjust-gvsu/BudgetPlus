@@ -1,8 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { apiGet, apiSend } from '../api/client'
 import type { Category, Transaction, TransactionInput } from '../api/types'
 import { useAuth } from '../auth/useAuth'
+import { CsvImport } from '../components/CsvImport'
+import { transactionsToCsv } from '../csvExport'
+import { readCsv, type CsvFile } from '../csvImport'
 import { EditTransactionRow } from '../components/EditTransactionRow'
+import { SplitButton } from '../components/SplitButton'
 import { TransactionForm } from '../components/TransactionForm'
 import { formatDay, formatMonth, monthOf, shiftMonth, today } from '../dates'
 import { formatCents } from '../money'
@@ -14,6 +18,11 @@ export function TransactionsPage() {
   const [categories, setCategories] = useState<Category[]>([])
   const [editingId, setEditingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  // The CSV file being imported, once the user has picked one
+  const [importFile, setImportFile] = useState<{ name: string; csv: CsvFile } | null>(null)
+  const filePicker = useRef<HTMLInputElement>(null)
+  const [notice, setNotice] = useState<string | null>(null)
+  const [exporting, setExporting] = useState(false)
   // Bumped after a change, so the list reloads even when the month stays the same
   const [version, setVersion] = useState(0)
 
@@ -70,6 +79,38 @@ export function TransactionsPage() {
     }
   }
 
+  const pickImportFile = async (file: File | undefined) => {
+    if (filePicker.current) filePicker.current.value = '' // so picking the same file again still works
+    if (!file) return
+    setNotice(null)
+    const csv = readCsv(await file.text())
+    if (csv.headers.length < 2 || csv.rows.length === 0) {
+      setError("That file doesn't look like a CSV with a header row and transactions.")
+      return
+    }
+    setError(null)
+    setImportFile({ name: file.name, csv })
+  }
+
+  // Downloads every transaction (not just this month's) as a CSV file
+  const exportCsv = async () => {
+    setError(null)
+    setExporting(true)
+    try {
+      const all = await apiGet<Transaction[]>('/transactions', await getToken())
+      const url = URL.createObjectURL(new Blob([transactionsToCsv(all, categories)], { type: 'text/csv' }))
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `budget-plus-transactions-${today()}.csv`
+      link.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      setError("Couldn't export your transactions. Please try again.")
+    } finally {
+      setExporting(false)
+    }
+  }
+
   const changeMonth = (by: number) => {
     setEditingId(null)
     setMonth(shiftMonth(month, by))
@@ -82,18 +123,58 @@ export function TransactionsPage() {
           <h1>Transactions</h1>
           <p className="page-intro">Add the money you spend, and refunds as negative amounts.</p>
         </div>
-        <div className="month-nav">
-          <button type="button" className="button" aria-label="Previous month" onClick={() => changeMonth(-1)}>
-            ‹
-          </button>
-          <span className="month-name">{formatMonth(month)}</span>
-          <button type="button" className="button" aria-label="Next month" onClick={() => changeMonth(1)}>
-            ›
-          </button>
+        <div className="page-actions">
+          <input
+            ref={filePicker}
+            type="file"
+            accept=".csv,text/csv"
+            className="visually-hidden"
+            aria-label="CSV file to import"
+            tabIndex={-1}
+            onChange={(e) => pickImportFile(e.target.files?.[0])}
+          />
+          {!importFile && (
+            <SplitButton
+              label="Import from CSV"
+              onClick={() => filePicker.current?.click()}
+              menuLabel="More CSV options"
+              items={[{ label: exporting ? 'Exporting…' : 'Export to CSV', onClick: exportCsv, disabled: exporting }]}
+            />
+          )}
+          <div className="month-nav">
+            <button type="button" className="button" aria-label="Previous month" onClick={() => changeMonth(-1)}>
+              ‹
+            </button>
+            <span className="month-name">{formatMonth(month)}</span>
+            <button type="button" className="button" aria-label="Next month" onClick={() => changeMonth(1)}>
+              ›
+            </button>
+          </div>
         </div>
       </div>
 
-      <TransactionForm categories={categories} onSave={add} />
+      {notice && (
+        <p className="success" role="status">
+          {notice}
+        </p>
+      )}
+
+      {importFile ? (
+        <CsvImport
+          key={importFile.name}
+          fileName={importFile.name}
+          file={importFile.csv}
+          categories={categories}
+          onCancel={() => setImportFile(null)}
+          onImported={(message) => {
+            setImportFile(null)
+            setNotice(message)
+            setVersion((v) => v + 1)
+          }}
+        />
+      ) : (
+        <TransactionForm categories={categories} onSave={add} />
+      )}
 
       {error && (
         <p className="error" role="alert">

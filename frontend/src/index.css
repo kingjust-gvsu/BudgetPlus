@@ -559,3 +559,11 @@ h2 {
 .help-tip-list li + li {
   margin-top: 6px;
 }
+
+/* Buttons beside a page title, like Import and the month switcher */
+.page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}

@@ -185,6 +185,45 @@ describe('TransactionsPage', () => {
     await vi.waitFor(() => expect(screen.queryByText('Meijer')).not.toBeInTheDocument())
   })
 
+  it('exports all transactions as a dated CSV file', async () => {
+    URL.createObjectURL = vi.fn(() => 'blob:transactions')
+    URL.revokeObjectURL = vi.fn()
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    renderPage()
+    await screen.findByText('Meijer')
+
+    fireEvent.click(screen.getByRole('button', { name: 'More CSV options' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Export to CSV' }))
+
+    await vi.waitFor(() => expect(click).toHaveBeenCalled())
+    expect(fetchMock).toHaveBeenCalledWith('/api/transactions', expect.anything())
+    const link = click.mock.contexts[0] as HTMLAnchorElement
+    expect(link.download).toMatch(/^budget-plus-transactions-\d{4}-\d{2}-\d{2}\.csv$/)
+  })
+
+  it('opens the import for a picked CSV file', async () => {
+    renderPage()
+    await screen.findByText('Meijer')
+
+    const csv = 'Date,Description,Amount\n10/15/2026,MEIJER,-84.12\n'
+    fireEvent.change(screen.getByLabelText('CSV file to import'), {
+      target: { files: [new File([csv], 'october.csv', { type: 'text/csv' })] },
+    })
+
+    expect(await screen.findByRole('heading', { name: 'Import october.csv' })).toBeInTheDocument()
+  })
+
+  it('explains a picked file that is not a usable CSV', async () => {
+    renderPage()
+    await screen.findByText('Meijer')
+
+    fireEvent.change(screen.getByLabelText('CSV file to import'), {
+      target: { files: [new File(['just some text'], 'notes.txt')] },
+    })
+
+    expect(await screen.findByRole('alert')).toHaveTextContent("doesn't look like a CSV")
+  })
+
   it('loads the previous month', async () => {
     renderPage()
     await screen.findByText('Meijer')

@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { currentUser } from '../auth.ts'
 import { NotFoundError, ValidationError } from '../errors.ts'
-import { CATEGORY_NOT_FOUND, type TransactionChanges, type TransactionStore } from '../transactions.ts'
+import { CATEGORY_NOT_FOUND, type TransactionChanges, type TransactionInput, type TransactionStore } from '../transactions.ts'
 import {
   isUuid,
   requireCents,
@@ -13,6 +13,7 @@ import {
 } from '../validation.ts'
 
 const MAX_DESCRIPTION_LENGTH = 200
+const MAX_IMPORT_ROWS = 5000
 
 // A category is optional: null (or left out) means uncategorized
 function optionalCategoryId(value: unknown): string | null {
@@ -25,10 +26,11 @@ function optionalCategoryId(value: unknown): string | null {
 export function createTransactionsRouter(store: TransactionStore) {
   const router = Router()
 
-  // GET /api/transactions?month=2026-10: the month's transactions, newest first
+  // GET /api/transactions?month=2026-10: the month's transactions, newest first.
+  // Leave out the month to get all of them (used for exporting to CSV).
   router.get('/', async (req, res) => {
-    const month = requireMonth(req.query.month, 'month')
-    res.json(await store.listByMonth(currentUser(res).id, month))
+    const month = req.query.month === undefined ? undefined : requireMonth(req.query.month, 'month')
+    res.json(await store.list(currentUser(res).id, month))
   })
 
   // POST /api/transactions { date, description, amountCents, categoryId? }: add a transaction
@@ -41,6 +43,42 @@ export function createTransactionsRouter(store: TransactionStore) {
       categoryId: optionalCategoryId(body.categoryId),
     })
     res.status(201).json(transaction)
+  })
+
+  // POST /api/transactions/import { transactions: [{ date, description, amountCents, categoryId? }] }
+  // Adds many transactions at once, skipping ones the user already has. If any row has a problem,
+  // nothing is added and each problem is reported with its row number (1 = the first transaction).
+  router.post('/import', async (req, res) => {
+    const body = requireObject(req.body)
+    if (!Array.isArray(body.transactions) || body.transactions.length === 0) {
+      throw new ValidationError('Send at least one transaction to import')
+    }
+    if (body.transactions.length > MAX_IMPORT_ROWS) {
+      throw new ValidationError(`Import at most ${MAX_IMPORT_ROWS} transactions at a time`)
+    }
+
+    const inputs: TransactionInput[] = []
+    const problems: { row: number; error: string }[] = []
+    body.transactions.forEach((raw: unknown, index: number) => {
+      try {
+        const row = requireObject(raw)
+        inputs.push({
+          date: requireDate(row.date, 'Date'),
+          description: requireText(row.description, 'Description', MAX_DESCRIPTION_LENGTH),
+          amountCents: requireCents(row.amountCents, 'Amount'),
+          categoryId: optionalCategoryId(row.categoryId),
+        })
+      } catch (error) {
+        if (!(error instanceof ValidationError)) throw error
+        problems.push({ row: index + 1, error: error.message })
+      }
+    })
+    if (problems.length > 0) {
+      res.status(400).json({ error: `${problems.length} row(s) have problems`, problems })
+      return
+    }
+
+    res.status(201).json(await store.importMany(currentUser(res).id, inputs))
   })
 
   // PATCH /api/transactions/:id { any of the above }: change a transaction

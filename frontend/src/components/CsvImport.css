@@ -1,0 +1,35 @@
+/* Import from a bank CSV */
+
+.csv-import-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.csv-step {
+  margin: 24px 0 12px;
+  font-size: 16px;
+}
+
+.csv-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  min-height: 44px;
+}
+
+.csv-summary {
+  margin: 0 0 8px;
+}
+
+.csv-problems {
+  margin: 8px 0 16px;
+  padding-left: 20px;
+  color: var(--color-bad);
+  font-size: 14px;
+}
+
+.csv-actions {
+  margin-top: 16px;
+}

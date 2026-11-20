@@ -12,7 +12,7 @@ import {
   type CategoryStore,
 } from '../categories.ts'
 import { ConflictError, ValidationError } from '../errors.ts'
-import { CATEGORY_NOT_FOUND, type Transaction, type TransactionStore } from '../transactions.ts'
+import { CATEGORY_NOT_FOUND, withoutDuplicates, type Transaction, type TransactionStore } from '../transactions.ts'
 import type { UserStore } from '../users.ts'
 
 // Test stand-ins for the database and Firebase, so tests run without either.
@@ -140,9 +140,9 @@ export function createFakeTransactionStore(
 
   return {
     rows,
-    listByMonth: async (userId, month) =>
+    list: async (userId, month) =>
       rows
-        .filter((r) => r.userId === userId && r.date.startsWith(`${month}-`))
+        .filter((r) => r.userId === userId && (!month || r.date.startsWith(`${month}-`)))
         .sort((a, b) => b.date.localeCompare(a.date))
         .map(toTransaction),
     create: async (userId, input) => {
@@ -163,6 +163,12 @@ export function createFakeTransactionStore(
       if (index === -1) return false
       rows.splice(index, 1)
       return true
+    },
+    importMany: async (userId, inputs) => {
+      for (const input of inputs) checkCategory(userId, input.categoryId)
+      const toAdd = withoutDuplicates(inputs, rows.filter((r) => r.userId === userId))
+      for (const input of toAdd) rows.push({ id: randomUUID(), userId, ...input })
+      return { imported: toAdd.length, duplicates: inputs.length - toAdd.length }
     },
   }
 }
