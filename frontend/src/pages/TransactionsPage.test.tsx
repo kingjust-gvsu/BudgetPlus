@@ -185,6 +185,22 @@ describe('TransactionsPage', () => {
     await vi.waitFor(() => expect(screen.queryByText('Meijer')).not.toBeInTheDocument())
   })
 
+  it('exports all transactions as a dated CSV file', async () => {
+    URL.createObjectURL = vi.fn(() => 'blob:transactions')
+    URL.revokeObjectURL = vi.fn()
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    renderPage()
+    await screen.findByText('Meijer')
+
+    fireEvent.click(screen.getByRole('button', { name: 'More CSV options' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Export to CSV' }))
+
+    await vi.waitFor(() => expect(click).toHaveBeenCalled())
+    expect(fetchMock).toHaveBeenCalledWith('/api/transactions', expect.anything())
+    const link = click.mock.contexts[0] as HTMLAnchorElement
+    expect(link.download).toMatch(/^budget-plus-transactions-\d{4}-\d{2}-\d{2}\.csv$/)
+  })
+
   it('opens the import for a picked CSV file', async () => {
     renderPage()
     await screen.findByText('Meijer')

@@ -3,8 +3,10 @@ import { apiGet, apiSend } from '../api/client'
 import type { Category, Transaction, TransactionInput } from '../api/types'
 import { useAuth } from '../auth/useAuth'
 import { CsvImport } from '../components/CsvImport'
+import { transactionsToCsv } from '../csvExport'
 import { readCsv, type CsvFile } from '../csvImport'
 import { EditTransactionRow } from '../components/EditTransactionRow'
+import { SplitButton } from '../components/SplitButton'
 import { TransactionForm } from '../components/TransactionForm'
 import { formatDay, formatMonth, monthOf, shiftMonth, today } from '../dates'
 import { formatCents } from '../money'
@@ -20,6 +22,7 @@ export function TransactionsPage() {
   const [importFile, setImportFile] = useState<{ name: string; csv: CsvFile } | null>(null)
   const filePicker = useRef<HTMLInputElement>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  const [exporting, setExporting] = useState(false)
   // Bumped after a change, so the list reloads even when the month stays the same
   const [version, setVersion] = useState(0)
 
@@ -89,6 +92,25 @@ export function TransactionsPage() {
     setImportFile({ name: file.name, csv })
   }
 
+  // Downloads every transaction (not just this month's) as a CSV file
+  const exportCsv = async () => {
+    setError(null)
+    setExporting(true)
+    try {
+      const all = await apiGet<Transaction[]>('/transactions', await getToken())
+      const url = URL.createObjectURL(new Blob([transactionsToCsv(all, categories)], { type: 'text/csv' }))
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `budget-plus-transactions-${today()}.csv`
+      link.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      setError("Couldn't export your transactions. Please try again.")
+    } finally {
+      setExporting(false)
+    }
+  }
+
   const changeMonth = (by: number) => {
     setEditingId(null)
     setMonth(shiftMonth(month, by))
@@ -112,9 +134,12 @@ export function TransactionsPage() {
             onChange={(e) => pickImportFile(e.target.files?.[0])}
           />
           {!importFile && (
-            <button type="button" className="button" onClick={() => filePicker.current?.click()}>
-              Import from CSV
-            </button>
+            <SplitButton
+              label="Import from CSV"
+              onClick={() => filePicker.current?.click()}
+              menuLabel="More CSV options"
+              items={[{ label: exporting ? 'Exporting…' : 'Export to CSV', onClick: exportCsv, disabled: exporting }]}
+            />
           )}
           <div className="month-nav">
             <button type="button" className="button" aria-label="Previous month" onClick={() => changeMonth(-1)}>
