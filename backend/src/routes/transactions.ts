@@ -23,6 +23,13 @@ function optionalAccountId(value: unknown): string | undefined {
   return value
 }
 
+// For a transfer, the account the money moves to; null makes it a plain transaction again
+function optionalTransferAccountId(value: unknown): string | null | undefined {
+  if (value === undefined || value === null) return value
+  if (!isUuid(value)) throw new ValidationError(ACCOUNT_NOT_FOUND)
+  return value
+}
+
 // A category is optional: null (or left out) means uncategorized
 function optionalCategoryId(value: unknown): string | null {
   if (value === null || value === undefined) return null
@@ -41,7 +48,8 @@ export function createTransactionsRouter(store: TransactionStore) {
     res.json(await store.list(currentUser(res).id, month))
   })
 
-  // POST /api/transactions { date, description, amountCents, categoryId?, accountId? }: add a transaction
+  // POST /api/transactions { date, description, amountCents, categoryId?, accountId?, transferAccountId? }:
+  // add a transaction, or a transfer from accountId to transferAccountId (which has no category)
   router.post('/', async (req, res) => {
     const body = requireObject(req.body)
     const transaction = await store.create(currentUser(res).id, {
@@ -50,11 +58,12 @@ export function createTransactionsRouter(store: TransactionStore) {
       amountCents: requireCents(body.amountCents, 'Amount'),
       categoryId: optionalCategoryId(body.categoryId),
       accountId: optionalAccountId(body.accountId),
+      transferAccountId: optionalTransferAccountId(body.transferAccountId),
     })
     res.status(201).json(transaction)
   })
 
-  // POST /api/transactions/import { transactions: [{ date, description, amountCents, categoryId?, accountId? }] }
+  // POST /api/transactions/import { transactions: [{ date, description, amountCents, categoryId?, accountId?, transferAccountId? }] }
   // Adds many transactions at once, skipping ones the user already has. If any row has a problem,
   // nothing is added and each problem is reported with its row number (1 = the first transaction).
   router.post('/import', async (req, res) => {
@@ -77,6 +86,7 @@ export function createTransactionsRouter(store: TransactionStore) {
           amountCents: requireCents(row.amountCents, 'Amount'),
           categoryId: optionalCategoryId(row.categoryId),
           accountId: optionalAccountId(row.accountId),
+          transferAccountId: optionalTransferAccountId(row.transferAccountId),
         })
       } catch (error) {
         if (!(error instanceof ValidationError)) throw error
@@ -103,8 +113,9 @@ export function createTransactionsRouter(store: TransactionStore) {
     if (body.amountCents !== undefined) changes.amountCents = requireCents(body.amountCents, 'Amount')
     if (body.categoryId !== undefined) changes.categoryId = optionalCategoryId(body.categoryId)
     if (body.accountId !== undefined) changes.accountId = optionalAccountId(body.accountId)
+    if (body.transferAccountId !== undefined) changes.transferAccountId = optionalTransferAccountId(body.transferAccountId)
     if (Object.keys(changes).length === 0) {
-      throw new ValidationError('Nothing to change: send a date, description, amount, category, or account')
+      throw new ValidationError('Nothing to change: send a date, description, amount, category, account, or transfer account')
     }
 
     const transaction = await store.update(currentUser(res).id, id, changes)

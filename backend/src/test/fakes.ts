@@ -25,7 +25,15 @@ import {
   type CategoryStore,
 } from '../categories.ts'
 import { ConflictError, ValidationError } from '../errors.ts'
-import { CATEGORY_NOT_FOUND, withoutDuplicates, type Transaction, type TransactionStore } from '../transactions.ts'
+import {
+  CATEGORY_NOT_FOUND,
+  checkTransferAccounts,
+  settleTransferChange,
+  withoutDuplicates,
+  type Transaction,
+  type TransactionInput,
+  type TransactionStore,
+} from '../transactions.ts'
 import { SOURCE_NAME_TAKEN, type IncomeData, type IncomeStore } from '../income.ts'
 
 // Test stand-ins for the database and Firebase, so tests run without either.
@@ -159,8 +167,12 @@ export function createFakeIncomeStore(): IncomeStore & { data: Map<string, Incom
 
 export type StoredAccount = AccountInput & { id: string; userId: string }
 type StoredTransaction = Transaction & { userId: string }
-// Tests can leave out the account; those transactions go in the user's main bank account
-type TransactionSeed = Omit<Transaction, 'accountId'> & { accountId?: string; userId: string }
+// Tests can leave out the account (those go in the user's main bank account) and the transfer
+type TransactionSeed = Omit<Transaction, 'accountId' | 'transferAccountId'> & {
+  accountId?: string
+  transferAccountId?: string | null
+  userId: string
+}
 
 // The user's first bank account, or a new "Checking" one, like the real store's default
 function defaultAccount(accounts: StoredAccount[], userId: string, date: string): string {
@@ -175,11 +187,11 @@ function defaultAccount(accounts: StoredAccount[], userId: string, date: string)
 // `transactions` (share it with a fake transaction store).
 export function createFakeAccountStore(
   accounts: StoredAccount[] = [],
-  transactions: Pick<StoredTransaction, 'accountId' | 'date' | 'amountCents'>[] = [],
+  transactions: Pick<StoredTransaction, 'accountId' | 'transferAccountId' | 'date' | 'amountCents'>[] = [],
 ): AccountStore & { rows: StoredAccount[] } {
   const toAccount = ({ userId: _userId, ...account }: StoredAccount): Account => ({
     ...account,
-    balanceCents: balanceOf(account, transactions.filter((t) => t.accountId === account.id)),
+    balanceCents: balanceOf(account, transactions),
   })
   const nameTaken = (userId: string, name: string, id?: string) =>
     accounts.some((a) => a.userId === userId && a.name === name && a.id !== id)
@@ -203,7 +215,7 @@ export function createFakeAccountStore(
     delete: async (userId, id) => {
       const index = accounts.findIndex((a) => a.id === id && a.userId === userId)
       if (index === -1) return false
-      if (transactions.some((t) => t.accountId === id)) throw new ConflictError(ACCOUNT_HAS_TRANSACTIONS)
+      if (transactions.some((t) => t.accountId === id || t.transferAccountId === id)) throw new ConflictError(ACCOUNT_HAS_TRANSACTIONS)
       accounts.splice(index, 1)
       return true
     },
@@ -218,22 +230,37 @@ export function createFakeTransactionStore(
   categories: Pick<StoredCategory, 'id' | 'userId'>[] = [],
   accounts: StoredAccount[] = [],
 ): TransactionStore & { rows: StoredTransaction[] } {
-  for (const seed of seeds) seed.accountId ??= defaultAccount(accounts, seed.userId, seed.date)
+  for (const seed of seeds) {
+    seed.accountId ??= defaultAccount(accounts, seed.userId, seed.date)
+    seed.transferAccountId ??= null
+  }
   const rows = seeds as StoredTransaction[]
-  const toTransaction = ({ id, date, description, amountCents, categoryId, accountId }: StoredTransaction): Transaction => ({
+  const toTransaction = ({ id, date, description, amountCents, categoryId, accountId, transferAccountId }: StoredTransaction): Transaction => ({
     id,
     date,
     description,
     amountCents,
     categoryId,
     accountId,
+    transferAccountId,
   })
+  // A new row from an input, like the real store makes
+  const newRow = (userId: string, rawInput: TransactionInput): StoredTransaction => {
+    const input = settleTransferChange(rawInput) as TransactionInput
+    checkCategory(userId, input.categoryId)
+    checkAccount(userId, input.accountId)
+    checkAccount(userId, input.transferAccountId)
+    const accountId = input.accountId ?? defaultAccount(accounts, userId, input.date)
+    const row = { id: randomUUID(), userId, ...input, accountId, transferAccountId: input.transferAccountId ?? null }
+    checkTransferAccounts(row)
+    return row
+  }
   const checkCategory = (userId: string, categoryId: string | null | undefined) => {
     if (categoryId && !categories.some((c) => c.id === categoryId && c.userId === userId)) {
       throw new ValidationError(CATEGORY_NOT_FOUND)
     }
   }
-  const checkAccount = (userId: string, accountId: string | undefined) => {
+  const checkAccount = (userId: string, accountId: string | null | undefined) => {
     if (accountId && !accounts.some((a) => a.id === accountId && a.userId === userId)) {
       throw new ValidationError(ACCOUNT_NOT_FOUND)
     }
@@ -247,17 +274,18 @@ export function createFakeTransactionStore(
         .sort((a, b) => b.date.localeCompare(a.date))
         .map(toTransaction),
     create: async (userId, input) => {
-      checkCategory(userId, input.categoryId)
-      checkAccount(userId, input.accountId)
-      const row = { id: randomUUID(), userId, ...input, accountId: input.accountId ?? defaultAccount(accounts, userId, input.date) }
+      const row = newRow(userId, input)
       rows.push(row)
       return toTransaction(row)
     },
-    update: async (userId, id, changes) => {
+    update: async (userId, id, rawChanges) => {
       const row = rows.find((r) => r.id === id && r.userId === userId)
       if (!row) return null
+      const changes = settleTransferChange(rawChanges)
       checkCategory(userId, changes.categoryId)
       checkAccount(userId, changes.accountId)
+      checkAccount(userId, changes.transferAccountId)
+      checkTransferAccounts({ ...row, ...changes } as StoredTransaction)
       Object.assign(row, changes)
       return toTransaction(row)
     },
@@ -268,14 +296,11 @@ export function createFakeTransactionStore(
       return true
     },
     importMany: async (userId, inputs) => {
-      for (const input of inputs) {
-        checkCategory(userId, input.categoryId)
-        checkAccount(userId, input.accountId)
-      }
       const toAdd = withoutDuplicates(inputs, rows.filter((r) => r.userId === userId))
-      for (const input of toAdd) {
-        rows.push({ id: randomUUID(), userId, ...input, accountId: input.accountId ?? defaultAccount(accounts, userId, input.date) })
-      }
+      // All or nothing: make every row first, so one bad row adds none
+      const newRows = toAdd.map((input) => newRow(userId, input))
+      for (const input of inputs) newRow(userId, input)
+      rows.push(...newRows)
       return { imported: toAdd.length, duplicates: inputs.length - toAdd.length }
     },
   }

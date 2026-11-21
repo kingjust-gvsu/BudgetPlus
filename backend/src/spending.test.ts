@@ -70,8 +70,11 @@ describe('GET /api/spending', () => {
         { id: 't1', userId: testUser.id, date: '2026-11-01', description: 'Landlord', amountCents: 120000, categoryId: rent.id },
         { id: 't2', userId: testUser.id, date: '2026-10-15', description: 'Meijer', amountCents: 8412, categoryId: groceries.id },
         { id: 't3', userId: otherUser.id, date: '2026-11-02', description: 'Not mine', amountCents: 500, categoryId: null },
+        // Paying off a credit card moves money between accounts; it isn't spending
+        { id: 't4', userId: testUser.id, date: '2026-11-08', description: 'Pay off card', amountCents: 276159, categoryId: null, transferAccountId: 'card' },
       ],
       categoryRows,
+      [{ id: 'card', userId: testUser.id, name: 'Amazon Card', type: 'CREDIT_CARD', startingBalanceCents: 0, startDate: '2026-01-01' }],
     )
     // A raise in November
     const income = createFakeIncomeStore()
@@ -85,7 +88,7 @@ describe('GET /api/spending', () => {
     )
   }
 
-  it("summarizes the user's spending and income for the months asked for", async () => {
+  it("summarizes the user's spending and income for the months asked for, leaving out transfers", async () => {
     const response = await request(setup()).get('/api/spending?to=2026-11&months=2').set(auth)
 
     expect(response.status).toBe(200)

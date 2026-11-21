@@ -61,8 +61,8 @@ describe('GET /api/transactions', () => {
 
     expect(response.status).toBe(200)
     expect(response.body).toEqual([
-      { id: meijerId, date: '2026-10-15', description: 'Meijer', amountCents: 8412, categoryId: groceriesId, accountId: cardId },
-      { id: shellId, date: '2026-10-14', description: 'Shell', amountCents: 4830, categoryId: null, accountId: checkingId },
+      { id: meijerId, date: '2026-10-15', description: 'Meijer', amountCents: 8412, categoryId: groceriesId, accountId: cardId, transferAccountId: null },
+      { id: shellId, date: '2026-10-14', description: 'Shell', amountCents: 4830, categoryId: null, accountId: checkingId, transferAccountId: null },
     ])
   })
 
@@ -101,7 +101,7 @@ describe('POST /api/transactions', () => {
 
     expect(response.status).toBe(201)
     // No account given, so it goes in the main bank account
-    expect(response.body).toEqual({ id: expect.any(String), ...newTransaction, accountId: checkingId })
+    expect(response.body).toEqual({ id: expect.any(String), ...newTransaction, accountId: checkingId, transferAccountId: null })
     expect(store.rows).toContainEqual({ ...response.body, userId: testUser.id })
   })
 
@@ -173,7 +173,7 @@ describe('PATCH /api/transactions/:id', () => {
       .send({ amountCents: 9000, categoryId: null })
 
     expect(response.status).toBe(200)
-    expect(response.body).toEqual({ id: meijerId, date: '2026-10-15', description: 'Meijer', amountCents: 9000, categoryId: null, accountId: cardId })
+    expect(response.body).toEqual({ id: meijerId, date: '2026-10-15', description: 'Meijer', amountCents: 9000, categoryId: null, accountId: cardId, transferAccountId: null })
   })
 
   it('rejects an empty change', async () => {
@@ -220,5 +220,73 @@ describe('monthRange', () => {
 
     expect(start.toISOString()).toBe('2026-12-01T00:00:00.000Z')
     expect(end.toISOString()).toBe('2027-01-01T00:00:00.000Z')
+  })
+})
+
+describe('transfers', () => {
+  const payoff = { date: '2026-10-20', description: 'Pay off Amazon card', amountCents: 8412, accountId: checkingId, transferAccountId: cardId }
+
+  it('adds a transfer from one account to another, with no category', async () => {
+    const { app } = setup()
+
+    const response = await request(app).post('/api/transactions').set(auth).send(payoff)
+
+    expect(response.status).toBe(201)
+    expect(response.body).toMatchObject({ ...payoff, categoryId: null })
+  })
+
+  it("won't give a transfer a category", async () => {
+    const { app } = setup()
+
+    const response = await request(app).post('/api/transactions').set(auth).send({ ...payoff, categoryId: groceriesId })
+
+    expect(response.status).toBe(400)
+    expect(response.body.error).toBe("A transfer between accounts can't have a category")
+  })
+
+  it('needs two different accounts', async () => {
+    const { app } = setup()
+
+    const response = await request(app).post('/api/transactions').set(auth).send({ ...payoff, transferAccountId: checkingId })
+
+    expect(response.status).toBe(400)
+    expect(response.body.error).toBe('A transfer has to go to a different account')
+  })
+
+  it("rejects a transfer to another user's account", async () => {
+    const { app } = setup()
+
+    const response = await request(app).post('/api/transactions').set(auth).send({ ...payoff, transferAccountId: othersAccountId })
+
+    expect(response.status).toBe(400)
+    expect(response.body.error).toBe('Account not found')
+  })
+
+  it('turns a transaction into a transfer, clearing its category, and back', async () => {
+    const { app } = setup()
+
+    const transfer = await request(app).patch(`/api/transactions/${meijerId}`).set(auth).send({ transferAccountId: checkingId })
+    const plain = await request(app).patch(`/api/transactions/${meijerId}`).set(auth).send({ categoryId: groceriesId })
+
+    expect(transfer.body).toMatchObject({ accountId: cardId, transferAccountId: checkingId, categoryId: null })
+    expect(plain.body).toMatchObject({ transferAccountId: null, categoryId: groceriesId })
+  })
+
+  it("won't move a transfer's account onto the account it goes to", async () => {
+    const { app } = setup()
+    const created = await request(app).post('/api/transactions').set(auth).send(payoff)
+
+    const response = await request(app).patch(`/api/transactions/${created.body.id}`).set(auth).send({ accountId: cardId })
+
+    expect(response.status).toBe(400)
+  })
+
+  it('imports transfers too', async () => {
+    const { app, store } = setup()
+
+    const response = await request(app).post('/api/transactions/import').set(auth).send({ transactions: [payoff] })
+
+    expect(response.status).toBe(201)
+    expect(store.rows).toContainEqual(expect.objectContaining({ description: 'Pay off Amazon card', transferAccountId: cardId }))
   })
 })

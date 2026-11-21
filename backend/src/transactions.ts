@@ -10,11 +10,34 @@ export type Transaction = {
   amountCents: number
   categoryId: string | null
   accountId: string
+  // Set for a transfer: the amount moved from accountId to this account. Transfers aren't spending,
+  // so they never have a category.
+  transferAccountId: string | null
 }
 
 // Leaving out the account puts the transaction in the user's main bank account
-export type TransactionInput = Omit<Transaction, 'id' | 'accountId'> & { accountId?: string }
+export type TransactionInput = Omit<Transaction, 'id' | 'accountId' | 'transferAccountId'> & {
+  accountId?: string
+  transferAccountId?: string | null
+}
 export type TransactionChanges = Partial<TransactionInput>
+
+export const TRANSFER_HAS_CATEGORY = "A transfer between accounts can't have a category"
+export const TRANSFER_SAME_ACCOUNT = 'A transfer has to go to a different account'
+
+// Making a transaction a transfer clears its category, and giving it a category makes it a plain
+// transaction again. Throws ValidationError when a change asks for both.
+export function settleTransferChange(changes: TransactionChanges): TransactionChanges {
+  if (changes.transferAccountId && changes.categoryId) throw new ValidationError(TRANSFER_HAS_CATEGORY)
+  if (changes.transferAccountId) return { ...changes, categoryId: null }
+  if (changes.categoryId) return { ...changes, transferAccountId: null }
+  return changes
+}
+
+// Throws ValidationError for a transfer from an account to itself
+export function checkTransferAccounts(t: { accountId: string; transferAccountId?: string | null }) {
+  if (t.transferAccountId && t.transferAccountId === t.accountId) throw new ValidationError(TRANSFER_SAME_ACCOUNT)
+}
 
 // Reads and writes a user's transactions. Every method is scoped to one user, so a user can
 // never see or change another user's transactions.
@@ -70,9 +93,17 @@ export function monthRange(month: string) {
   return { start, end }
 }
 
-const fields = { id: true, date: true, description: true, amountCents: true, categoryId: true, accountId: true } as const
+const fields = { id: true, date: true, description: true, amountCents: true, categoryId: true, accountId: true, transferAccountId: true } as const
 
-type Row = { id: string; date: Date; description: string; amountCents: number; categoryId: string | null; accountId: string }
+type Row = {
+  id: string
+  date: Date
+  description: string
+  amountCents: number
+  categoryId: string | null
+  accountId: string
+  transferAccountId: string | null
+}
 
 const toTransaction = (row: Row): Transaction => ({ ...row, date: fromDay(row.date) })
 
@@ -82,7 +113,7 @@ export function createTransactionStore(db: Database): TransactionStore {
     const category = await db.category.findFirst({ where: { id: categoryId, userId } })
     if (!category) throw new ValidationError(CATEGORY_NOT_FOUND)
   }
-  const checkAccount = async (userId: string, accountId: string | undefined) => {
+  const checkAccount = async (userId: string, accountId: string | null | undefined) => {
     if (!accountId) return
     if ((await db.account.count({ where: { id: accountId, userId } })) === 0) throw new ValidationError(ACCOUNT_NOT_FOUND)
   }
@@ -98,10 +129,13 @@ export function createTransactionStore(db: Database): TransactionStore {
       return rows.map(toTransaction)
     },
 
-    create: async (userId, input) => {
+    create: async (userId, rawInput) => {
+      const input = settleTransferChange(rawInput) as TransactionInput
       await checkCategory(userId, input.categoryId)
       await checkAccount(userId, input.accountId)
+      await checkAccount(userId, input.transferAccountId)
       const accountId = input.accountId ?? (await defaultAccountId(db, userId, input.date))
+      checkTransferAccounts({ accountId, transferAccountId: input.transferAccountId })
       const row = await db.transaction.create({
         data: { userId, ...input, accountId, date: toDay(input.date) },
         select: fields,
@@ -109,11 +143,14 @@ export function createTransactionStore(db: Database): TransactionStore {
       return toTransaction(row)
     },
 
-    update: async (userId, id, changes) => {
+    update: async (userId, id, rawChanges) => {
       const existing = await db.transaction.findFirst({ where: { id, userId } })
       if (!existing) return null
+      const changes = settleTransferChange(rawChanges)
       await checkCategory(userId, changes.categoryId)
       await checkAccount(userId, changes.accountId)
+      await checkAccount(userId, changes.transferAccountId)
+      checkTransferAccounts({ ...existing, ...changes } as { accountId: string; transferAccountId: string | null })
       const row = await db.transaction.update({
         where: { id },
         data: { ...changes, date: changes.date ? toDay(changes.date) : undefined },
@@ -127,15 +164,16 @@ export function createTransactionStore(db: Database): TransactionStore {
       return count > 0
     },
 
-    importMany: async (userId, inputs) => {
-      if (inputs.length === 0) return { imported: 0, duplicates: 0 }
+    importMany: async (userId, rawInputs) => {
+      if (rawInputs.length === 0) return { imported: 0, duplicates: 0 }
+      const inputs = rawInputs.map((t) => settleTransferChange(t) as TransactionInput)
 
       const categoryIds = [...new Set(inputs.map((t) => t.categoryId).filter((id): id is string => id !== null))]
       if (categoryIds.length > 0) {
         const owned = await db.category.count({ where: { userId, id: { in: categoryIds } } })
         if (owned !== categoryIds.length) throw new ValidationError(CATEGORY_NOT_FOUND)
       }
-      const accountIds = [...new Set(inputs.map((t) => t.accountId).filter((id): id is string => id !== undefined))]
+      const accountIds = [...new Set(inputs.flatMap((t) => [t.accountId, t.transferAccountId]).filter((id): id is string => !!id))]
       if (accountIds.length > 0) {
         const owned = await db.account.count({ where: { userId, id: { in: accountIds } } })
         if (owned !== accountIds.length) throw new ValidationError(ACCOUNT_NOT_FOUND)
@@ -152,6 +190,7 @@ export function createTransactionStore(db: Database): TransactionStore {
 
       // One statement, so the import either fully happens or not at all
       const fallback = toAdd.some((t) => !t.accountId) ? await defaultAccountId(db, userId, dates[0]) : undefined
+      for (const t of toAdd) checkTransferAccounts({ accountId: t.accountId ?? fallback!, transferAccountId: t.transferAccountId })
       await db.transaction.createMany({
         data: toAdd.map((t) => ({ userId, ...t, accountId: t.accountId ?? fallback!, date: toDay(t.date) })),
       })
