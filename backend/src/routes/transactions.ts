@@ -2,7 +2,13 @@ import { Router } from 'express'
 import { ACCOUNT_NOT_FOUND } from '../accounts.ts'
 import { currentUser } from '../auth.ts'
 import { NotFoundError, ValidationError } from '../errors.ts'
-import { CATEGORY_NOT_FOUND, type TransactionChanges, type TransactionInput, type TransactionStore } from '../transactions.ts'
+import {
+  CATEGORY_NOT_FOUND,
+  INCOME_SOURCE_NOT_FOUND,
+  type TransactionChanges,
+  type TransactionInput,
+  type TransactionStore,
+} from '../transactions.ts'
 import {
   isUuid,
   requireCents,
@@ -30,6 +36,19 @@ function optionalTransferAccountId(value: unknown): string | null | undefined {
   return value
 }
 
+// For money in, the income source it's from; null clears it
+function optionalIncomeSourceId(value: unknown): string | null | undefined {
+  if (value === undefined || value === null) return value
+  if (!isUuid(value)) throw new ValidationError(INCOME_SOURCE_NOT_FOUND)
+  return value
+}
+
+function optionalBoolean(value: unknown, field: string): boolean | undefined {
+  if (value === undefined) return undefined
+  if (typeof value !== 'boolean') throw new ValidationError(`${field} must be true or false`)
+  return value
+}
+
 // A category is optional: null (or left out) means uncategorized
 function optionalCategoryId(value: unknown): string | null {
   if (value === null || value === undefined) return null
@@ -48,8 +67,10 @@ export function createTransactionsRouter(store: TransactionStore) {
     res.json(await store.list(currentUser(res).id, month))
   })
 
-  // POST /api/transactions { date, description, amountCents, categoryId?, accountId?, transferAccountId? }:
-  // add a transaction, or a transfer from accountId to transferAccountId (which has no category)
+  // POST /api/transactions { date, description, amountCents, categoryId?, accountId?, transferAccountId?,
+  // incomeSourceId?, isOtherIncome? }: add a transaction; a transfer from accountId to
+  // transferAccountId; or money in (a negative amount) from an income source or as other income.
+  // Transfers and income have no category.
   router.post('/', async (req, res) => {
     const body = requireObject(req.body)
     const transaction = await store.create(currentUser(res).id, {
@@ -59,6 +80,8 @@ export function createTransactionsRouter(store: TransactionStore) {
       categoryId: optionalCategoryId(body.categoryId),
       accountId: optionalAccountId(body.accountId),
       transferAccountId: optionalTransferAccountId(body.transferAccountId),
+      incomeSourceId: optionalIncomeSourceId(body.incomeSourceId),
+      isOtherIncome: optionalBoolean(body.isOtherIncome, 'isOtherIncome'),
     })
     res.status(201).json(transaction)
   })
@@ -87,6 +110,8 @@ export function createTransactionsRouter(store: TransactionStore) {
           categoryId: optionalCategoryId(row.categoryId),
           accountId: optionalAccountId(row.accountId),
           transferAccountId: optionalTransferAccountId(row.transferAccountId),
+          incomeSourceId: optionalIncomeSourceId(row.incomeSourceId),
+          isOtherIncome: optionalBoolean(row.isOtherIncome, 'isOtherIncome'),
         })
       } catch (error) {
         if (!(error instanceof ValidationError)) throw error
@@ -114,8 +139,10 @@ export function createTransactionsRouter(store: TransactionStore) {
     if (body.categoryId !== undefined) changes.categoryId = optionalCategoryId(body.categoryId)
     if (body.accountId !== undefined) changes.accountId = optionalAccountId(body.accountId)
     if (body.transferAccountId !== undefined) changes.transferAccountId = optionalTransferAccountId(body.transferAccountId)
+    if (body.incomeSourceId !== undefined) changes.incomeSourceId = optionalIncomeSourceId(body.incomeSourceId)
+    if (body.isOtherIncome !== undefined) changes.isOtherIncome = optionalBoolean(body.isOtherIncome, 'isOtherIncome')
     if (Object.keys(changes).length === 0) {
-      throw new ValidationError('Nothing to change: send a date, description, amount, category, account, or transfer account')
+      throw new ValidationError('Nothing to change: send a date, description, amount, category, account, transfer, or income')
     }
 
     const transaction = await store.update(currentUser(res).id, id, changes)

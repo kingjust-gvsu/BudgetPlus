@@ -13,26 +13,48 @@ export type Transaction = {
   // Set for a transfer: the amount moved from accountId to this account. Transfers aren't spending,
   // so they never have a category.
   transferAccountId: string | null
+  // Set for money in from an income source (a paycheck), or marked as other income (a bonus).
+  // Income isn't spending, so it has no category; its amount is negative (money in).
+  incomeSourceId: string | null
+  isOtherIncome: boolean
 }
 
 // Leaving out the account puts the transaction in the user's main bank account
-export type TransactionInput = Omit<Transaction, 'id' | 'accountId' | 'transferAccountId'> & {
+export type TransactionInput = Omit<Transaction, 'id' | 'accountId' | 'transferAccountId' | 'incomeSourceId' | 'isOtherIncome'> & {
   accountId?: string
   transferAccountId?: string | null
+  incomeSourceId?: string | null
+  isOtherIncome?: boolean
 }
 export type TransactionChanges = Partial<TransactionInput>
 
 export const TRANSFER_HAS_CATEGORY = "A transfer between accounts can't have a category"
 export const TRANSFER_SAME_ACCOUNT = 'A transfer has to go to a different account'
+export const INCOME_ONLY = "Income can't also have a category or be a transfer"
+export const INCOME_SOURCE_NOT_FOUND = 'Income source not found'
 
-// Making a transaction a transfer clears its category, and giving it a category makes it a plain
-// transaction again. Throws ValidationError when a change asks for both.
-export function settleTransferChange(changes: TransactionChanges): TransactionChanges {
+// A transaction is one of: spending (maybe with a category), a transfer, or income. Choosing one
+// clears the others, so a category change turns a transfer back into spending, and so on.
+// Throws ValidationError when a change asks for more than one.
+export function settleKindChange(changes: TransactionChanges): TransactionChanges {
+  const income = !!changes.incomeSourceId || changes.isOtherIncome === true
   if (changes.transferAccountId && changes.categoryId) throw new ValidationError(TRANSFER_HAS_CATEGORY)
-  if (changes.transferAccountId) return { ...changes, categoryId: null }
-  if (changes.categoryId) return { ...changes, transferAccountId: null }
+  if (income && (changes.transferAccountId || changes.categoryId)) throw new ValidationError(INCOME_ONLY)
+  if (changes.incomeSourceId && changes.isOtherIncome) throw new ValidationError(INCOME_ONLY)
+  const none = { categoryId: null, transferAccountId: null, incomeSourceId: null, isOtherIncome: false }
+  if (changes.categoryId) return { ...changes, ...none, categoryId: changes.categoryId }
+  if (changes.transferAccountId) return { ...changes, ...none, transferAccountId: changes.transferAccountId }
+  if (changes.incomeSourceId) return { ...changes, ...none, incomeSourceId: changes.incomeSourceId }
+  if (changes.isOtherIncome) return { ...changes, ...none, isOtherIncome: true }
   return changes
 }
+
+// Leaves out transfers and income, keeping what was spent (and money back)
+export const isSpending = (t: Pick<Transaction, 'transferAccountId' | 'incomeSourceId' | 'isOtherIncome'>) =>
+  t.transferAccountId === null && t.incomeSourceId === null && !t.isOtherIncome
+
+// The same, as a database filter
+export const SPENDING_ONLY = { transferAccountId: null, incomeSourceId: null, isOtherIncome: false } as const
 
 // Throws ValidationError for a transfer from an account to itself
 export function checkTransferAccounts(t: { accountId: string; transferAccountId?: string | null }) {
@@ -44,7 +66,7 @@ export function checkTransferAccounts(t: { accountId: string; transferAccountId?
 export type TransactionStore = {
   // The user's transactions, newest first: just one month's (month = YYYY-MM), or all of them
   list(userId: string, month?: string): Promise<Transaction[]>
-  // Throws ValidationError if categoryId or accountId isn't one of the user's
+  // Throws ValidationError if categoryId, accountId, or incomeSourceId isn't one of the user's
   create(userId: string, input: TransactionInput): Promise<Transaction>
   // Returns null if the transaction doesn't exist or belongs to another user
   update(userId: string, id: string, changes: TransactionChanges): Promise<Transaction | null>
@@ -93,7 +115,17 @@ export function monthRange(month: string) {
   return { start, end }
 }
 
-const fields = { id: true, date: true, description: true, amountCents: true, categoryId: true, accountId: true, transferAccountId: true } as const
+const fields = {
+  id: true,
+  date: true,
+  description: true,
+  amountCents: true,
+  categoryId: true,
+  accountId: true,
+  transferAccountId: true,
+  incomeSourceId: true,
+  isOtherIncome: true,
+} as const
 
 type Row = {
   id: string
@@ -103,6 +135,8 @@ type Row = {
   categoryId: string | null
   accountId: string
   transferAccountId: string | null
+  incomeSourceId: string | null
+  isOtherIncome: boolean
 }
 
 const toTransaction = (row: Row): Transaction => ({ ...row, date: fromDay(row.date) })
@@ -117,6 +151,10 @@ export function createTransactionStore(db: Database): TransactionStore {
     if (!accountId) return
     if ((await db.account.count({ where: { id: accountId, userId } })) === 0) throw new ValidationError(ACCOUNT_NOT_FOUND)
   }
+  const checkIncomeSource = async (userId: string, sourceId: string | null | undefined) => {
+    if (!sourceId) return
+    if ((await db.incomeSource.count({ where: { id: sourceId, userId } })) === 0) throw new ValidationError(INCOME_SOURCE_NOT_FOUND)
+  }
 
   return {
     list: async (userId, month) => {
@@ -130,10 +168,11 @@ export function createTransactionStore(db: Database): TransactionStore {
     },
 
     create: async (userId, rawInput) => {
-      const input = settleTransferChange(rawInput) as TransactionInput
+      const input = settleKindChange(rawInput) as TransactionInput
       await checkCategory(userId, input.categoryId)
       await checkAccount(userId, input.accountId)
       await checkAccount(userId, input.transferAccountId)
+      await checkIncomeSource(userId, input.incomeSourceId)
       const accountId = input.accountId ?? (await defaultAccountId(db, userId, input.date))
       checkTransferAccounts({ accountId, transferAccountId: input.transferAccountId })
       const row = await db.transaction.create({
@@ -146,10 +185,11 @@ export function createTransactionStore(db: Database): TransactionStore {
     update: async (userId, id, rawChanges) => {
       const existing = await db.transaction.findFirst({ where: { id, userId } })
       if (!existing) return null
-      const changes = settleTransferChange(rawChanges)
+      const changes = settleKindChange(rawChanges)
       await checkCategory(userId, changes.categoryId)
       await checkAccount(userId, changes.accountId)
       await checkAccount(userId, changes.transferAccountId)
+      await checkIncomeSource(userId, changes.incomeSourceId)
       checkTransferAccounts({ ...existing, ...changes } as { accountId: string; transferAccountId: string | null })
       const row = await db.transaction.update({
         where: { id },
@@ -166,7 +206,7 @@ export function createTransactionStore(db: Database): TransactionStore {
 
     importMany: async (userId, rawInputs) => {
       if (rawInputs.length === 0) return { imported: 0, duplicates: 0 }
-      const inputs = rawInputs.map((t) => settleTransferChange(t) as TransactionInput)
+      const inputs = rawInputs.map((t) => settleKindChange(t) as TransactionInput)
 
       const categoryIds = [...new Set(inputs.map((t) => t.categoryId).filter((id): id is string => id !== null))]
       if (categoryIds.length > 0) {
@@ -177,6 +217,11 @@ export function createTransactionStore(db: Database): TransactionStore {
       if (accountIds.length > 0) {
         const owned = await db.account.count({ where: { userId, id: { in: accountIds } } })
         if (owned !== accountIds.length) throw new ValidationError(ACCOUNT_NOT_FOUND)
+      }
+      const sourceIds = [...new Set(inputs.map((t) => t.incomeSourceId).filter((id): id is string => !!id))]
+      if (sourceIds.length > 0) {
+        const owned = await db.incomeSource.count({ where: { userId, id: { in: sourceIds } } })
+        if (owned !== sourceIds.length) throw new ValidationError(INCOME_SOURCE_NOT_FOUND)
       }
 
       // Look for duplicates among the user's transactions in the same date range

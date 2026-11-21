@@ -28,7 +28,8 @@ import { ConflictError, ValidationError } from '../errors.ts'
 import {
   CATEGORY_NOT_FOUND,
   checkTransferAccounts,
-  settleTransferChange,
+  INCOME_SOURCE_NOT_FOUND,
+  settleKindChange,
   withoutDuplicates,
   type Transaction,
   type TransactionInput,
@@ -167,10 +168,12 @@ export function createFakeIncomeStore(): IncomeStore & { data: Map<string, Incom
 
 export type StoredAccount = AccountInput & { id: string; userId: string }
 type StoredTransaction = Transaction & { userId: string }
-// Tests can leave out the account (those go in the user's main bank account) and the transfer
-type TransactionSeed = Omit<Transaction, 'accountId' | 'transferAccountId'> & {
+// Tests can leave out the account (those go in the user's main bank account), the transfer, and income
+type TransactionSeed = Omit<Transaction, 'accountId' | 'transferAccountId' | 'incomeSourceId' | 'isOtherIncome'> & {
   accountId?: string
   transferAccountId?: string | null
+  incomeSourceId?: string | null
+  isOtherIncome?: boolean
   userId: string
 }
 
@@ -224,34 +227,53 @@ export function createFakeAccountStore(
 
 // Behaves like the real transaction store, but keeps everything in memory. `categories` is the
 // category list it checks ownership against (share it with a fake category store), and `accounts`
-// the account list (share it with a fake account store).
+// the account list (share it with a fake account store), and `incomeSources` the income sources.
 export function createFakeTransactionStore(
   seeds: TransactionSeed[] = [],
   categories: Pick<StoredCategory, 'id' | 'userId'>[] = [],
   accounts: StoredAccount[] = [],
+  incomeSources: { id: string; userId: string }[] = [],
 ): TransactionStore & { rows: StoredTransaction[] } {
   for (const seed of seeds) {
     seed.accountId ??= defaultAccount(accounts, seed.userId, seed.date)
     seed.transferAccountId ??= null
+    seed.incomeSourceId ??= null
+    seed.isOtherIncome ??= false
   }
   const rows = seeds as StoredTransaction[]
-  const toTransaction = ({ id, date, description, amountCents, categoryId, accountId, transferAccountId }: StoredTransaction): Transaction => ({
-    id,
-    date,
-    description,
-    amountCents,
-    categoryId,
-    accountId,
-    transferAccountId,
+  const toTransaction = (row: StoredTransaction): Transaction => ({
+    id: row.id,
+    date: row.date,
+    description: row.description,
+    amountCents: row.amountCents,
+    categoryId: row.categoryId,
+    accountId: row.accountId,
+    transferAccountId: row.transferAccountId,
+    incomeSourceId: row.incomeSourceId,
+    isOtherIncome: row.isOtherIncome,
   })
+  const checkIncomeSource = (userId: string, sourceId: string | null | undefined) => {
+    if (sourceId && !incomeSources.some((s) => s.id === sourceId && s.userId === userId)) {
+      throw new ValidationError(INCOME_SOURCE_NOT_FOUND)
+    }
+  }
   // A new row from an input, like the real store makes
   const newRow = (userId: string, rawInput: TransactionInput): StoredTransaction => {
-    const input = settleTransferChange(rawInput) as TransactionInput
+    const input = settleKindChange(rawInput) as TransactionInput
     checkCategory(userId, input.categoryId)
     checkAccount(userId, input.accountId)
     checkAccount(userId, input.transferAccountId)
+    checkIncomeSource(userId, input.incomeSourceId)
     const accountId = input.accountId ?? defaultAccount(accounts, userId, input.date)
-    const row = { id: randomUUID(), userId, ...input, accountId, transferAccountId: input.transferAccountId ?? null }
+    const row = {
+      id: randomUUID(),
+      userId,
+      ...input,
+      accountId,
+      transferAccountId: input.transferAccountId ?? null,
+      incomeSourceId: input.incomeSourceId ?? null,
+      isOtherIncome: input.isOtherIncome ?? false,
+    }
     checkTransferAccounts(row)
     return row
   }
@@ -281,10 +303,11 @@ export function createFakeTransactionStore(
     update: async (userId, id, rawChanges) => {
       const row = rows.find((r) => r.id === id && r.userId === userId)
       if (!row) return null
-      const changes = settleTransferChange(rawChanges)
+      const changes = settleKindChange(rawChanges)
       checkCategory(userId, changes.categoryId)
       checkAccount(userId, changes.accountId)
       checkAccount(userId, changes.transferAccountId)
+      checkIncomeSource(userId, changes.incomeSourceId)
       checkTransferAccounts({ ...row, ...changes } as StoredTransaction)
       Object.assign(row, changes)
       return toTransaction(row)
