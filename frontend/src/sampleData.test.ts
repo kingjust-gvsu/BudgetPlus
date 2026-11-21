@@ -28,7 +28,7 @@ const categories = [
 function importOf(name: string) {
   const file = sample(name)
   const mapping = guessMapping(file)
-  return { mapping, preview: previewImport(file, mapping, categories) }
+  return { mapping, preview: previewImport(file, mapping, { categories }) }
 }
 
 describe('sample data', () => {

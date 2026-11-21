@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import type { Account, Category, TransactionInput } from '../api/types'
+import type { Account, Category, IncomeSourceName, TransactionInput } from '../api/types'
 import { today } from '../dates'
 import { readTransactionFields } from '../transactionInput'
 import { CategoryOptions } from './CategoryOptions'
@@ -7,11 +7,12 @@ import { CategoryOptions } from './CategoryOptions'
 type Props = {
   categories: Category[]
   accounts: Account[]
+  incomeSources: IncomeSourceName[]
   onSave: (input: TransactionInput) => Promise<void>
 }
 
 // Form for adding a transaction, or a transfer between accounts.
-export function TransactionForm({ categories, accounts, onSave }: Props) {
+export function TransactionForm({ categories, accounts, incomeSources, onSave }: Props) {
   const [date, setDate] = useState(today())
   const [description, setDescription] = useState('')
   // '' until picked: then the first account (bank accounts come first)
@@ -79,7 +80,7 @@ export function TransactionForm({ categories, accounts, onSave }: Props) {
         <div className="field">
           <label htmlFor="add-category">Category</label>
           <select id="add-category" value={categoryChoice} onChange={(e) => setCategoryChoice(e.target.value)}>
-            <CategoryOptions categories={categories} accounts={accounts} accountId={accountId} />
+            <CategoryOptions categories={categories} accounts={accounts} incomeSources={incomeSources} accountId={accountId} />
           </select>
         </div>
         <div className="field">

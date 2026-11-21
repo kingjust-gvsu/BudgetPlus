@@ -1,13 +1,14 @@
 import { useState, type KeyboardEvent } from 'react'
-import type { Account, Category, Transaction, TransactionInput } from '../api/types'
+import type { Account, Category, IncomeSourceName, Transaction, TransactionInput } from '../api/types'
 import { centsToInput } from '../money'
-import { categoryChoiceOf, readTransactionFields } from '../transactionInput'
+import { amountForScreen, categoryChoiceOf, readTransactionFields } from '../transactionInput'
 import { CategoryOptions } from './CategoryOptions'
 
 type Props = {
   transaction: Transaction
   categories: Category[]
   accounts: Account[]
+  incomeSources: IncomeSourceName[]
   // Whether the table has an Account column
   showAccount: boolean
   onSave: (input: TransactionInput) => Promise<void>
@@ -16,12 +17,12 @@ type Props = {
 
 // A table row whose cells become inputs, for editing a transaction in place.
 // Enter saves and Escape cancels.
-export function EditTransactionRow({ transaction, categories, accounts, showAccount, onSave, onCancel }: Props) {
+export function EditTransactionRow({ transaction, categories, accounts, incomeSources, showAccount, onSave, onCancel }: Props) {
   const [date, setDate] = useState(transaction.date)
   const [description, setDescription] = useState(transaction.description)
   const [accountId, setAccountId] = useState(transaction.accountId)
   const [categoryChoice, setCategoryChoice] = useState(categoryChoiceOf(transaction))
-  const [amount, setAmount] = useState(centsToInput(transaction.amountCents))
+  const [amount, setAmount] = useState(centsToInput(amountForScreen(transaction)))
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
 
@@ -93,7 +94,7 @@ export function EditTransactionRow({ transaction, categories, accounts, showAcco
             value={categoryChoice}
             onChange={(e) => setCategoryChoice(e.target.value)}
           >
-            <CategoryOptions categories={categories} accounts={accounts} accountId={accountId} />
+            <CategoryOptions categories={categories} accounts={accounts} incomeSources={incomeSources} accountId={accountId} />
           </select>
         </td>
         <td className="amount">

@@ -11,6 +11,7 @@ const thisMonth = monthOf(today())
 const october: MonthSummary = {
   month: thisMonth,
   incomeCents: 400000,
+  income: { plannedCents: 400000, receivedCents: 0, sources: [], other: { plannedCents: 0, receivedCents: 0 } },
   remainderCents: 161600,
   overPlannedCents: 0,
   billDifferenceCents: 1400,
@@ -101,11 +102,28 @@ describe('DashboardPage', () => {
     expect(fetchMock).toHaveBeenCalledWith(`/api/summary?month=${thisMonth}`, expect.anything())
   })
 
+  it('compares planned and received income for each source', async () => {
+    renderDashboard({
+      ...october,
+      income: {
+        plannedCents: 400000,
+        receivedCents: 403483,
+        sources: [{ id: 'vr', name: 'VR', plannedCents: 400000, receivedCents: 253483 }],
+        other: { plannedCents: 0, receivedCents: 150000 },
+      },
+    })
+    const card = await screen.findByRole('region', { name: 'Income' })
+
+    expect(within(card).getByText('VR').closest('li')).toHaveTextContent('$2,534.83 of $4,000.00')
+    expect(within(card).getByText('Other').closest('li')).toHaveTextContent('$1,500.00 of $0.00')
+    expect(within(screen.getByRole('region', { name: 'Month summary' })).getByText('$4,034.83')).toBeInTheDocument()
+  })
+
   it('shows the month totals', async () => {
     renderDashboard()
     const tiles = await screen.findByRole('region', { name: 'Month summary' })
 
-    expect(within(tiles).getByText('$4,000.00')).toBeInTheDocument()
+    expect(within(tiles).getByText('received of $4,000.00 planned')).toBeInTheDocument()
     expect(within(tiles).getByText('of $1,530.00 planned · 2 of 4 paid')).toBeInTheDocument()
     expect(within(tiles).getByText('of $840.00 in limits')).toBeInTheDocument()
     expect(within(tiles).getByText('Savings (remainder)')).toBeInTheDocument()

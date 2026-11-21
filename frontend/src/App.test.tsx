@@ -34,6 +34,7 @@ const emptySummary = {
   uncategorizedCents: 0,
   totals: { billsPlannedCents: 0, billsPaidCents: 0, monthlyBillsPaid: 0, monthlyBills: 0, expensesLimitCents: 0, expensesSpentCents: 0 },
   categories: [],
+  income: { plannedCents: null, receivedCents: 0, sources: [], other: { plannedCents: 0, receivedCents: 0 } },
 }
 const okResponse = (url: string) =>
   Promise.resolve(Response.json(url.startsWith('/api/summary') ? emptySummary : { status: 'ok' }))

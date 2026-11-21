@@ -145,3 +145,32 @@
   align-items: baseline;
   gap: 12px;
 }
+
+/* Income: each source's plan next to what came in */
+
+.dash-income {
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.dash-income-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid #ececea;
+}
+
+.dash-income-row:last-child {
+  border-bottom: 0;
+}
+
+.dash-income-name {
+  font-weight: 500;
+}
+
+.dash-income-amount {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}

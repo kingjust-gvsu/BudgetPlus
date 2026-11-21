@@ -13,7 +13,7 @@ import {
 } from './categories.ts'
 import type { Database } from './db.ts'
 import { ValidationError } from './errors.ts'
-import { TRANSFER_HAS_CATEGORY, TRANSFER_SAME_ACCOUNT } from './transactions.ts'
+import { INCOME_ONLY, TRANSFER_HAS_CATEGORY, TRANSFER_SAME_ACCOUNT } from './transactions.ts'
 import {
   nullable,
   requireBalanceCents,
@@ -56,6 +56,8 @@ export type BackupTransaction = {
   category: string | null // the category's name
   account: string // the account's name
   transferTo: string | null // for a transfer, the name of the account the money moved to
+  incomeSource: string | null // for money in, the name of the income source it's from
+  otherIncome: boolean // money in marked as other income
 }
 
 export type BackupAccount = AccountInput
@@ -168,6 +170,11 @@ export function parseBackup(raw: unknown): Backup {
 
   if (!Array.isArray(body.transactions)) throw new ValidationError('The backup has no transactions list')
   if (body.transactions.length > MAX_TRANSACTIONS) throw new ValidationError(`A backup can have at most ${MAX_TRANSACTIONS} transactions`)
+  const income =
+    body.version === 1
+      ? null
+      : parseIncome(body.income)
+  const sourceNames = new Set(income?.sources.map((s) => s.name) ?? [])
   const transactions = body.transactions.map((raw: unknown, index: number): BackupTransaction => {
     try {
       const t = requireObject(raw)
@@ -182,6 +189,13 @@ export function parseBackup(raw: unknown): Backup {
         if (transferTo === account) throw new ValidationError(TRANSFER_SAME_ACCOUNT)
         if (category !== null) throw new ValidationError(TRANSFER_HAS_CATEGORY)
       }
+      const incomeSource = hasAccounts ? nullable(t.incomeSource ?? null, (v) => requireText(v, 'Income source', 100)) : null
+      const otherIncome = hasAccounts && t.otherIncome === true
+      if (incomeSource !== null && !sourceNames.has(incomeSource)) {
+        throw new ValidationError(`no income source named "${incomeSource}" in the backup`)
+      }
+      const kinds = [category !== null, transferTo !== null, incomeSource !== null, otherIncome].filter(Boolean).length
+      if (kinds > 1) throw new ValidationError(INCOME_ONLY)
       return {
         date: requireDate(t.date, 'Date'),
         description: requireText(t.description, 'Description', 200),
@@ -189,6 +203,8 @@ export function parseBackup(raw: unknown): Backup {
         category,
         account,
         transferTo,
+        incomeSource,
+        otherIncome,
       }
     } catch (error) {
       if (error instanceof ValidationError) throw new ValidationError(`Transaction ${index + 1}: ${error.message}`)
@@ -196,10 +212,7 @@ export function parseBackup(raw: unknown): Backup {
     }
   })
 
-  const income =
-    body.version === 1
-      ? incomeFromVersion1(body.monthlyIncomeCents, categories, transactions)
-      : parseIncome(body.income)
+  const allIncome = income ?? incomeFromVersion1(body.monthlyIncomeCents, categories, transactions)
 
   if (!hasAccounts && transactions.length > 0) {
     // Starting at $0 on the first transaction's day
@@ -211,7 +224,7 @@ export function parseBackup(raw: unknown): Backup {
     format: BACKUP_FORMAT,
     version: BACKUP_VERSION,
     exportedAt: String(body.exportedAt ?? ''),
-    income,
+    income: allIncome,
     accounts,
     categories,
     transactions,
@@ -328,7 +341,7 @@ export function createBackupStore(db: Database): BackupStore {
       const transactions = await db.transaction.findMany({
         where: { userId },
         orderBy: [{ date: 'asc' }, { createdAt: 'asc' }],
-        select: { date: true, description: true, amountCents: true, category: { select: { name: true } }, account: { select: { name: true } }, transferAccount: { select: { name: true } } },
+        select: { date: true, description: true, amountCents: true, category: { select: { name: true } }, account: { select: { name: true } }, transferAccount: { select: { name: true } }, incomeSource: { select: { name: true } }, isOtherIncome: true },
       })
       return {
         format: BACKUP_FORMAT,
@@ -354,6 +367,8 @@ export function createBackupStore(db: Database): BackupStore {
           category: t.category?.name ?? null,
           account: t.account.name,
           transferTo: t.transferAccount?.name ?? null,
+          incomeSource: t.incomeSource?.name ?? null,
+          otherIncome: t.isOtherIncome,
         })),
       }
     },
@@ -366,8 +381,13 @@ export function createBackupStore(db: Database): BackupStore {
         await tx.category.deleteMany({ where: { userId } })
         await tx.incomeSource.deleteMany({ where: { userId } })
         await tx.otherIncome.deleteMany({ where: { userId } })
+        const sourceIdByName = new Map<string, string>()
         for (const source of backup.income.sources) {
-          await tx.incomeSource.create({ data: { userId, name: source.name, amounts: { create: source.amounts } } })
+          const created = await tx.incomeSource.create({
+            data: { userId, name: source.name, amounts: { create: source.amounts } },
+            select: { id: true },
+          })
+          sourceIdByName.set(source.name, created.id)
         }
         await tx.otherIncome.createMany({ data: backup.income.other.map((o) => ({ userId, ...o })) })
 
@@ -403,6 +423,8 @@ export function createBackupStore(db: Database): BackupStore {
             categoryId: t.category === null ? null : idByName.get(t.category)!,
             accountId: accountIdByName.get(t.account)!,
             transferAccountId: t.transferTo === null ? null : accountIdByName.get(t.transferTo)!,
+            incomeSourceId: t.incomeSource === null ? null : sourceIdByName.get(t.incomeSource)!,
+            isOtherIncome: t.otherIncome,
           })),
         })
         return { categories: backup.categories.length, transactions: backup.transactions.length }

@@ -20,6 +20,12 @@ export function createIncomeRouter(store: IncomeStore) {
     res.json(await monthIncome(currentUser(res).id, month))
   })
 
+  // GET /api/income/sources: every income source the user has had, for naming deposits
+  router.get('/sources', async (_req, res) => {
+    const { sources } = await store.load(currentUser(res).id)
+    res.json(sources.map(({ id, name }) => ({ id, name })))
+  })
+
   // POST /api/income/sources { name, amountCents, month }: add a source, paid from `month` on.
   // Using the name of a source that isn't paying that month (stopped, or not started) restarts it.
   router.post('/sources', async (req, res) => {

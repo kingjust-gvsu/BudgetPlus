@@ -2,7 +2,7 @@ import request from 'supertest'
 import { describe, expect, it } from 'vitest'
 import { createApp } from './app.ts'
 import { DEFAULT_BUDGET_SETTINGS } from './categories.ts'
-import { buildMonthSummary, type SummaryCategory, type SummaryData } from './summary.ts'
+import { buildMonthSummary, incomeSummary, type SummaryCategory, type SummaryData } from './summary.ts'
 import { createFakeIncomeStore, fakeDependencies, testUser, VALID_TOKEN } from './test/fakes.ts'
 
 function category(id: string, fields: Partial<SummaryCategory> & Pick<SummaryCategory, 'kind'>): SummaryCategory {
@@ -145,5 +145,33 @@ describe('GET /api/summary', () => {
     const response = await request(app).get('/api/summary?month=2026-10')
 
     expect(response.status).toBe(401)
+  })
+})
+
+describe('incomeSummary', () => {
+  const planned = {
+    month: '2026-11',
+    sources: [{ id: 'vr', name: 'VR', amountCents: 499976, setIn: '2026-01' }],
+    otherCents: 0,
+    totalCents: 499976,
+  }
+
+  it("compares each source's plan with what came in, plus other income", () => {
+    const received = new Map([['vr', 253483], ['other', 150000]])
+
+    expect(incomeSummary(planned, [{ id: 'vr', name: 'VR' }], received)).toEqual({
+      plannedCents: 499976,
+      receivedCents: 403483,
+      sources: [{ id: 'vr', name: 'VR', plannedCents: 499976, receivedCents: 253483 }],
+      other: { plannedCents: 0, receivedCents: 150000 },
+    })
+  })
+
+  it("includes a source that isn't planned this month but still paid", () => {
+    const sources = [{ id: 'vr', name: 'VR' }, { id: 'buist', name: 'Buist' }]
+
+    const summary = incomeSummary(planned, sources, new Map([['buist', 63036]]))
+
+    expect(summary.sources).toContainEqual({ id: 'buist', name: 'Buist', plannedCents: 0, receivedCents: 63036 })
   })
 })

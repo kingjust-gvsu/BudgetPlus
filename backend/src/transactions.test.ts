@@ -26,6 +26,8 @@ const othersTransactionId = '20000000-0000-0000-0000-000000000004'
 const checkingId = '30000000-0000-0000-0000-000000000001'
 const cardId = '30000000-0000-0000-0000-000000000002'
 const othersAccountId = '30000000-0000-0000-0000-000000000003'
+const vrId = '40000000-0000-0000-0000-000000000001'
+const othersSourceId = '40000000-0000-0000-0000-000000000002'
 
 function setup() {
   const categoryRows = [
@@ -46,10 +48,16 @@ function setup() {
     ],
     categoryRows,
     accountRows,
+    [
+      { id: vrId, userId: testUser.id },
+      { id: othersSourceId, userId: otherUser.id },
+    ],
   )
   const deps = fakeDependencies({ categories: createFakeCategoryStore(categoryRows), transactions: store })
   return { app: createApp(config, deps), store }
 }
+
+const notIncome = { incomeSourceId: null, isOtherIncome: false }
 
 const newTransaction = { date: '2026-10-17', description: 'Pizza place', amountCents: 3275, categoryId: groceriesId }
 
@@ -61,8 +69,8 @@ describe('GET /api/transactions', () => {
 
     expect(response.status).toBe(200)
     expect(response.body).toEqual([
-      { id: meijerId, date: '2026-10-15', description: 'Meijer', amountCents: 8412, categoryId: groceriesId, accountId: cardId, transferAccountId: null },
-      { id: shellId, date: '2026-10-14', description: 'Shell', amountCents: 4830, categoryId: null, accountId: checkingId, transferAccountId: null },
+      { id: meijerId, date: '2026-10-15', description: 'Meijer', amountCents: 8412, categoryId: groceriesId, accountId: cardId, transferAccountId: null, ...notIncome },
+      { id: shellId, date: '2026-10-14', description: 'Shell', amountCents: 4830, categoryId: null, accountId: checkingId, transferAccountId: null, ...notIncome },
     ])
   })
 
@@ -101,7 +109,7 @@ describe('POST /api/transactions', () => {
 
     expect(response.status).toBe(201)
     // No account given, so it goes in the main bank account
-    expect(response.body).toEqual({ id: expect.any(String), ...newTransaction, accountId: checkingId, transferAccountId: null })
+    expect(response.body).toEqual({ id: expect.any(String), ...newTransaction, accountId: checkingId, transferAccountId: null, ...notIncome })
     expect(store.rows).toContainEqual({ ...response.body, userId: testUser.id })
   })
 
@@ -173,7 +181,7 @@ describe('PATCH /api/transactions/:id', () => {
       .send({ amountCents: 9000, categoryId: null })
 
     expect(response.status).toBe(200)
-    expect(response.body).toEqual({ id: meijerId, date: '2026-10-15', description: 'Meijer', amountCents: 9000, categoryId: null, accountId: cardId, transferAccountId: null })
+    expect(response.body).toEqual({ id: meijerId, date: '2026-10-15', description: 'Meijer', amountCents: 9000, categoryId: null, accountId: cardId, transferAccountId: null, ...notIncome })
   })
 
   it('rejects an empty change', async () => {
@@ -288,5 +296,58 @@ describe('transfers', () => {
 
     expect(response.status).toBe(201)
     expect(store.rows).toContainEqual(expect.objectContaining({ description: 'Pay off Amazon card', transferAccountId: cardId }))
+  })
+})
+
+describe('income', () => {
+  const paycheck = { date: '2026-10-15', description: 'Paycheck', amountCents: -253483, accountId: checkingId, incomeSourceId: vrId }
+
+  it('adds money in from an income source, with no category', async () => {
+    const { app } = setup()
+
+    const response = await request(app).post('/api/transactions').set(auth).send(paycheck)
+
+    expect(response.status).toBe(201)
+    expect(response.body).toMatchObject({ ...paycheck, categoryId: null, transferAccountId: null, isOtherIncome: false })
+  })
+
+  it('adds other income', async () => {
+    const { app } = setup()
+
+    const response = await request(app).post('/api/transactions').set(auth).send({ ...newTransaction, categoryId: null, amountCents: -511000, isOtherIncome: true })
+
+    expect(response.body).toMatchObject({ isOtherIncome: true, incomeSourceId: null })
+  })
+
+  it.each([
+    ['a category', { categoryId: groceriesId }],
+    ['a transfer', { transferAccountId: cardId }],
+    ['other income too', { isOtherIncome: true }],
+  ])("won't give income %s", async (_case, extra) => {
+    const { app } = setup()
+
+    const response = await request(app).post('/api/transactions').set(auth).send({ ...paycheck, ...extra })
+
+    expect(response.status).toBe(400)
+    expect(response.body.error).toBe("Income can't also have a category or be a transfer")
+  })
+
+  it("rejects another user's income source", async () => {
+    const { app } = setup()
+
+    const response = await request(app).post('/api/transactions').set(auth).send({ ...paycheck, incomeSourceId: othersSourceId })
+
+    expect(response.status).toBe(400)
+    expect(response.body.error).toBe('Income source not found')
+  })
+
+  it('turns a transaction into income, clearing its category, and back', async () => {
+    const { app } = setup()
+
+    const income = await request(app).patch(`/api/transactions/${meijerId}`).set(auth).send({ incomeSourceId: vrId })
+    const spending = await request(app).patch(`/api/transactions/${meijerId}`).set(auth).send({ categoryId: groceriesId })
+
+    expect(income.body).toMatchObject({ incomeSourceId: vrId, categoryId: null })
+    expect(spending.body).toMatchObject({ incomeSourceId: null, isOtherIncome: false, categoryId: groceriesId })
   })
 })

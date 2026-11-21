@@ -2,7 +2,8 @@ import { categoryInMonth, loadCategoryRecords, startMonthOf, type Category } fro
 import type { Database } from './db.ts'
 import { fundForMonth, type FundMonth } from './fund.ts'
 import { monthStatus, type CategoryStatus } from './monthStatus.ts'
-import { monthRange } from './transactions.ts'
+import type { MonthIncome } from './income.ts'
+import { monthRange, SPENDING_ONLY } from './transactions.ts'
 
 // Everything the dashboard needs for one month, built from the budget, status, and fund
 // calculations.
@@ -16,6 +17,34 @@ export type SummaryData = {
   transactions: { categoryId: string | null; amountCents: number }[]
   // What was paid toward each fund bill in each month, up to and including this one
   fundPayments: Map<string, Map<string, number>>
+  // Money that came in this month, by income source id ('other' for other income), as positive amounts
+  received?: Map<string, number>
+}
+
+// Planned and received income for the month: each source paying this month, plus any other
+// source money came in from, and other income
+export type IncomeSummary = {
+  plannedCents: number | null
+  receivedCents: number
+  sources: { id: string; name: string; plannedCents: number; receivedCents: number }[]
+  other: { plannedCents: number; receivedCents: number }
+}
+
+export function incomeSummary(planned: MonthIncome, allSources: { id: string; name: string }[], received: Map<string, number>): IncomeSummary {
+  const sources = planned.sources.map((s) => ({ id: s.id, name: s.name, plannedCents: s.amountCents, receivedCents: received.get(s.id) ?? 0 }))
+  // A source that isn't planned this month (stopped, say) but still paid something
+  for (const source of allSources) {
+    if (received.has(source.id) && !sources.some((s) => s.id === source.id)) {
+      sources.push({ id: source.id, name: source.name, plannedCents: 0, receivedCents: received.get(source.id)! })
+    }
+  }
+  const receivedCents = [...received.values()].reduce((sum, cents) => sum + cents, 0)
+  return {
+    plannedCents: planned.totalCents,
+    receivedCents,
+    sources,
+    other: { plannedCents: planned.otherCents, receivedCents: received.get('other') ?? 0 },
+  }
 }
 
 // For a bill that isn't monthly, `targetCents` is the full bill its fund is saving toward and
@@ -128,17 +157,28 @@ export function createSummaryStore(db: Database): SummaryStore {
         return category ? [{ ...category, startMonth: startMonthOf(record)! }] : []
       })
 
-      // Transfers between accounts aren't spending, so they're left out
+      // Transfers between accounts and income aren't spending, so they're left out
       const transactions = await db.transaction.findMany({
-        where: { userId, transferAccountId: null, date: { gte: start, lt: end } },
+        where: { userId, ...SPENDING_ONLY, date: { gte: start, lt: end } },
         select: { categoryId: true, amountCents: true },
       })
+
+      // Income amounts are negative (money in); received counts them as positive
+      const deposits = await db.transaction.findMany({
+        where: { userId, date: { gte: start, lt: end }, OR: [{ incomeSourceId: { not: null } }, { isOtherIncome: true }] },
+        select: { incomeSourceId: true, amountCents: true },
+      })
+      const received = new Map<string, number>()
+      for (const d of deposits) {
+        const key = d.incomeSourceId ?? 'other'
+        received.set(key, (received.get(key) ?? 0) - d.amountCents)
+      }
 
       // Every payment toward a fund bill up to the end of this month, added up by month
       const fundIds = categories.filter((c) => c.kind === 'BILL' && c.frequencyMonths > 1).map((c) => c.id)
       const payments = fundIds.length
         ? await db.transaction.findMany({
-            where: { userId, transferAccountId: null, categoryId: { in: fundIds }, date: { lt: end } },
+            where: { userId, ...SPENDING_ONLY, categoryId: { in: fundIds }, date: { lt: end } },
             select: { categoryId: true, date: true, amountCents: true },
           })
         : []
@@ -150,7 +190,7 @@ export function createSummaryStore(db: Database): SummaryStore {
         fundPayments.set(payment.categoryId!, byMonth)
       }
 
-      return { categories, transactions, fundPayments }
+      return { categories, transactions, fundPayments, received }
     },
   }
 }

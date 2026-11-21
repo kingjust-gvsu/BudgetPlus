@@ -5,7 +5,7 @@ import { incomeForMonth, type IncomeStore } from '../income.ts'
 import { ValidationError } from '../errors.ts'
 import { monthsBetween } from '../fund.ts'
 import { monthsEnding, spendingSummary } from '../spending.ts'
-import type { TransactionStore } from '../transactions.ts'
+import { isSpending, type TransactionStore } from '../transactions.ts'
 import { requireMonth } from '../validation.ts'
 
 const MAX_MONTHS = 24
@@ -30,8 +30,8 @@ export function createSpendingRouter(categories: CategoryStore, transactions: Tr
       transactions.list(userId),
       income.load(userId),
     ])
-    // Transfers between accounts aren't spending
-    const userTransactions = allTransactions.filter((t) => t.transferAccountId === null)
+    // Transfers between accounts and income aren't spending
+    const userTransactions = allTransactions.filter(isSpending)
     const oldest = userTransactions.reduce<string | undefined>((min, t) => (!min || t.date < min ? t.date : min), undefined)?.slice(0, 7)
     const count = all && oldest && oldest < to ? monthsBetween(oldest, to) + 1 : requested
     const summary = spendingSummary(monthsEnding(to, count), userCategories, userTransactions)

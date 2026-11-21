@@ -536,6 +536,11 @@ h2 {
   gap: 12px;
 }
 
+/* Money in, like a paycheck */
+.amount-in {
+  color: var(--color-income, #1f7a4d);
+}
+
 /* Transactions: which account's transactions to show */
 .transactions-filter {
   flex-direction: row;

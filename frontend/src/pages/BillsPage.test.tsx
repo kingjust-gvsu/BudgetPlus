@@ -11,6 +11,7 @@ const thisMonth = monthOf(today())
 const summary: MonthSummary = {
   month: thisMonth,
   incomeCents: 400000,
+  income: { plannedCents: 400000, receivedCents: 0, sources: [], other: { plannedCents: 0, receivedCents: 0 } },
   remainderCents: 161600,
   overPlannedCents: 0,
   billDifferenceCents: -1100,

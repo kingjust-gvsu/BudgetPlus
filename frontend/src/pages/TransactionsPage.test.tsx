@@ -23,6 +23,7 @@ function fakeApi(url: string, init?: RequestInit) {
   if (method === 'GET' && url.startsWith('/api/transactions')) return Response.json(transactions)
   if (method === 'GET' && url.startsWith('/api/categories')) return Response.json(categories)
   if (method === 'GET' && url === '/api/accounts') return Response.json(accounts)
+  if (method === 'GET' && url === '/api/income/sources') return Response.json([{ id: 'src-vr', name: 'VR' }])
   if (method === 'POST' && url === '/api/transactions') {
     const created = { id: `tx-${transactions.length + 1}`, ...JSON.parse(String(init?.body)) }
     transactions = [created, ...transactions]
@@ -71,8 +72,8 @@ function fillForm(fields: { description?: string; amount?: string; category?: st
 describe('TransactionsPage', () => {
   beforeEach(() => {
     transactions = [
-      { id: 'tx-meijer', date: `${thisMonth}-15`, description: 'Meijer', amountCents: 8412, categoryId: 'cat-groceries', accountId: 'acct-checking', transferAccountId: null },
-      { id: 'tx-refund', date: `${thisMonth}-08`, description: 'Target refund', amountCents: -1800, categoryId: null, accountId: 'acct-checking', transferAccountId: null },
+      { id: 'tx-meijer', date: `${thisMonth}-15`, description: 'Meijer', amountCents: 8412, categoryId: 'cat-groceries', accountId: 'acct-checking', transferAccountId: null, incomeSourceId: null, isOtherIncome: false },
+      { id: 'tx-refund', date: `${thisMonth}-08`, description: 'Target refund', amountCents: -1800, categoryId: null, accountId: 'acct-checking', transferAccountId: null, incomeSourceId: null, isOtherIncome: false },
     ]
     accounts = [checking]
     fetchMock = vi.fn((url: string, init?: RequestInit) => Promise.resolve(fakeApi(url, init)))
@@ -110,8 +111,34 @@ describe('TransactionsPage', () => {
       amountCents: 3275,
       categoryId: 'cat-groceries',
       transferAccountId: null,
+      incomeSourceId: null,
+      isOtherIncome: false,
       accountId: 'acct-checking',
     })
+  })
+
+  it('adds a paycheck as a positive amount and shows it as money in', async () => {
+    renderPage()
+    await screen.findByText('Meijer')
+
+    fillForm({ description: 'Paycheck', amount: '2534.83', category: 'income:src-vr' })
+
+    const row = (await screen.findByText('Paycheck')).closest('tr')!
+    expect(row).toHaveTextContent('Income: VR')
+    expect(row).toHaveTextContent('+$2,534.83')
+    const post = fetchMock.mock.calls.find(([, init]) => init?.method === 'POST')!
+    expect(JSON.parse(post[1].body)).toMatchObject({ amountCents: -253483, incomeSourceId: 'src-vr', categoryId: null, isOtherIncome: false })
+  })
+
+  it('adds other income', async () => {
+    renderPage()
+    await screen.findByText('Meijer')
+
+    fillForm({ description: 'Bonus', amount: '1500', category: 'income:other' })
+
+    expect((await screen.findByText('Bonus')).closest('tr')).toHaveTextContent('Other income')
+    const post = fetchMock.mock.calls.find(([, init]) => init?.method === 'POST')!
+    expect(JSON.parse(post[1].body)).toMatchObject({ amountCents: -150000, isOtherIncome: true, incomeSourceId: null })
   })
 
   describe('with more than one account', () => {
@@ -123,6 +150,8 @@ describe('TransactionsPage', () => {
       categoryId: null,
       accountId: 'acct-checking',
       transferAccountId: 'acct-card',
+      incomeSourceId: null,
+      isOtherIncome: false,
     }
 
     beforeEach(() => {
@@ -160,7 +189,7 @@ describe('TransactionsPage', () => {
       fireEvent.change(within(form).getByLabelText('Account'), { target: { value: 'acct-card' } })
       const choices = within(within(form).getByLabelText('Category')).getAllByRole('option').map((o) => o.textContent)
 
-      expect(choices).toEqual(['Uncategorized', 'Groceries', 'Checking'])
+      expect(choices).toEqual(['Uncategorized', 'Groceries', 'VR', 'Other income', 'Checking'])
     })
 
     it("shows one account's money in and out, with a transfer in as money coming from the other account", async () => {

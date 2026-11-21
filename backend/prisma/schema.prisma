@@ -94,6 +94,10 @@ model Transaction {
   // Set for a transfer: the money moved from accountId to this account (paying off a credit card,
   // saving into a fund). Transfers aren't spending, so they have no category.
   transferAccountId String?   @map("transfer_account_id") @db.Uuid
+  // Set for money coming in from an income source (a paycheck), or marked as other income (a
+  // bonus). Income isn't spending, so it has no category. Its amount is negative: money in.
+  incomeSourceId    String?   @map("income_source_id") @db.Uuid
+  isOtherIncome     Boolean   @default(false) @map("is_other_income")
   date        DateTime  @db.Date
   description String
   // Whole cents, never floating point. Positive = money spent, negative = money back (e.g. a refund).
@@ -105,6 +109,7 @@ model Transaction {
   // An account with transactions (or transfers into it) can't be deleted
   account         Account   @relation("TransactionAccount", fields: [accountId], references: [id], onDelete: Restrict)
   transferAccount Account?  @relation("TransferAccount", fields: [transferAccountId], references: [id], onDelete: Restrict)
+  incomeSource    IncomeSource? @relation(fields: [incomeSourceId], references: [id], onDelete: SetNull)
 
   @@index([userId, date])
   @@map("transactions")
@@ -119,6 +124,8 @@ model IncomeSource {
   createdAt DateTime       @default(now()) @map("created_at")
   user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   amounts   IncomeAmount[]
+  // Money that came in from this source
+  deposits  Transaction[]
 
   @@unique([userId, name])
   @@map("income_sources")
