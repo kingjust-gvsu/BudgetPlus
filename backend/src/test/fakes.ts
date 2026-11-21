@@ -1,4 +1,15 @@
 import { randomUUID } from 'node:crypto'
+import {
+  ACCOUNT_HAS_TRANSACTIONS,
+  ACCOUNT_NAME_TAKEN,
+  ACCOUNT_NOT_FOUND,
+  balanceOf,
+  DEFAULT_ACCOUNT_NAME,
+  sortAccounts,
+  type Account,
+  type AccountInput,
+  type AccountStore,
+} from '../accounts.ts'
 import type { AppDependencies } from '../app.ts'
 import type { AuthenticatedUser } from '../auth.ts'
 import {
@@ -146,24 +157,85 @@ export function createFakeIncomeStore(): IncomeStore & { data: Map<string, Incom
   }
 }
 
+export type StoredAccount = AccountInput & { id: string; userId: string }
 type StoredTransaction = Transaction & { userId: string }
+// Tests can leave out the account; those transactions go in the user's main bank account
+type TransactionSeed = Omit<Transaction, 'accountId'> & { accountId?: string; userId: string }
+
+// The user's first bank account, or a new "Checking" one, like the real store's default
+function defaultAccount(accounts: StoredAccount[], userId: string, date: string): string {
+  const bank = accounts.find((a) => a.userId === userId && a.type === 'BANK')
+  if (bank) return bank.id
+  const id = randomUUID()
+  accounts.push({ id, userId, name: DEFAULT_ACCOUNT_NAME, type: 'BANK', startingBalanceCents: 0, startDate: date })
+  return id
+}
+
+// Behaves like the real account store, but keeps everything in memory. Balances come from
+// `transactions` (share it with a fake transaction store).
+export function createFakeAccountStore(
+  accounts: StoredAccount[] = [],
+  transactions: Pick<StoredTransaction, 'accountId' | 'date' | 'amountCents'>[] = [],
+): AccountStore & { rows: StoredAccount[] } {
+  const toAccount = ({ userId: _userId, ...account }: StoredAccount): Account => ({
+    ...account,
+    balanceCents: balanceOf(account, transactions.filter((t) => t.accountId === account.id)),
+  })
+  const nameTaken = (userId: string, name: string, id?: string) =>
+    accounts.some((a) => a.userId === userId && a.name === name && a.id !== id)
+
+  return {
+    rows: accounts,
+    list: async (userId) => sortAccounts(accounts.filter((a) => a.userId === userId).map(toAccount)),
+    create: async (userId, input) => {
+      if (nameTaken(userId, input.name)) throw new ConflictError(ACCOUNT_NAME_TAKEN)
+      const row = { id: randomUUID(), userId, ...input }
+      accounts.push(row)
+      return toAccount(row)
+    },
+    update: async (userId, id, changes) => {
+      const row = accounts.find((a) => a.id === id && a.userId === userId)
+      if (!row) return null
+      if (changes.name !== undefined && nameTaken(userId, changes.name, id)) throw new ConflictError(ACCOUNT_NAME_TAKEN)
+      Object.assign(row, changes)
+      return toAccount(row)
+    },
+    delete: async (userId, id) => {
+      const index = accounts.findIndex((a) => a.id === id && a.userId === userId)
+      if (index === -1) return false
+      if (transactions.some((t) => t.accountId === id)) throw new ConflictError(ACCOUNT_HAS_TRANSACTIONS)
+      accounts.splice(index, 1)
+      return true
+    },
+  }
+}
 
 // Behaves like the real transaction store, but keeps everything in memory. `categories` is the
-// category list it checks ownership against (share it with a fake category store).
+// category list it checks ownership against (share it with a fake category store), and `accounts`
+// the account list (share it with a fake account store).
 export function createFakeTransactionStore(
-  rows: StoredTransaction[] = [],
+  seeds: TransactionSeed[] = [],
   categories: Pick<StoredCategory, 'id' | 'userId'>[] = [],
+  accounts: StoredAccount[] = [],
 ): TransactionStore & { rows: StoredTransaction[] } {
-  const toTransaction = ({ id, date, description, amountCents, categoryId }: StoredTransaction): Transaction => ({
+  for (const seed of seeds) seed.accountId ??= defaultAccount(accounts, seed.userId, seed.date)
+  const rows = seeds as StoredTransaction[]
+  const toTransaction = ({ id, date, description, amountCents, categoryId, accountId }: StoredTransaction): Transaction => ({
     id,
     date,
     description,
     amountCents,
     categoryId,
+    accountId,
   })
   const checkCategory = (userId: string, categoryId: string | null | undefined) => {
     if (categoryId && !categories.some((c) => c.id === categoryId && c.userId === userId)) {
       throw new ValidationError(CATEGORY_NOT_FOUND)
+    }
+  }
+  const checkAccount = (userId: string, accountId: string | undefined) => {
+    if (accountId && !accounts.some((a) => a.id === accountId && a.userId === userId)) {
+      throw new ValidationError(ACCOUNT_NOT_FOUND)
     }
   }
 
@@ -176,7 +248,8 @@ export function createFakeTransactionStore(
         .map(toTransaction),
     create: async (userId, input) => {
       checkCategory(userId, input.categoryId)
-      const row = { id: randomUUID(), userId, ...input }
+      checkAccount(userId, input.accountId)
+      const row = { id: randomUUID(), userId, ...input, accountId: input.accountId ?? defaultAccount(accounts, userId, input.date) }
       rows.push(row)
       return toTransaction(row)
     },
@@ -184,6 +257,7 @@ export function createFakeTransactionStore(
       const row = rows.find((r) => r.id === id && r.userId === userId)
       if (!row) return null
       checkCategory(userId, changes.categoryId)
+      checkAccount(userId, changes.accountId)
       Object.assign(row, changes)
       return toTransaction(row)
     },
@@ -194,9 +268,14 @@ export function createFakeTransactionStore(
       return true
     },
     importMany: async (userId, inputs) => {
-      for (const input of inputs) checkCategory(userId, input.categoryId)
+      for (const input of inputs) {
+        checkCategory(userId, input.categoryId)
+        checkAccount(userId, input.accountId)
+      }
       const toAdd = withoutDuplicates(inputs, rows.filter((r) => r.userId === userId))
-      for (const input of toAdd) rows.push({ id: randomUUID(), userId, ...input })
+      for (const input of toAdd) {
+        rows.push({ id: randomUUID(), userId, ...input, accountId: input.accountId ?? defaultAccount(accounts, userId, input.date) })
+      }
       return { imported: toAdd.length, duplicates: inputs.length - toAdd.length }
     },
   }
@@ -214,6 +293,7 @@ export function fakeDependencies(overrides: Partial<AppDependencies> = {}): AppD
     categories: createFakeCategoryStore(),
     transactions: createFakeTransactionStore(),
     income: createFakeIncomeStore(),
+    accounts: createFakeAccountStore(),
     summary: { load: async () => ({ categories: [], transactions: [], fundPayments: new Map() }) },
     backup: {
       export: async () => {

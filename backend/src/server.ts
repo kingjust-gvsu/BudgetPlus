@@ -1,3 +1,4 @@
+import { createAccountStore } from './accounts.ts'
 import { createApp } from './app.ts'
 import { createFirebaseTokenVerifier } from './auth.ts'
 import { createBackupStore } from './backup.ts'
@@ -26,6 +27,7 @@ const app = createApp(config, {
   categories: createCategoryStore(db),
   transactions: createTransactionStore(db),
   income: createIncomeStore(db),
+  accounts: createAccountStore(db),
   summary: createSummaryStore(db),
   backup: createBackupStore(db),
 })

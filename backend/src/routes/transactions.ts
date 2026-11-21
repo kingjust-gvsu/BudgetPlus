@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import { ACCOUNT_NOT_FOUND } from '../accounts.ts'
 import { currentUser } from '../auth.ts'
 import { NotFoundError, ValidationError } from '../errors.ts'
 import { CATEGORY_NOT_FOUND, type TransactionChanges, type TransactionInput, type TransactionStore } from '../transactions.ts'
@@ -14,6 +15,13 @@ import {
 
 const MAX_DESCRIPTION_LENGTH = 200
 const MAX_IMPORT_ROWS = 5000
+
+// An account is optional: left out, the transaction goes in the user's main bank account
+function optionalAccountId(value: unknown): string | undefined {
+  if (value === undefined) return undefined
+  if (!isUuid(value)) throw new ValidationError(ACCOUNT_NOT_FOUND)
+  return value
+}
 
 // A category is optional: null (or left out) means uncategorized
 function optionalCategoryId(value: unknown): string | null {
@@ -33,7 +41,7 @@ export function createTransactionsRouter(store: TransactionStore) {
     res.json(await store.list(currentUser(res).id, month))
   })
 
-  // POST /api/transactions { date, description, amountCents, categoryId? }: add a transaction
+  // POST /api/transactions { date, description, amountCents, categoryId?, accountId? }: add a transaction
   router.post('/', async (req, res) => {
     const body = requireObject(req.body)
     const transaction = await store.create(currentUser(res).id, {
@@ -41,11 +49,12 @@ export function createTransactionsRouter(store: TransactionStore) {
       description: requireText(body.description, 'Description', MAX_DESCRIPTION_LENGTH),
       amountCents: requireCents(body.amountCents, 'Amount'),
       categoryId: optionalCategoryId(body.categoryId),
+      accountId: optionalAccountId(body.accountId),
     })
     res.status(201).json(transaction)
   })
 
-  // POST /api/transactions/import { transactions: [{ date, description, amountCents, categoryId? }] }
+  // POST /api/transactions/import { transactions: [{ date, description, amountCents, categoryId?, accountId? }] }
   // Adds many transactions at once, skipping ones the user already has. If any row has a problem,
   // nothing is added and each problem is reported with its row number (1 = the first transaction).
   router.post('/import', async (req, res) => {
@@ -67,6 +76,7 @@ export function createTransactionsRouter(store: TransactionStore) {
           description: requireText(row.description, 'Description', MAX_DESCRIPTION_LENGTH),
           amountCents: requireCents(row.amountCents, 'Amount'),
           categoryId: optionalCategoryId(row.categoryId),
+          accountId: optionalAccountId(row.accountId),
         })
       } catch (error) {
         if (!(error instanceof ValidationError)) throw error
@@ -92,8 +102,9 @@ export function createTransactionsRouter(store: TransactionStore) {
     }
     if (body.amountCents !== undefined) changes.amountCents = requireCents(body.amountCents, 'Amount')
     if (body.categoryId !== undefined) changes.categoryId = optionalCategoryId(body.categoryId)
+    if (body.accountId !== undefined) changes.accountId = optionalAccountId(body.accountId)
     if (Object.keys(changes).length === 0) {
-      throw new ValidationError('Nothing to change: send a date, description, amount, or category')
+      throw new ValidationError('Nothing to change: send a date, description, amount, category, or account')
     }
 
     const transaction = await store.update(currentUser(res).id, id, changes)

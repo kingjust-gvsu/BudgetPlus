@@ -25,6 +25,14 @@ enum BudgetType {
   REMAINDER // whatever is left after every other category; only one per user
 }
 
+// Bank accounts hold money; credit cards hold what you owe; savings funds set money aside for
+// something (car insurance, a house).
+enum AccountType {
+  BANK
+  CREDIT_CARD
+  FUND
+}
+
 model User {
   id            String         @id @default(uuid()) @db.Uuid
   // Sign-up and login are handled by Firebase; this links our data to the Firebase account.
@@ -35,6 +43,7 @@ model User {
   transactions  Transaction[]
   incomeSources IncomeSource[]
   otherIncome   OtherIncome[]
+  accounts      Account[]
 
   @@map("users")
 }
@@ -80,6 +89,8 @@ model Transaction {
   userId      String    @map("user_id") @db.Uuid
   // Optional so imported transactions can exist before they're categorized.
   categoryId  String?   @map("category_id") @db.Uuid
+  // The account the money came out of (or went back into)
+  accountId   String    @map("account_id") @db.Uuid
   date        DateTime  @db.Date
   description String
   // Whole cents, never floating point. Positive = money spent, negative = money back (e.g. a refund).
@@ -88,6 +99,8 @@ model Transaction {
   updatedAt   DateTime  @updatedAt @map("updated_at")
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   category    Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  // An account with transactions can't be deleted
+  account     Account   @relation(fields: [accountId], references: [id], onDelete: Restrict)
 
   @@index([userId, date])
   @@map("transactions")
@@ -127,4 +140,23 @@ model OtherIncome {
 
   @@id([userId, month])
   @@map("other_income")
+}
+
+// Where money is kept: a bank account, a credit card, or a savings fund. Its balance is the starting
+// balance plus everything from the start date on. Balances are what you have, so a credit card's
+// balance is negative: what you owe.
+model Account {
+  id                   String        @id @default(uuid()) @db.Uuid
+  userId               String        @map("user_id") @db.Uuid
+  name                 String
+  type                 AccountType
+  startingBalanceCents Int           @map("starting_balance_cents")
+  // The day the starting balance is from; earlier transactions don't change the balance
+  startDate            DateTime      @map("start_date") @db.Date
+  createdAt            DateTime      @default(now()) @map("created_at")
+  user                 User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions         Transaction[]
+
+  @@unique([userId, name])
+  @@map("accounts")
 }

@@ -1,3 +1,4 @@
+import { ACCOUNT_TYPES, DEFAULT_ACCOUNT_NAME, type AccountInput } from './accounts.ts'
 import {
   BUDGET_TYPES,
   budgetRowData,
@@ -14,6 +15,7 @@ import type { Database } from './db.ts'
 import { ValidationError } from './errors.ts'
 import {
   nullable,
+  requireBalanceCents,
   requireBudgetCents,
   requireCents,
   requireDate,
@@ -25,14 +27,16 @@ import {
   requireText,
 } from './validation.ts'
 
-// A whole account's data in one file: income by month, categories with their budgets, and transactions.
-// Transactions name their category rather than using database ids, so a backup can be restored
-// into any account. Restoring replaces everything the user had.
+// A user's whole budget in one file: income by month, accounts, categories with their budgets, and
+// transactions. Transactions name their category and account rather than using database ids, so a
+// backup can be restored into any user. Restoring replaces everything the user had.
 
 export const BACKUP_FORMAT = 'budget-plus-backup'
-// Version 3 keeps each category's budget history; version 2 added income by month. Older files can
-// still be restored: their one budget per category starts in the month the category was added.
-export const BACKUP_VERSION = 3
+// Version 4 added accounts; version 3, each category's budget history; version 2, income by month.
+// Older files can still be restored: their transactions go in a "Checking" account, and their one
+// budget per category starts in the month the category was added.
+export const BACKUP_VERSION = 4
+const MAX_ACCOUNTS = 200
 const MAX_INCOME_ROWS = 2000
 const MAX_CATEGORIES = 500
 const MAX_TRANSACTIONS = 20000
@@ -49,7 +53,10 @@ export type BackupTransaction = {
   description: string
   amountCents: number
   category: string | null // the category's name
+  account: string // the account's name
 }
+
+export type BackupAccount = AccountInput
 
 // Income sources with every amount they've had (each from its month on), plus one-off other income
 export type BackupIncome = {
@@ -62,6 +69,7 @@ export type Backup = {
   version: typeof BACKUP_VERSION
   exportedAt: string
   income: BackupIncome
+  accounts: BackupAccount[]
   categories: BackupCategory[]
   transactions: BackupTransaction[]
 }
@@ -71,7 +79,7 @@ export type Backup = {
 export function parseBackup(raw: unknown): Backup {
   const body = requireObject(raw)
   if (body.format !== BACKUP_FORMAT) throw new ValidationError("This isn't a Budget+ backup file")
-  if (body.version !== 1 && body.version !== 2 && body.version !== BACKUP_VERSION) {
+  if (![1, 2, 3, BACKUP_VERSION].includes(body.version as number)) {
     throw new ValidationError(`This backup is version ${String(body.version)}; only versions 1 to ${BACKUP_VERSION} can be restored`)
   }
 
@@ -101,7 +109,7 @@ export function parseBackup(raw: unknown): Backup {
 
       let budgets: BudgetVersion[]
       let settled: Omit<Category, 'id'>
-      if (body.version === 3) {
+      if ((body.version as number) >= 3) {
         if (!Array.isArray(c.budgets) || c.budgets.length === 0) throw new ValidationError('No budgets list')
         settled = settle({})
         budgets = c.budgets.map((item: unknown): BudgetVersion => {
@@ -152,6 +160,10 @@ export function parseBackup(raw: unknown): Backup {
     if (percentError) throw new ValidationError(`${month}: ${percentError}`)
   }
 
+  const hasAccounts = (body.version as number) >= 4
+  const accounts = hasAccounts ? parseAccounts(body.accounts) : []
+  const accountNames = new Set(accounts.map((a) => a.name))
+
   if (!Array.isArray(body.transactions)) throw new ValidationError('The backup has no transactions list')
   if (body.transactions.length > MAX_TRANSACTIONS) throw new ValidationError(`A backup can have at most ${MAX_TRANSACTIONS} transactions`)
   const transactions = body.transactions.map((raw: unknown, index: number): BackupTransaction => {
@@ -159,11 +171,15 @@ export function parseBackup(raw: unknown): Backup {
       const t = requireObject(raw)
       const category = nullable(t.category ?? null, (v) => requireText(v, 'Category', 100))
       if (category !== null && !names.has(category)) throw new ValidationError(`no category named "${category}" in the backup`)
+      // Older backups have no accounts; their transactions all go in one bank account
+      const account = hasAccounts ? requireText(t.account, 'Account', 100) : DEFAULT_ACCOUNT_NAME
+      if (hasAccounts && !accountNames.has(account)) throw new ValidationError(`no account named "${account}" in the backup`)
       return {
         date: requireDate(t.date, 'Date'),
         description: requireText(t.description, 'Description', 200),
         amountCents: requireCents(t.amountCents, 'Amount'),
         category,
+        account,
       }
     } catch (error) {
       if (error instanceof ValidationError) throw new ValidationError(`Transaction ${index + 1}: ${error.message}`)
@@ -176,7 +192,44 @@ export function parseBackup(raw: unknown): Backup {
       ? incomeFromVersion1(body.monthlyIncomeCents, categories, transactions)
       : parseIncome(body.income)
 
-  return { format: BACKUP_FORMAT, version: BACKUP_VERSION, exportedAt: String(body.exportedAt ?? ''), income, categories, transactions }
+  if (!hasAccounts && transactions.length > 0) {
+    // Starting at $0 on the first transaction's day
+    const startDate = transactions.map((t) => t.date).sort()[0]
+    accounts.push({ name: DEFAULT_ACCOUNT_NAME, type: 'BANK', startingBalanceCents: 0, startDate })
+  }
+
+  return {
+    format: BACKUP_FORMAT,
+    version: BACKUP_VERSION,
+    exportedAt: String(body.exportedAt ?? ''),
+    income,
+    accounts,
+    categories,
+    transactions,
+  }
+}
+
+function parseAccounts(raw: unknown): BackupAccount[] {
+  if (!Array.isArray(raw)) throw new ValidationError('The backup has no accounts list')
+  if (raw.length > MAX_ACCOUNTS) throw new ValidationError(`A backup can have at most ${MAX_ACCOUNTS} accounts`)
+  const names = new Set<string>()
+  return raw.map((item: unknown, index: number) => {
+    try {
+      const a = requireObject(item)
+      const name = requireText(a.name, 'Name', 100)
+      if (names.has(name)) throw new ValidationError(`two accounts are named "${name}"`)
+      names.add(name)
+      return {
+        name,
+        type: requireOneOf(a.type, 'Type', ACCOUNT_TYPES),
+        startingBalanceCents: requireBalanceCents(a.startingBalanceCents, 'Starting balance'),
+        startDate: requireDate(a.startDate, 'Start date'),
+      }
+    } catch (error) {
+      if (error instanceof ValidationError) throw new ValidationError(`Account ${index + 1}: ${error.message}`)
+      throw error
+    }
+  })
 }
 
 // A list of { month, amountCents } with each month at most once
@@ -242,6 +295,11 @@ export function createBackupStore(db: Database): BackupStore {
         select: { name: true, amounts: { orderBy: { month: 'asc' }, select: { month: true, amountCents: true } } },
       })
       const other = await db.otherIncome.findMany({ where: { userId }, orderBy: { month: 'asc' }, select: { month: true, amountCents: true } })
+      const accounts = await db.account.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'asc' },
+        select: { name: true, type: true, startingBalanceCents: true, startDate: true },
+      })
       const categories = await db.category.findMany({
         where: { userId },
         orderBy: { name: 'asc' },
@@ -261,13 +319,14 @@ export function createBackupStore(db: Database): BackupStore {
       const transactions = await db.transaction.findMany({
         where: { userId },
         orderBy: [{ date: 'asc' }, { createdAt: 'asc' }],
-        select: { date: true, description: true, amountCents: true, category: { select: { name: true } } },
+        select: { date: true, description: true, amountCents: true, category: { select: { name: true } }, account: { select: { name: true } } },
       })
       return {
         format: BACKUP_FORMAT,
         version: BACKUP_VERSION,
         exportedAt: new Date().toISOString(),
         income: { sources, other },
+        accounts: accounts.map((a) => ({ ...a, startDate: day(a.startDate) })),
         categories: categories.map((c) => {
           const record = toRecord(c)
           return {
@@ -284,6 +343,7 @@ export function createBackupStore(db: Database): BackupStore {
           description: t.description,
           amountCents: t.amountCents,
           category: t.category?.name ?? null,
+          account: t.account.name,
         })),
       }
     },
@@ -292,6 +352,7 @@ export function createBackupStore(db: Database): BackupStore {
       // One database transaction: if anything fails, the user's old data is untouched
       db.$transaction(async (tx) => {
         await tx.transaction.deleteMany({ where: { userId } })
+        await tx.account.deleteMany({ where: { userId } })
         await tx.category.deleteMany({ where: { userId } })
         await tx.incomeSource.deleteMany({ where: { userId } })
         await tx.otherIncome.deleteMany({ where: { userId } })
@@ -299,6 +360,12 @@ export function createBackupStore(db: Database): BackupStore {
           await tx.incomeSource.create({ data: { userId, name: source.name, amounts: { create: source.amounts } } })
         }
         await tx.otherIncome.createMany({ data: backup.income.other.map((o) => ({ userId, ...o })) })
+
+        const accountIdByName = new Map<string, string>()
+        for (const a of backup.accounts) {
+          const created = await tx.account.create({ data: { userId, ...a, startDate: toDay(a.startDate) }, select: { id: true } })
+          accountIdByName.set(a.name, created.id)
+        }
 
         const idByName = new Map<string, string>()
         for (const c of backup.categories) {
@@ -324,6 +391,7 @@ export function createBackupStore(db: Database): BackupStore {
             description: t.description,
             amountCents: t.amountCents,
             categoryId: t.category === null ? null : idByName.get(t.category)!,
+            accountId: accountIdByName.get(t.account)!,
           })),
         })
         return { categories: backup.categories.length, transactions: backup.transactions.length }

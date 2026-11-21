@@ -54,7 +54,7 @@ describe('parseBackup', () => {
     const { income: _income, ...version1 } = valid
     const backup = parseBackup({ ...version1, version: 1, monthlyIncomeCents: 400000 })
 
-    expect(backup.version).toBe(3)
+    expect(backup.version).toBe(4)
     // The car insurance category was added in March 2026, before any transaction
     expect(backup.income).toEqual({ sources: [{ name: 'Income', amounts: [{ month: '2026-03', amountCents: 400000 }] }], other: [] })
   })
@@ -94,9 +94,29 @@ describe('parseBackup', () => {
     expect(() => parseBackup({ ...valid, version: 3, categories, transactions: [] })).toThrow('2026-03: Only one category can be the remainder')
   })
 
+  it("puts an older backup's transactions in a Checking account starting on the first transaction's day", () => {
+    const backup = parseBackup(valid)
+
+    expect(backup.accounts).toEqual([{ name: 'Checking', type: 'BANK', startingBalanceCents: 0, startDate: '2026-09-01' }])
+    expect(backup.transactions.every((t) => t.account === 'Checking')).toBe(true)
+  })
+
+  it('reads version 4 accounts', () => {
+    const accounts = [
+      { name: 'Checking', type: 'BANK', startingBalanceCents: 724367, startDate: '2026-01-01' },
+      { name: 'Amazon Card', type: 'CREDIT_CARD', startingBalanceCents: -20000, startDate: '2026-01-01' },
+    ]
+    const transactions = [{ date: '2026-09-16', description: 'Books', amountCents: 4000, category: null, account: 'Amazon Card' }]
+
+    const backup = parseBackup({ ...valid, version: 4, categories: [], accounts, transactions })
+
+    expect(backup.accounts).toEqual(accounts)
+    expect(backup.transactions[0].account).toBe('Amazon Card')
+  })
+
   it.each([
     ['not a backup', { hello: 'world' }, "This isn't a Budget+ backup file"],
-    ['a newer version', withChanges({ version: 4 }), 'This backup is version 4; only versions 1 to 3 can be restored'],
+    ['a newer version', withChanges({ version: 5 }), 'This backup is version 5; only versions 1 to 4 can be restored'],
     ['two income sources with the same name', withChanges({ income: { sources: [{ name: 'Job', amounts: [] }, { name: 'Job', amounts: [] }] } }), 'Two income sources are named "Job"'],
     ['the same month twice for a source', withChanges({ income: { sources: [{ name: 'Job', amounts: [{ month: '2026-01', amountCents: 1 }, { month: '2026-01', amountCents: 2 }] }] } }), 'Income source "Job" has 2026-01 twice'],
     ['a bill with a percent budget', withChanges({ categories: [{ name: 'Rent', kind: 'BILL', budgetType: 'PERCENT_OF_INCOME', budgetPercent: 10 }] }), 'Category 1: Bills use a fixed estimate'],
@@ -105,6 +125,9 @@ describe('parseBackup', () => {
     ['two remainders', withChanges({ categories: [{ name: 'A', kind: 'EXPENSE', budgetType: 'REMAINDER' }, { name: 'B', kind: 'EXPENSE', budgetType: 'REMAINDER' }], transactions: [] }), 'Only one category can be the remainder'],
     ['percents over 100%', withChanges({ categories: [{ name: 'A', kind: 'EXPENSE', budgetType: 'PERCENT_OF_INCOME', budgetPercent: 60 }, { name: 'B', kind: 'EXPENSE', budgetType: 'PERCENT_OF_INCOME', budgetPercent: 50 }], transactions: [] }), 'Percent budgets would total 110% of income. The most is 100%.'],
     ['a transaction for a category that is not in the file', withChanges({ transactions: [{ date: '2026-09-01', description: 'X', amountCents: 1, category: 'Gas' }] }), 'Transaction 1: no category named "Gas" in the backup'],
+    ['two accounts with the same name', withChanges({ version: 4, categories: [], transactions: [], accounts: [{ name: 'Checking', type: 'BANK', startingBalanceCents: 0, startDate: '2026-01-01' }, { name: 'Checking', type: 'FUND', startingBalanceCents: 0, startDate: '2026-01-01' }] }), 'Account 2: two accounts are named "Checking"'],
+    ['a transaction for an account that is not in the file', withChanges({ version: 4, categories: [], accounts: [], transactions: [{ date: '2026-09-01', description: 'X', amountCents: 1, category: null, account: 'Savings' }] }), 'Transaction 1: no account named "Savings" in the backup'],
+    ['a version 4 backup without accounts', withChanges({ version: 4, categories: [], transactions: [] }), 'The backup has no accounts list'],
     ['a transaction with a bad date', withChanges({ transactions: [{ date: '2026-02-30', description: 'X', amountCents: 1, category: null }] }), 'Transaction 1: Date is not a real date'],
   ])('rejects %s', (_case, input, message) => {
     expect(() => parseBackup(input)).toThrow(message)
