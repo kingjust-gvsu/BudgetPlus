@@ -12,20 +12,116 @@
   background: #fdecec;
 }
 
-/* Month summary cards */
+/* Headline: left to spend and how the month is going */
+
+.dash-hero {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px 32px;
+  margin-bottom: 16px;
+}
+
+.dash-hero-label {
+  color: var(--color-muted);
+}
+
+.dash-hero-value {
+  font-size: 40px;
+  font-weight: 700;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-hero-pace {
+  flex: 0 1 360px;
+  min-width: 220px;
+}
+
+.dash-hero-bar {
+  position: relative;
+}
+
+/* A tick on the bar for today, to compare spending with how far into the month it is */
+.dash-hero-today {
+  position: absolute;
+  top: 2px;
+  bottom: -4px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--color-text);
+  border-radius: 1px;
+}
+
+.dash-hero-pace-text {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Month summary cards: smaller, under the headline */
 
 .dash-tiles {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 16px;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 }
 
 .dash-tile {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 12px;
-  padding: 18px;
+  padding: 12px 16px;
+}
+
+/* Expenses over or near their limit, and unpaid bills */
+
+.dash-attention {
+  margin: 0 0 24px;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dash-alert {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+}
+
+.dash-alert::before {
+  content: '';
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--color-neutral);
+}
+
+.dash-alert--bad {
+  border-color: #f0b8b8;
+}
+
+.dash-alert--bad::before {
+  background: var(--color-bad);
+}
+
+.dash-alert--warn {
+  border-color: #ecd59a;
+}
+
+.dash-alert--warn::before {
+  background: var(--color-warn);
 }
 
 .dash-tile-label {
@@ -34,8 +130,7 @@
 }
 
 .dash-tile-value {
-  margin-top: 4px;
-  font-size: 28px;
+  font-size: 20px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }

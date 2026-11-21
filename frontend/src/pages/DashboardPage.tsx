@@ -20,10 +20,102 @@ const signed = (cents: number) => (cents > 0 ? `+${formatCents(cents)}` : format
 // Within this share of a limit, an expense is shown as near it
 const NEAR_LIMIT = 0.9
 
+// under, near, over, or noLimit
+function expenseState({ state, limitCents, spentCents }: Expense) {
+  const near = state === 'under' && limitCents !== null && limitCents > 0 && spentCents >= limitCents * NEAR_LIMIT
+  return near ? 'near' : state
+}
+
+// "Internet", "Internet and Phone", "Internet, Phone, and Water"
+function listNames(names: string[]) {
+  if (names.length <= 2) return names.join(' and ')
+  return `${names.slice(0, -1).join(', ')}, and ${names[names.length - 1]}`
+}
+
+// How far into the month today is; null when looking at another month
+function monthProgress(month: string) {
+  const now = today()
+  if (monthOf(now) !== month) return null
+  const [year, monthNumber] = month.split('-').map(Number)
+  const days = new Date(year, monthNumber, 0).getDate()
+  const day = Number(now.slice(8, 10))
+  return { day, days, daysLeft: days - day + 1 }
+}
+
+// The headline: how much is left under the expense limits, and how the month is going
+function LeftToSpend({ summary }: { summary: MonthSummary }) {
+  const { expensesLimitCents: limit, expensesSpentCents: spent } = summary.totals
+  const left = limit - spent
+  const progress = monthProgress(summary.month)
+  return (
+    <section className="card dash-hero" aria-label="Left to spend">
+      <div>
+        <div className="dash-hero-label">{left < 0 ? 'Over your limits' : 'Left to spend'}</div>
+        <div className="dash-hero-value">{formatCents(Math.abs(left))}</div>
+        {progress && left > 0 && (
+          <div className="muted small">
+            {progress.daysLeft} {progress.daysLeft === 1 ? 'day' : 'days'} left · about{' '}
+            {formatCents(Math.floor(left / progress.daysLeft))} a day
+          </div>
+        )}
+      </div>
+      {limit > 0 && (
+        <div className="dash-hero-pace">
+          <div className="dash-hero-bar">
+            <ProgressBar percent={(spent / limit) * 100} tone={left < 0 ? 'bad' : spent >= limit * NEAR_LIMIT ? 'warn' : 'good'} />
+            {progress && <span className="dash-hero-today" style={{ left: `${(progress.day / progress.days) * 100}%` }} aria-hidden="true" />}
+          </div>
+          <div className="dash-hero-pace-text muted small">
+            <span>
+              {formatCents(spent)} of {formatCents(limit)} spent
+            </span>
+            {progress && (
+              <span>
+                Day {progress.day} of {progress.days}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+    </section>
+  )
+}
+
+// Expenses over or near their limit, and bills still unpaid. Left out when there's nothing.
+function NeedsAttention({ expenses, bills, month }: { expenses: Expense[]; bills: Bill[]; month: string }) {
+  const over = expenses.filter((e) => expenseState(e) === 'over')
+  const near = expenses.filter((e) => expenseState(e) === 'near')
+  // A future month's bills aren't due yet
+  const unpaid = month <= monthOf(today()) ? bills.filter((b) => b.state === 'pending') : []
+  if (over.length + near.length + unpaid.length === 0) return null
+  const unpaidEstimate = unpaid.reduce((sum, b) => sum + (b.estimateCents ?? 0), 0)
+  return (
+    <ul className="dash-attention" aria-label="Needs attention">
+      {over.map((e) => (
+        <li key={e.id} className="dash-alert dash-alert--bad">
+          {e.name} is {formatCents(-(e.leftCents ?? 0))} over
+        </li>
+      ))}
+      {near.map((e) => (
+        <li key={e.id} className="dash-alert dash-alert--warn">
+          {e.name} has {formatCents(e.leftCents ?? 0)} left
+        </li>
+      ))}
+      {unpaid.length > 0 && (
+        <li className="dash-alert">
+          <span>
+            {unpaid.length > 3 ? `${unpaid.length} bills` : listNames(unpaid.map((b) => b.name))} not paid yet
+            {unpaidEstimate > 0 && <span className="muted"> · est. {formatCents(unpaidEstimate)}</span>}
+          </span>
+        </li>
+      )}
+    </ul>
+  )
+}
+
 function ExpenseRow({ expense }: { expense: Expense }) {
   const { limitCents, spentCents, leftCents } = expense
-  const near = expense.state === 'under' && limitCents !== null && limitCents > 0 && spentCents >= limitCents * NEAR_LIMIT
-  const state = near ? 'near' : expense.state
+  const state = expenseState(expense)
   const name = expense.budgetType === 'REMAINDER' ? `${expense.name} (remainder)` : expense.name
   return (
     <li className="dash-row">
@@ -229,26 +321,24 @@ export function DashboardPage() {
             </p>
           )}
 
+          <LeftToSpend summary={summary} />
+
           <section className="dash-tiles" aria-label="Month summary">
             <div className="dash-tile">
               <div className="dash-tile-label">Income</div>
               <div className="dash-tile-value">{formatCents(summary.income.receivedCents)}</div>
               <div className="dash-tile-note">
-                {summary.incomeCents === null ? 'received · no plan set' : `received of ${formatCents(summary.incomeCents)} planned`}
+                {summary.incomeCents === null ? 'no plan set' : `of ${formatCents(summary.incomeCents)} planned`}
               </div>
             </div>
             <div className="dash-tile">
               <div className="dash-tile-label">Bills</div>
-              <div className="dash-tile-value">{formatCents(summary.totals.billsPaidCents)}</div>
-              <div className="dash-tile-note">
-                of {formatCents(summary.totals.billsPlannedCents)} planned · {summary.totals.monthlyBillsPaid} of{' '}
-                {summary.totals.monthlyBills} paid
+              <div className="dash-tile-value">
+                {summary.totals.monthlyBillsPaid} of {summary.totals.monthlyBills} paid
               </div>
-            </div>
-            <div className="dash-tile">
-              <div className="dash-tile-label">Expenses</div>
-              <div className="dash-tile-value">{formatCents(summary.totals.expensesSpentCents)}</div>
-              <div className="dash-tile-note">of {formatCents(summary.totals.expensesLimitCents)} in limits</div>
+              <div className="dash-tile-note">
+                {formatCents(summary.totals.billsPaidCents)} of {formatCents(summary.totals.billsPlannedCents)}
+              </div>
             </div>
             <div className="dash-tile">
               <div className="dash-tile-label">{remainder ? `${remainder.name} (remainder)` : 'Remainder'}</div>
@@ -258,10 +348,12 @@ export function DashboardPage() {
                   ? 'No remainder category'
                   : summary.billDifferenceCents !== 0
                     ? `${signed(-summary.billDifferenceCents)} from bills`
-                    : "what's left after everything else"}
+                    : 'after bills and expenses'}
               </div>
             </div>
           </section>
+
+          <NeedsAttention expenses={expenses} bills={bills} month={summary.month} />
 
           <div className="dash-columns">
             <section className="card dash-main" aria-labelledby="expenses-heading">
