@@ -45,13 +45,22 @@ export type Transaction = {
   // For a transfer: the amount moved from accountId to this account. Transfers have no category
   // and aren't spending.
   transferAccountId: string | null
+  // For money in: the income source it's from, or marked as other income. Income has no category,
+  // isn't spending, and its amount is negative (money in).
+  incomeSourceId: string | null
+  isOtherIncome: boolean
 }
 
 // Without an account, the API puts a transaction in the main bank account
-export type TransactionInput = Omit<Transaction, 'id' | 'accountId' | 'transferAccountId'> & {
+export type TransactionInput = Omit<Transaction, 'id' | 'accountId' | 'transferAccountId' | 'incomeSourceId' | 'isOtherIncome'> & {
   accountId?: string
   transferAccountId?: string | null
+  incomeSourceId?: string | null
+  isOtherIncome?: boolean
 }
+
+// GET /api/income/sources: every income source the user has had
+export type IncomeSourceName = { id: string; name: string }
 
 // GET /api/accounts: where money is kept, each with its balance. Balances are what you have, so a
 // credit card's is negative (what you owe).
@@ -124,6 +133,15 @@ export type MonthSummary = {
     expensesSpentCents: number
   }
   categories: CategorySummary[]
+  // Income planned for the month and what has come in so far
+  income: IncomeSummary
+}
+
+export type IncomeSummary = {
+  plannedCents: number | null
+  receivedCents: number
+  sources: { id: string; name: string; plannedCents: number; receivedCents: number }[]
+  other: { plannedCents: number; receivedCents: number }
 }
 
 // GET /api/spending: totals for the spending charts

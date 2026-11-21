@@ -1,6 +1,7 @@
 import Papa from 'papaparse'
-import type { Account, Category, TransactionInput } from './api/types'
+import type { TransactionInput } from './api/types'
 import { parseDollars } from './money'
+import type { Names } from './transactionInput'
 
 // Turns a CSV file (a bank's export, or Budget+'s own) into transactions. Files are laid out
 // differently, so the user says which column is which (we guess first).
@@ -35,6 +36,9 @@ export type ImportPreview = {
 // A category like "Transfer to Amazon Card" is a transfer to that account (Budget+'s export
 // writes transfers this way)
 const TRANSFER_TO = /^transfer to (.+)$/i
+// "Income: VR" is money in from that income source, and "Other income" is other income
+const INCOME_FROM = /^income: *(.+)$/i
+const OTHER_INCOME = /^other income$/i
 
 export function readCsv(text: string): CsvFile {
   const result = Papa.parse<Record<string, string>>(text.trim(), {
@@ -77,7 +81,7 @@ export function parseMoney(text: string): number | null {
 }
 
 // Guess which column is which from the header names
-export function guessMapping(file: CsvFile, accounts: Account[] = []): ColumnMapping {
+export function guessMapping(file: CsvFile, accounts: { id: string }[] = []): ColumnMapping {
   const find = (...patterns: RegExp[]) => {
     for (const pattern of patterns) {
       const header = file.headers.find((h) => pattern.test(h))
@@ -96,9 +100,11 @@ export function guessMapping(file: CsvFile, accounts: Account[] = []): ColumnMap
   return { dateColumn, descriptionColumn, amountColumn, categoryColumn, accountId: accounts[0]?.id ?? '', accountColumn, invertAmounts }
 }
 
-export function previewImport(file: CsvFile, mapping: ColumnMapping, categories: Category[], accounts: Account[] = []): ImportPreview {
-  const byName = new Map(categories.map((c) => [c.name.trim().toLowerCase(), c.id]))
-  const accountByName = new Map(accounts.map((a) => [a.name.trim().toLowerCase(), a.id]))
+export function previewImport(file: CsvFile, mapping: ColumnMapping, names: Partial<Names>): ImportPreview {
+  const lookup = (items: { id: string; name: string }[] = []) => new Map(items.map((i) => [i.name.trim().toLowerCase(), i.id]))
+  const byName = lookup(names.categories)
+  const accountByName = lookup(names.accounts)
+  const sourceByName = lookup(names.incomeSources)
   const preview: ImportPreview = { ready: [], problems: [], unmatchedCategories: [] }
   const unmatched = new Set<string>()
 
@@ -123,9 +129,16 @@ export function previewImport(file: CsvFile, mapping: ColumnMapping, categories:
 
     let categoryId: string | null = null
     let transferAccountId: string | null = null
+    let incomeSourceId: string | null = null
+    let isOtherIncome = false
     const categoryName = mapping.categoryColumn ? (row[mapping.categoryColumn] ?? '').trim() : ''
     const transferTo = TRANSFER_TO.exec(categoryName)?.[1].trim().toLowerCase()
-    if (transferTo && accountByName.has(transferTo)) {
+    const incomeFrom = INCOME_FROM.exec(categoryName)?.[1].trim().toLowerCase()
+    if (OTHER_INCOME.test(categoryName)) {
+      isOtherIncome = true
+    } else if (incomeFrom && sourceByName.has(incomeFrom)) {
+      incomeSourceId = sourceByName.get(incomeFrom)!
+    } else if (transferTo && accountByName.has(transferTo)) {
       transferAccountId = accountByName.get(transferTo)!
       if (transferAccountId === accountId) return preview.problems.push({ line, error: 'A transfer has to go to a different account' })
     } else if (categoryName) {
@@ -139,6 +152,8 @@ export function previewImport(file: CsvFile, mapping: ColumnMapping, categories:
       amountCents,
       categoryId,
       transferAccountId,
+      incomeSourceId,
+      isOtherIncome,
       ...(accountId && { accountId }),
     })
   })

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { apiGet } from '../api/client'
-import type { BillStatus, CategorySummary, ExpenseStatus, FundBillStatus, MonthSummary, SpendingSummary } from '../api/types'
+import type { BillStatus, CategorySummary, ExpenseStatus, FundBillStatus, IncomeSummary, MonthSummary, SpendingSummary } from '../api/types'
 import { useAuth } from '../auth/useAuth'
 import { formatLongDate } from '../budgetText'
 import { CategoryDonut } from '../components/CategoryDonut'
@@ -79,6 +79,34 @@ function FundRow({ bill }: { bill: FundBill }) {
         {fund.paidCents !== 0 && ` · paid ${formatCents(fund.paidCents)} from the fund`}
       </div>
     </li>
+  )
+}
+
+// Each income source's plan for the month next to what has come in, plus other income
+function IncomeCard({ income }: { income: IncomeSummary }) {
+  const rows = [
+    ...income.sources.map((s) => ({ key: s.id, name: s.name, plannedCents: s.plannedCents, receivedCents: s.receivedCents })),
+    { key: 'other', name: 'Other', ...income.other },
+  ].filter((row) => row.key !== 'other' || row.plannedCents !== 0 || row.receivedCents !== 0)
+  return (
+    <section className="card" aria-labelledby="income-heading">
+      <h2 id="income-heading">Income</h2>
+      <ul className="dash-income">
+        {rows.map((row) => (
+          <li key={row.key} className="dash-income-row">
+            <span className="dash-income-name">{row.name}</span>
+            <span className="dash-income-amount">
+              {formatCents(row.receivedCents)}
+              <span className="muted"> of {formatCents(row.plannedCents)}</span>
+            </span>
+          </li>
+        ))}
+      </ul>
+      <p className="muted small">
+        Received so far this month. Add paychecks on <Link to="/transactions">Transactions</Link> with their income as
+        the category.
+      </p>
+    </section>
   )
 }
 
@@ -190,8 +218,10 @@ export function DashboardPage() {
           <section className="dash-tiles" aria-label="Month summary">
             <div className="dash-tile">
               <div className="dash-tile-label">Income</div>
-              <div className="dash-tile-value">{summary.incomeCents === null ? 'Not set' : formatCents(summary.incomeCents)}</div>
-              <div className="dash-tile-note">estimated</div>
+              <div className="dash-tile-value">{formatCents(summary.income.receivedCents)}</div>
+              <div className="dash-tile-note">
+                {summary.incomeCents === null ? 'received · no plan set' : `received of ${formatCents(summary.incomeCents)} planned`}
+              </div>
             </div>
             <div className="dash-tile">
               <div className="dash-tile-label">Bills</div>
@@ -240,6 +270,8 @@ export function DashboardPage() {
             </section>
 
             <div className="dash-side">
+              {(summary.income.sources.length > 0 || summary.income.receivedCents !== 0) && <IncomeCard income={summary.income} />}
+
               <section className="card" aria-labelledby="bills-heading">
                 <h2 id="bills-heading">Bills</h2>
                 {bills.length === 0 ? (

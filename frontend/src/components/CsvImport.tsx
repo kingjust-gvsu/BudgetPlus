@@ -1,18 +1,16 @@
 import { useMemo, useState } from 'react'
 import { ApiError, apiSend } from '../api/client'
-import type { Account, Category } from '../api/types'
 import { useAuth } from '../auth/useAuth'
-import { guessMapping, previewImport, type ColumnMapping, type CsvFile } from '../csvImport'
+import { guessMapping, previewImport, type ColumnMapping, type CsvFile, type ImportRow } from '../csvImport'
 import { formatDay } from '../dates'
-import { formatCents } from '../money'
-import { categoryLabel } from '../transactionInput'
+import { categoryLabel, formatAmount, type Names } from '../transactionInput'
 import './CsvImport.css'
 
 type Props = {
   fileName: string
   file: CsvFile // the file the user picked, already read
-  categories: Category[]
-  accounts: Account[]
+  // The user's categories, accounts, and income sources, to match names in the file against
+  names: Names
   // Called after a successful import with a message to show
   onImported: (message: string) => void
   onCancel: () => void
@@ -22,15 +20,25 @@ type ImportResult = { imported: number; duplicates: number }
 
 const PREVIEW_ROWS = 8
 
+// An import row with its optional fields filled in, for showing like a saved transaction
+const previewKind = (row: ImportRow) => ({
+  ...row,
+  accountId: row.accountId ?? '',
+  transferAccountId: row.transferAccountId ?? null,
+  incomeSourceId: row.incomeSourceId ?? null,
+  isOtherIncome: row.isOtherIncome ?? false,
+})
+
 // Import transactions from a CSV file the user picked: say which column is which, check the
 // preview, then import.
-export function CsvImport({ fileName, file, categories, accounts, onImported, onCancel }: Props) {
+export function CsvImport({ fileName, file, names, onImported, onCancel }: Props) {
+  const { accounts } = names
   const { getToken } = useAuth()
   const [mapping, setMapping] = useState<ColumnMapping>(() => guessMapping(file, accounts))
   const [error, setError] = useState<string | null>(null)
   const [importing, setImporting] = useState(false)
 
-  const preview = useMemo(() => previewImport(file, mapping, categories, accounts), [file, mapping, categories, accounts])
+  const preview = useMemo(() => previewImport(file, mapping, names), [file, mapping, names])
   const showAccount = accounts.length > 1
   const accountName = (id: string | undefined) => accounts.find((a) => a.id === id)?.name
   // The Account picker's value: an account id, or "column:<header>"
@@ -174,11 +182,11 @@ export function CsvImport({ fileName, file, categories, accounts, onImported, on
                   <td>{row.description}</td>
                   {showAccount && <td>{accountName(row.accountId)}</td>}
                   <td>
-                    {categoryLabel({ ...row, accountId: row.accountId ?? '', transferAccountId: row.transferAccountId ?? null }, categories, accounts) ?? (
+                    {categoryLabel(previewKind(row), names) ?? (
                       <span className="muted">Uncategorized</span>
                     )}
                   </td>
-                  <td className="amount">{formatCents(row.amountCents)}</td>
+                  <td className="amount">{formatAmount(previewKind(row))}</td>
                 </tr>
               ))}
             </tbody>

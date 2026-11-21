@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { apiGet, apiSend } from '../api/client'
-import type { Account, Category, Transaction, TransactionInput } from '../api/types'
+import type { Account, Category, IncomeSourceName, Transaction, TransactionInput } from '../api/types'
 import { useAuth } from '../auth/useAuth'
 import { CsvImport } from '../components/CsvImport'
 import { transactionsToCsv } from '../csvExport'
@@ -10,7 +10,7 @@ import { SplitButton } from '../components/SplitButton'
 import { TransactionForm } from '../components/TransactionForm'
 import { formatDay, formatMonth, monthOf, shiftMonth, today } from '../dates'
 import { formatCents } from '../money'
-import { categoryLabel } from '../transactionInput'
+import { categoryLabel, formatAmount, isIncome } from '../transactionInput'
 
 export function TransactionsPage() {
   const { getToken } = useAuth()
@@ -18,6 +18,7 @@ export function TransactionsPage() {
   const [transactions, setTransactions] = useState<Transaction[] | null>(null)
   const [categories, setCategories] = useState<Category[]>([])
   const [accounts, setAccounts] = useState<Account[]>([])
+  const [incomeSources, setIncomeSources] = useState<IncomeSourceName[]>([])
   // '' shows every account; an id shows only what went in or out of that account
   const [accountFilter, setAccountFilter] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -38,13 +39,15 @@ export function TransactionsPage() {
           apiGet<Transaction[]>(`/transactions?month=${month}`, token),
           apiGet<Category[]>(`/categories?month=${month}`, token),
           apiGet<Account[]>('/accounts', token),
+          apiGet<IncomeSourceName[]>('/income/sources', token),
         ]),
       )
-      .then(([loadedTransactions, loadedCategories, loadedAccounts]) => {
+      .then(([loadedTransactions, loadedCategories, loadedAccounts, loadedSources]) => {
         if (!current) return
         setTransactions(loadedTransactions)
         setCategories(loadedCategories)
         setAccounts(loadedAccounts)
+        setIncomeSources(loadedSources)
         setError(null)
       })
       .catch(() => {
@@ -62,7 +65,9 @@ export function TransactionsPage() {
   const accountName = (id: string) => accounts.find((a) => a.id === id)?.name
   const shown = (transactions ?? []).filter((t) => !viewing || t.accountId === viewing || t.transferAccountId === viewing)
   // Seen from the account a transfer went into, it's money coming in (like money back)
-  const shownAmount = (t: Transaction) => (viewing && t.transferAccountId === viewing ? -t.amountCents : t.amountCents)
+  const shownAmount = (t: Transaction) =>
+    viewing && t.transferAccountId === viewing ? formatCents(-t.amountCents) : formatAmount(t)
+  const names = { categories, accounts, incomeSources }
 
   // After a save, show the month the transaction belongs to
   const showChange = (input: TransactionInput) => {
@@ -110,7 +115,7 @@ export function TransactionsPage() {
     setExporting(true)
     try {
       const all = await apiGet<Transaction[]>('/transactions', await getToken())
-      const url = URL.createObjectURL(new Blob([transactionsToCsv(all, categories, accounts)], { type: 'text/csv' }))
+      const url = URL.createObjectURL(new Blob([transactionsToCsv(all, names)], { type: 'text/csv' }))
       const link = document.createElement('a')
       link.href = url
       link.download = `budget-plus-transactions-${today()}.csv`
@@ -134,8 +139,8 @@ export function TransactionsPage() {
         <div>
           <h1>Transactions</h1>
           <p className="page-intro">
-            Add the money you spend, and refunds as negative amounts. For paying off a card or saving into a fund,
-            pick the account the money went to under Category.
+            Add the money you spend, and refunds as negative amounts. For a paycheck, pick its income under
+            Category. For paying off a card or saving into a fund, pick the account the money went to.
           </p>
         </div>
         <div className="page-actions">
@@ -179,8 +184,7 @@ export function TransactionsPage() {
           key={importFile.name}
           fileName={importFile.name}
           file={importFile.csv}
-          categories={categories}
-          accounts={accounts}
+          names={names}
           onCancel={() => setImportFile(null)}
           onImported={(message) => {
             setImportFile(null)
@@ -189,7 +193,7 @@ export function TransactionsPage() {
           }}
         />
       ) : (
-        <TransactionForm categories={categories} accounts={accounts} onSave={add} />
+        <TransactionForm categories={categories} accounts={accounts} incomeSources={incomeSources} onSave={add} />
       )}
 
       {error && (
@@ -243,6 +247,7 @@ export function TransactionsPage() {
                       transaction={transaction}
                       categories={categories}
                       accounts={accounts}
+                      incomeSources={incomeSources}
                       showAccount={showAccount}
                       onSave={(input) => update(transaction.id, input)}
                       onCancel={() => setEditingId(null)}
@@ -253,9 +258,9 @@ export function TransactionsPage() {
                       <td>{transaction.description}</td>
                       {showAccount && <td>{accountName(transaction.accountId)}</td>}
                       <td>
-                        {categoryLabel(transaction, categories, accounts, viewing) ?? <span className="muted">Uncategorized</span>}
+                        {categoryLabel(transaction, names, viewing) ?? <span className="muted">Uncategorized</span>}
                       </td>
-                      <td className="amount">{formatCents(shownAmount(transaction))}</td>
+                      <td className={isIncome(transaction) ? 'amount amount-in' : 'amount'}>{shownAmount(transaction)}</td>
                       <td className="row-actions">
                         <button
                           type="button"

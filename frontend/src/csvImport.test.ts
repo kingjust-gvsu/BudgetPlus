@@ -64,6 +64,7 @@ describe('guessMapping', () => {
 })
 
 describe('previewImport', () => {
+  const notIncome = { transferAccountId: null, incomeSourceId: null, isOtherIncome: false }
   const singleNegative: ColumnMapping = {
     dateColumn: 'Date',
     descriptionColumn: 'Description',
@@ -81,11 +82,11 @@ describe('previewImport', () => {
   it('turns rows into transactions, matching categories by name', () => {
     const file = readCsv('Date,Description,Amount,Category\n10/15/2026,Meijer,-84.12,groceries\n10/16/2026,Shell,-48.30,Fuel')
 
-    const preview = previewImport(file, singleNegative, categories)
+    const preview = previewImport(file, singleNegative, { categories })
 
     expect(preview.ready).toEqual([
-      { line: 2, date: '2026-10-15', description: 'Meijer', amountCents: 8412, categoryId: 'groceries', transferAccountId: null },
-      { line: 3, date: '2026-10-16', description: 'Shell', amountCents: 4830, categoryId: null, transferAccountId: null },
+      { line: 2, date: '2026-10-15', description: 'Meijer', amountCents: 8412, categoryId: 'groceries', ...notIncome },
+      { line: 3, date: '2026-10-16', description: 'Shell', amountCents: 4830, categoryId: null, ...notIncome },
     ])
     expect(preview.unmatchedCategories).toEqual(['Fuel'])
   })
@@ -93,7 +94,7 @@ describe('previewImport', () => {
   it('puts every row in the account picked for the file', () => {
     const file = readCsv('Date,Description,Amount,Category\n10/15/2026,Meijer,-84.12,')
 
-    const preview = previewImport(file, { ...singleNegative, accountId: 'acct-card' }, categories, accounts)
+    const preview = previewImport(file, { ...singleNegative, accountId: 'acct-card' }, { categories, accounts })
 
     expect(preview.ready[0].accountId).toBe('acct-card')
   })
@@ -103,10 +104,10 @@ describe('previewImport', () => {
       'Date,Description,Account,Amount,Category\n10/15/2026,Pay off card,checking,-84.12,Transfer to amazon card\n10/16/2026,Mystery,Savings,-5,',
     )
 
-    const preview = previewImport(file, { ...singleNegative, accountColumn: 'Account' }, categories, accounts)
+    const preview = previewImport(file, { ...singleNegative, accountColumn: 'Account' }, { categories, accounts })
 
     expect(preview.ready).toEqual([
-      { line: 2, date: '2026-10-15', description: 'Pay off card', amountCents: 8412, categoryId: null, transferAccountId: 'acct-card', accountId: 'acct-checking' },
+      { line: 2, date: '2026-10-15', description: 'Pay off card', amountCents: 8412, categoryId: null, transferAccountId: 'acct-card', incomeSourceId: null, isOtherIncome: false, accountId: 'acct-checking' },
     ])
     expect(preview.problems).toEqual([{ line: 3, error: 'You don\'t have an account named "Savings"' }])
   })
@@ -114,15 +115,15 @@ describe('previewImport', () => {
   it('flips amounts only when asked to', () => {
     const file = readCsv('Date,Description,Amount,Category\n10/15/2026,Meijer,-84.12,\n10/17/2026,Refund,18.00,')
 
-    expect(previewImport(file, singleNegative, categories).ready.map((r) => r.amountCents)).toEqual([8412, -1800])
-    const asIs = previewImport(file, { ...singleNegative, invertAmounts: false }, categories)
+    expect(previewImport(file, singleNegative, { categories }).ready.map((r) => r.amountCents)).toEqual([8412, -1800])
+    const asIs = previewImport(file, { ...singleNegative, invertAmounts: false }, { categories })
     expect(asIs.ready.map((r) => r.amountCents)).toEqual([-8412, 1800])
   })
 
   it('reports rows it cannot use, with their line numbers', () => {
     const file = readCsv('Date,Description,Amount,Category\nsoon,Meijer,-84.12,\n10/16/2026,,-5.00,\n10/17/2026,Shell,lots,\n10/18/2026,Zero,0.00,')
 
-    expect(previewImport(file, singleNegative, categories).problems).toEqual([
+    expect(previewImport(file, singleNegative, { categories }).problems).toEqual([
       { line: 2, error: 'Can\'t read the date "soon"' },
       { line: 3, error: 'No description' },
       { line: 4, error: "Can't read the amount" },
@@ -134,6 +135,20 @@ describe('previewImport', () => {
     const file = readCsv('Date,Description,Amount\n10/15/2026,"Joe\'s Pizza, Downtown","-32.75"')
     const mapping = { ...singleNegative, categoryColumn: null }
 
-    expect(previewImport(file, mapping, categories).ready[0]).toMatchObject({ description: "Joe's Pizza, Downtown", amountCents: 3275 })
+    expect(previewImport(file, mapping, { categories }).ready[0]).toMatchObject({ description: "Joe's Pizza, Downtown", amountCents: 3275 })
+  })
+})
+
+describe('previewImport income', () => {
+  it('reads "Income: <source>" and "Other income" as money in', () => {
+    const file = readCsv('Date,Description,Amount,Category\n2026-10-15,Paycheck,-2534.83,Income: vr\n2026-10-20,Bonus,-1500,Other income')
+    const mapping = { ...guessMapping(file), invertAmounts: false }
+
+    const preview = previewImport(file, mapping, { incomeSources: [{ id: 'src-vr', name: 'VR' }] })
+
+    expect(preview.ready.map((r) => [r.incomeSourceId, r.isOtherIncome, r.categoryId])).toEqual([
+      ['src-vr', false, null],
+      [null, true, null],
+    ])
   })
 })
