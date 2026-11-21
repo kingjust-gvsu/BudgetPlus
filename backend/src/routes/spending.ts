@@ -25,11 +25,13 @@ export function createSpendingRouter(categories: CategoryStore, transactions: Tr
       throw new ValidationError(`months must be a whole number from 1 to ${MAX_MONTHS}, or all`)
     }
     const userId = currentUser(res).id
-    const [userCategories, userTransactions, incomeData] = await Promise.all([
+    const [userCategories, allTransactions, incomeData] = await Promise.all([
       categories.list(userId),
       transactions.list(userId),
       income.load(userId),
     ])
+    // Transfers between accounts aren't spending
+    const userTransactions = allTransactions.filter((t) => t.transferAccountId === null)
     const oldest = userTransactions.reduce<string | undefined>((min, t) => (!min || t.date < min ? t.date : min), undefined)?.slice(0, 7)
     const count = all && oldest && oldest < to ? monthsBetween(oldest, to) + 1 : requested
     const summary = spendingSummary(monthsEnding(to, count), userCategories, userTransactions)

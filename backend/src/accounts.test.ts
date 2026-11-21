@@ -45,20 +45,30 @@ function setup() {
 }
 
 describe('balanceOf', () => {
+  const spent = (date: string, amountCents: number, accountId = 'checking') => ({ date, amountCents, accountId, transferAccountId: null })
+
   it('starts from the starting balance and counts transactions from the start date on', () => {
-    const account = { name: 'Checking', type: 'BANK' as const, startingBalanceCents: 10000, startDate: '2026-10-01' }
+    const account = { id: 'checking', startingBalanceCents: 10000, startDate: '2026-10-01' }
 
     expect(balanceOf(account, [
-      { date: '2026-09-30', amountCents: 5000 }, // before the start date
-      { date: '2026-10-01', amountCents: 3000 }, // spent
-      { date: '2026-10-09', amountCents: -500 }, // money back
+      spent('2026-09-30', 5000), // before the start date
+      spent('2026-10-01', 3000), // spent
+      spent('2026-10-09', -500), // money back
+      spent('2026-10-09', 7000, 'card'), // another account's
     ])).toBe(10000 - 3000 + 500)
   })
 
   it("makes spending on a credit card add to what's owed", () => {
-    const card = { name: 'Card', type: 'CREDIT_CARD' as const, startingBalanceCents: -20000, startDate: '2026-10-01' }
+    const card = { id: 'card', startingBalanceCents: -20000, startDate: '2026-10-01' }
 
-    expect(balanceOf(card, [{ date: '2026-10-06', amountCents: 4000 }])).toBe(-24000)
+    expect(balanceOf(card, [spent('2026-10-06', 4000, 'card')])).toBe(-24000)
+  })
+
+  it('moves a transfer out of one account and into the other', () => {
+    const payoff = { date: '2026-10-08', amountCents: 24000, accountId: 'checking', transferAccountId: 'card' }
+
+    expect(balanceOf({ id: 'checking', startingBalanceCents: 100000, startDate: '2026-10-01' }, [payoff])).toBe(76000)
+    expect(balanceOf({ id: 'card', startingBalanceCents: -24000, startDate: '2026-10-01' }, [payoff])).toBe(0)
   })
 })
 
@@ -183,8 +193,19 @@ describe('DELETE /api/accounts/:id', () => {
     const response = await request(app).delete(`/api/accounts/${checkingId}`).set(auth)
 
     expect(response.status).toBe(409)
-    expect(response.body.error).toBe('This account has transactions. Move or delete them first.')
+    expect(response.body.error).toBe('This account has transactions or transfers. Move or delete them first.')
     expect(store.rows.some((a) => a.id === checkingId)).toBe(true)
+  })
+
+  it("won't delete an account that money was transferred into", async () => {
+    const { app } = setup()
+    await request(app).post('/api/transactions').set(auth).send({ date: '2026-10-10', description: 'Save', amountCents: 5000, accountId: checkingId, transferAccountId: fundId })
+
+    const response = await request(app).delete(`/api/accounts/${fundId}`).set(auth)
+    const fund = (await request(app).get('/api/accounts').set(auth)).body.find((a: { id: string }) => a.id === fundId)
+
+    expect(response.status).toBe(409)
+    expect(fund.balanceCents).toBe(94800 + 5000)
   })
 
   it("can't delete another user's account", async () => {

@@ -27,7 +27,7 @@ function renderImport(fetchImpl: (url: string, init?: RequestInit) => Promise<Re
   }
   render(
     <AuthContext.Provider value={auth}>
-      <CsvImport fileName="october.csv" file={readCsv(bankFile)} categories={categories} onImported={onImported} onCancel={vi.fn()} />
+      <CsvImport fileName="october.csv" file={readCsv(bankFile)} categories={categories} accounts={[]} onImported={onImported} onCancel={vi.fn()} />
     </AuthContext.Provider>,
   )
   return { fetchMock, onImported }
@@ -62,9 +62,9 @@ describe('CsvImport', () => {
     const [url, init] = fetchMock.mock.calls[0]
     expect(url).toBe('/api/transactions/import')
     expect(JSON.parse(String(init?.body)).transactions).toEqual([
-      { date: '2026-10-15', description: 'MEIJER #123', amountCents: 8412, categoryId: 'groceries' },
-      { date: '2026-10-16', description: 'SHELL OIL', amountCents: 4830, categoryId: null },
-      { date: '2026-10-17', description: 'SQ *COFFEE', amountCents: 650, categoryId: null },
+      { date: '2026-10-15', description: 'MEIJER #123', amountCents: 8412, categoryId: 'groceries', transferAccountId: null },
+      { date: '2026-10-16', description: 'SHELL OIL', amountCents: 4830, categoryId: null, transferAccountId: null },
+      { date: '2026-10-17', description: 'SQ *COFFEE', amountCents: 650, categoryId: null, transferAccountId: null },
     ])
   })
 

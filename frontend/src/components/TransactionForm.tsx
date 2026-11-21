@@ -1,25 +1,31 @@
 import { useState, type FormEvent } from 'react'
-import type { Category, TransactionInput } from '../api/types'
+import type { Account, Category, TransactionInput } from '../api/types'
 import { today } from '../dates'
 import { readTransactionFields } from '../transactionInput'
+import { CategoryOptions } from './CategoryOptions'
 
 type Props = {
   categories: Category[]
+  accounts: Account[]
   onSave: (input: TransactionInput) => Promise<void>
 }
 
-// Form for adding a transaction.
-export function TransactionForm({ categories, onSave }: Props) {
+// Form for adding a transaction, or a transfer between accounts.
+export function TransactionForm({ categories, accounts, onSave }: Props) {
   const [date, setDate] = useState(today())
   const [description, setDescription] = useState('')
-  const [categoryId, setCategoryId] = useState('')
+  // '' until picked: then the first account (bank accounts come first)
+  const [pickedAccountId, setPickedAccountId] = useState('')
+  const [categoryChoice, setCategoryChoice] = useState('')
   const [amount, setAmount] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
 
+  const accountId = accounts.some((a) => a.id === pickedAccountId) ? pickedAccountId : (accounts[0]?.id ?? '')
+
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
-    const result = readTransactionFields({ date, description, categoryId, amount })
+    const result = readTransactionFields({ date, description, accountId, categoryChoice, amount })
     if ('error' in result) {
       setError(result.error)
       return
@@ -29,10 +35,10 @@ export function TransactionForm({ categories, onSave }: Props) {
     setSaving(true)
     try {
       await onSave(result.input)
-      // Ready for the next one; keep the date, since several often share it
+      // Ready for the next one; keep the date and account, since several often share them
       setDescription('')
       setAmount('')
-      setCategoryId('')
+      setCategoryChoice('')
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : 'Saving failed. Please try again.')
     } finally {
@@ -58,15 +64,22 @@ export function TransactionForm({ categories, onSave }: Props) {
             onChange={(e) => setDescription(e.target.value)}
           />
         </div>
+        {accounts.length > 1 && (
+          <div className="field">
+            <label htmlFor="add-account">Account</label>
+            <select id="add-account" value={accountId} onChange={(e) => setPickedAccountId(e.target.value)}>
+              {accounts.map((account) => (
+                <option key={account.id} value={account.id}>
+                  {account.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         <div className="field">
           <label htmlFor="add-category">Category</label>
-          <select id="add-category" value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
-            <option value="">Uncategorized</option>
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
+          <select id="add-category" value={categoryChoice} onChange={(e) => setCategoryChoice(e.target.value)}>
+            <CategoryOptions categories={categories} accounts={accounts} accountId={accountId} />
           </select>
         </div>
         <div className="field">

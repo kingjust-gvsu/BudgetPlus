@@ -1,5 +1,5 @@
 import Papa from 'papaparse'
-import type { Category, TransactionInput } from './api/types'
+import type { Account, Category, TransactionInput } from './api/types'
 import { parseDollars } from './money'
 
 // Turns a CSV file (a bank's export, or Budget+'s own) into transactions. Files are laid out
@@ -15,6 +15,10 @@ export type ColumnMapping = {
   descriptionColumn: string
   amountColumn: string
   categoryColumn: string | null // optional: matched to the user's categories by name
+  // Which account the transactions are in: one account for the whole file (a bank's export), or
+  // a column naming each row's account (Budget+'s own export). '' = the user's main account.
+  accountId: string
+  accountColumn: string | null
   // Budget+ counts money spent as positive. Many banks show it as negative, so flip every amount.
   invertAmounts: boolean
 }
@@ -27,6 +31,10 @@ export type ImportPreview = {
   // Category names in the file that don't match any of the user's categories
   unmatchedCategories: string[]
 }
+
+// A category like "Transfer to Amazon Card" is a transfer to that account (Budget+'s export
+// writes transfers this way)
+const TRANSFER_TO = /^transfer to (.+)$/i
 
 export function readCsv(text: string): CsvFile {
   const result = Papa.parse<Record<string, string>>(text.trim(), {
@@ -69,7 +77,7 @@ export function parseMoney(text: string): number | null {
 }
 
 // Guess which column is which from the header names
-export function guessMapping(file: CsvFile): ColumnMapping {
+export function guessMapping(file: CsvFile, accounts: Account[] = []): ColumnMapping {
   const find = (...patterns: RegExp[]) => {
     for (const pattern of patterns) {
       const header = file.headers.find((h) => pattern.test(h))
@@ -81,14 +89,16 @@ export function guessMapping(file: CsvFile): ColumnMapping {
   const descriptionColumn = find(/desc/i, /memo/i, /payee/i, /merchant/i, /name/i, /details/i) ?? file.headers[1] ?? ''
   const amountColumn = find(/^amount$/i, /amount/i) ?? file.headers[2] ?? ''
   const categoryColumn = find(/category/i)
+  const accountColumn = find(/^account$/i)
   // If most amounts are negative, money spent is probably shown as negative (like most banks)
   const values = file.rows.map((r) => parseMoney(r[amountColumn] ?? '')).filter((v): v is number => v !== null && v !== 0)
   const invertAmounts = values.filter((v) => v < 0).length > values.length / 2
-  return { dateColumn, descriptionColumn, amountColumn, categoryColumn, invertAmounts }
+  return { dateColumn, descriptionColumn, amountColumn, categoryColumn, accountId: accounts[0]?.id ?? '', accountColumn, invertAmounts }
 }
 
-export function previewImport(file: CsvFile, mapping: ColumnMapping, categories: Category[]): ImportPreview {
+export function previewImport(file: CsvFile, mapping: ColumnMapping, categories: Category[], accounts: Account[] = []): ImportPreview {
   const byName = new Map(categories.map((c) => [c.name.trim().toLowerCase(), c.id]))
+  const accountByName = new Map(accounts.map((a) => [a.name.trim().toLowerCase(), a.id]))
   const preview: ImportPreview = { ready: [], problems: [], unmatchedCategories: [] }
   const unmatched = new Set<string>()
 
@@ -104,13 +114,33 @@ export function previewImport(file: CsvFile, mapping: ColumnMapping, categories:
     if (amountCents === null) return preview.problems.push({ line, error: "Can't read the amount" })
     if (amountCents === 0) return preview.problems.push({ line, error: 'The amount is zero' })
 
+    let accountId = mapping.accountId
+    if (mapping.accountColumn) {
+      const accountName = (row[mapping.accountColumn] ?? '').trim()
+      accountId = accountByName.get(accountName.toLowerCase()) ?? ''
+      if (!accountId) return preview.problems.push({ line, error: `You don't have an account named "${accountName}"` })
+    }
+
     let categoryId: string | null = null
+    let transferAccountId: string | null = null
     const categoryName = mapping.categoryColumn ? (row[mapping.categoryColumn] ?? '').trim() : ''
-    if (categoryName) {
+    const transferTo = TRANSFER_TO.exec(categoryName)?.[1].trim().toLowerCase()
+    if (transferTo && accountByName.has(transferTo)) {
+      transferAccountId = accountByName.get(transferTo)!
+      if (transferAccountId === accountId) return preview.problems.push({ line, error: 'A transfer has to go to a different account' })
+    } else if (categoryName) {
       categoryId = byName.get(categoryName.toLowerCase()) ?? null
       if (!categoryId) unmatched.add(categoryName)
     }
-    preview.ready.push({ line, date, description: description.slice(0, 200), amountCents, categoryId })
+    preview.ready.push({
+      line,
+      date,
+      description: description.slice(0, 200),
+      amountCents,
+      categoryId,
+      transferAccountId,
+      ...(accountId && { accountId }),
+    })
   })
 
   preview.unmatchedCategories = [...unmatched].sort()

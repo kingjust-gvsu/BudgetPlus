@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import type { Account } from './api/types'
 import { guessMapping, parseDate, parseMoney, previewImport, readCsv, type ColumnMapping } from './csvImport'
 import { makeCategory } from './test/factories'
 
@@ -49,6 +50,8 @@ describe('guessMapping', () => {
       descriptionColumn: 'Description',
       amountColumn: 'Amount',
       categoryColumn: null,
+      accountId: '',
+      accountColumn: null,
       invertAmounts: true,
     })
   })
@@ -66,8 +69,14 @@ describe('previewImport', () => {
     descriptionColumn: 'Description',
     amountColumn: 'Amount',
     categoryColumn: 'Category',
+    accountId: '',
+    accountColumn: null,
     invertAmounts: true,
   }
+  const accounts: Account[] = [
+    { id: 'acct-checking', name: 'Checking', type: 'BANK', startingBalanceCents: 0, startDate: '2026-01-01', balanceCents: 0 },
+    { id: 'acct-card', name: 'Amazon Card', type: 'CREDIT_CARD', startingBalanceCents: 0, startDate: '2026-01-01', balanceCents: 0 },
+  ]
 
   it('turns rows into transactions, matching categories by name', () => {
     const file = readCsv('Date,Description,Amount,Category\n10/15/2026,Meijer,-84.12,groceries\n10/16/2026,Shell,-48.30,Fuel')
@@ -75,10 +84,31 @@ describe('previewImport', () => {
     const preview = previewImport(file, singleNegative, categories)
 
     expect(preview.ready).toEqual([
-      { line: 2, date: '2026-10-15', description: 'Meijer', amountCents: 8412, categoryId: 'groceries' },
-      { line: 3, date: '2026-10-16', description: 'Shell', amountCents: 4830, categoryId: null },
+      { line: 2, date: '2026-10-15', description: 'Meijer', amountCents: 8412, categoryId: 'groceries', transferAccountId: null },
+      { line: 3, date: '2026-10-16', description: 'Shell', amountCents: 4830, categoryId: null, transferAccountId: null },
     ])
     expect(preview.unmatchedCategories).toEqual(['Fuel'])
+  })
+
+  it('puts every row in the account picked for the file', () => {
+    const file = readCsv('Date,Description,Amount,Category\n10/15/2026,Meijer,-84.12,')
+
+    const preview = previewImport(file, { ...singleNegative, accountId: 'acct-card' }, categories, accounts)
+
+    expect(preview.ready[0].accountId).toBe('acct-card')
+  })
+
+  it("reads each row's account from a column, and \"Transfer to\" as a transfer", () => {
+    const file = readCsv(
+      'Date,Description,Account,Amount,Category\n10/15/2026,Pay off card,checking,-84.12,Transfer to amazon card\n10/16/2026,Mystery,Savings,-5,',
+    )
+
+    const preview = previewImport(file, { ...singleNegative, accountColumn: 'Account' }, categories, accounts)
+
+    expect(preview.ready).toEqual([
+      { line: 2, date: '2026-10-15', description: 'Pay off card', amountCents: 8412, categoryId: null, transferAccountId: 'acct-card', accountId: 'acct-checking' },
+    ])
+    expect(preview.problems).toEqual([{ line: 3, error: 'You don\'t have an account named "Savings"' }])
   })
 
   it('flips amounts only when asked to', () => {

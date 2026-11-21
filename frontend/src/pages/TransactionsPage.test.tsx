@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { Category, Transaction } from '../api/types'
+import type { Account, Category, Transaction } from '../api/types'
 import { AuthContext, type AuthState } from '../auth/authContext'
 import { monthOf, shiftMonth, today } from '../dates'
 import { makeCategory } from '../test/factories'
@@ -10,7 +10,11 @@ const thisMonth = monthOf(today())
 
 const categories: Category[] = [makeCategory({ id: 'cat-groceries', name: 'Groceries', kind: 'EXPENSE' })]
 
+const checking: Account = { id: 'acct-checking', name: 'Checking', type: 'BANK', startingBalanceCents: 0, startDate: '2026-01-01', balanceCents: 0 }
+const card: Account = { id: 'acct-card', name: 'Amazon Card', type: 'CREDIT_CARD', startingBalanceCents: 0, startDate: '2026-01-01', balanceCents: 0 }
+
 let transactions: Transaction[]
+let accounts: Account[]
 let fetchMock: ReturnType<typeof vi.fn>
 
 // A tiny stand-in for the API: lists, creates, edits, and deletes transactions in memory
@@ -18,6 +22,7 @@ function fakeApi(url: string, init?: RequestInit) {
   const method = init?.method ?? 'GET'
   if (method === 'GET' && url.startsWith('/api/transactions')) return Response.json(transactions)
   if (method === 'GET' && url.startsWith('/api/categories')) return Response.json(categories)
+  if (method === 'GET' && url === '/api/accounts') return Response.json(accounts)
   if (method === 'POST' && url === '/api/transactions') {
     const created = { id: `tx-${transactions.length + 1}`, ...JSON.parse(String(init?.body)) }
     transactions = [created, ...transactions]
@@ -66,9 +71,10 @@ function fillForm(fields: { description?: string; amount?: string; category?: st
 describe('TransactionsPage', () => {
   beforeEach(() => {
     transactions = [
-      { id: 'tx-meijer', date: `${thisMonth}-15`, description: 'Meijer', amountCents: 8412, categoryId: 'cat-groceries', accountId: 'acct-checking' },
-      { id: 'tx-refund', date: `${thisMonth}-08`, description: 'Target refund', amountCents: -1800, categoryId: null, accountId: 'acct-checking' },
+      { id: 'tx-meijer', date: `${thisMonth}-15`, description: 'Meijer', amountCents: 8412, categoryId: 'cat-groceries', accountId: 'acct-checking', transferAccountId: null },
+      { id: 'tx-refund', date: `${thisMonth}-08`, description: 'Target refund', amountCents: -1800, categoryId: null, accountId: 'acct-checking', transferAccountId: null },
     ]
+    accounts = [checking]
     fetchMock = vi.fn((url: string, init?: RequestInit) => Promise.resolve(fakeApi(url, init)))
     vi.stubGlobal('fetch', fetchMock)
   })
@@ -103,6 +109,71 @@ describe('TransactionsPage', () => {
       description: 'Pizza place',
       amountCents: 3275,
       categoryId: 'cat-groceries',
+      transferAccountId: null,
+      accountId: 'acct-checking',
+    })
+  })
+
+  describe('with more than one account', () => {
+    const payoff: Transaction = {
+      id: 'tx-payoff',
+      date: `${thisMonth}-20`,
+      description: 'Pay off card',
+      amountCents: 8412,
+      categoryId: null,
+      accountId: 'acct-checking',
+      transferAccountId: 'acct-card',
+    }
+
+    beforeEach(() => {
+      accounts = [checking, card]
+      transactions = [payoff, { ...transactions[0], accountId: 'acct-card' }, transactions[1]]
+    })
+
+    it('shows each transaction\'s account, and a transfer as where the money went', async () => {
+      renderPage()
+
+      const row = (await screen.findByText('Pay off card')).closest('tr')!
+      expect(row).toHaveTextContent('Checking')
+      expect(row).toHaveTextContent('Transfer to Amazon Card')
+      expect(screen.getByText('Meijer').closest('tr')).toHaveTextContent('Amazon Card')
+    })
+
+    it('adds a transfer, picked from the Category list', async () => {
+      renderPage()
+      await screen.findByText('Meijer')
+
+      const form = screen.getByRole('form', { name: 'Add a transaction' })
+      fireEvent.change(within(form).getByLabelText('Account'), { target: { value: 'acct-checking' } })
+      fillForm({ description: 'Pay off Meijer card', amount: '493.26', category: 'transfer:acct-card' })
+
+      await screen.findByText('Pay off Meijer card')
+      const post = fetchMock.mock.calls.find(([, init]) => init?.method === 'POST')!
+      expect(JSON.parse(post[1].body)).toMatchObject({ accountId: 'acct-checking', transferAccountId: 'acct-card', categoryId: null })
+    })
+
+    it("doesn't offer a transfer to the transaction's own account", async () => {
+      renderPage()
+      await screen.findByText('Meijer')
+
+      const form = screen.getByRole('form', { name: 'Add a transaction' })
+      fireEvent.change(within(form).getByLabelText('Account'), { target: { value: 'acct-card' } })
+      const choices = within(within(form).getByLabelText('Category')).getAllByRole('option').map((o) => o.textContent)
+
+      expect(choices).toEqual(['Uncategorized', 'Groceries', 'Checking'])
+    })
+
+    it("shows one account's money in and out, with a transfer in as money coming from the other account", async () => {
+      renderPage()
+      await screen.findByText('Meijer')
+
+      fireEvent.change(screen.getByLabelText('Show'), { target: { value: 'acct-card' } })
+
+      const row = screen.getByText('Pay off card').closest('tr')!
+      expect(row).toHaveTextContent('Transfer from Checking')
+      expect(row).toHaveTextContent('-$84.12')
+      expect(screen.getByText('Meijer')).toBeInTheDocument()
+      expect(screen.queryByText('Target refund')).not.toBeInTheDocument()
     })
   })
 

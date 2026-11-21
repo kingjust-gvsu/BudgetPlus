@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { apiGet, apiSend } from '../api/client'
-import type { Category, Transaction, TransactionInput } from '../api/types'
+import type { Account, Category, Transaction, TransactionInput } from '../api/types'
 import { useAuth } from '../auth/useAuth'
 import { CsvImport } from '../components/CsvImport'
 import { transactionsToCsv } from '../csvExport'
@@ -10,12 +10,16 @@ import { SplitButton } from '../components/SplitButton'
 import { TransactionForm } from '../components/TransactionForm'
 import { formatDay, formatMonth, monthOf, shiftMonth, today } from '../dates'
 import { formatCents } from '../money'
+import { categoryLabel } from '../transactionInput'
 
 export function TransactionsPage() {
   const { getToken } = useAuth()
   const [month, setMonth] = useState(monthOf(today()))
   const [transactions, setTransactions] = useState<Transaction[] | null>(null)
   const [categories, setCategories] = useState<Category[]>([])
+  const [accounts, setAccounts] = useState<Account[]>([])
+  // '' shows every account; an id shows only what went in or out of that account
+  const [accountFilter, setAccountFilter] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   // The CSV file being imported, once the user has picked one
@@ -33,12 +37,14 @@ export function TransactionsPage() {
         Promise.all([
           apiGet<Transaction[]>(`/transactions?month=${month}`, token),
           apiGet<Category[]>(`/categories?month=${month}`, token),
+          apiGet<Account[]>('/accounts', token),
         ]),
       )
-      .then(([loadedTransactions, loadedCategories]) => {
+      .then(([loadedTransactions, loadedCategories, loadedAccounts]) => {
         if (!current) return
         setTransactions(loadedTransactions)
         setCategories(loadedCategories)
+        setAccounts(loadedAccounts)
         setError(null)
       })
       .catch(() => {
@@ -50,7 +56,13 @@ export function TransactionsPage() {
     }
   }, [getToken, month, version])
 
-  const categoryName = (id: string | null) => categories.find((c) => c.id === id)?.name
+  const viewing = accounts.some((a) => a.id === accountFilter) ? accountFilter : ''
+  // With one account there's nothing to tell apart, and filtered to one they're all the same
+  const showAccount = accounts.length > 1 && !viewing
+  const accountName = (id: string) => accounts.find((a) => a.id === id)?.name
+  const shown = (transactions ?? []).filter((t) => !viewing || t.accountId === viewing || t.transferAccountId === viewing)
+  // Seen from the account a transfer went into, it's money coming in (like money back)
+  const shownAmount = (t: Transaction) => (viewing && t.transferAccountId === viewing ? -t.amountCents : t.amountCents)
 
   // After a save, show the month the transaction belongs to
   const showChange = (input: TransactionInput) => {
@@ -98,7 +110,7 @@ export function TransactionsPage() {
     setExporting(true)
     try {
       const all = await apiGet<Transaction[]>('/transactions', await getToken())
-      const url = URL.createObjectURL(new Blob([transactionsToCsv(all, categories)], { type: 'text/csv' }))
+      const url = URL.createObjectURL(new Blob([transactionsToCsv(all, categories, accounts)], { type: 'text/csv' }))
       const link = document.createElement('a')
       link.href = url
       link.download = `budget-plus-transactions-${today()}.csv`
@@ -121,7 +133,10 @@ export function TransactionsPage() {
       <div className="page-header">
         <div>
           <h1>Transactions</h1>
-          <p className="page-intro">Add the money you spend, and refunds as negative amounts.</p>
+          <p className="page-intro">
+            Add the money you spend, and refunds as negative amounts. For paying off a card or saving into a fund,
+            pick the account the money went to under Category.
+          </p>
         </div>
         <div className="page-actions">
           <input
@@ -165,6 +180,7 @@ export function TransactionsPage() {
           fileName={importFile.name}
           file={importFile.csv}
           categories={categories}
+          accounts={accounts}
           onCancel={() => setImportFile(null)}
           onImported={(message) => {
             setImportFile(null)
@@ -173,7 +189,7 @@ export function TransactionsPage() {
           }}
         />
       ) : (
-        <TransactionForm categories={categories} onSave={add} />
+        <TransactionForm categories={categories} accounts={accounts} onSave={add} />
       )}
 
       {error && (
@@ -183,10 +199,25 @@ export function TransactionsPage() {
       )}
 
       <section className="card" aria-label={`Transactions in ${formatMonth(month)}`}>
+        {accounts.length > 1 && (
+          <div className="field transactions-filter">
+            <label htmlFor="account-filter">Show</label>
+            <select id="account-filter" value={viewing} onChange={(e) => setAccountFilter(e.target.value)}>
+              <option value="">All accounts</option>
+              {accounts.map((account) => (
+                <option key={account.id} value={account.id}>
+                  {account.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         {transactions === null ? (
           <p className="muted">Loading…</p>
-        ) : transactions.length === 0 ? (
-          <p className="muted">No transactions in {formatMonth(month)} yet.</p>
+        ) : shown.length === 0 ? (
+          <p className="muted">
+            No transactions {viewing ? `for ${accountName(viewing)} ` : ''}in {formatMonth(month)} yet.
+          </p>
         ) : (
           <div className="table-scroll">
             <table className="table">
@@ -194,6 +225,7 @@ export function TransactionsPage() {
                 <tr>
                   <th scope="col">Date</th>
                   <th scope="col">Description</th>
+                  {showAccount && <th scope="col">Account</th>}
                   <th scope="col">Category</th>
                   <th scope="col" className="amount">
                     Amount
@@ -204,12 +236,14 @@ export function TransactionsPage() {
                 </tr>
               </thead>
               <tbody>
-                {transactions.map((transaction) =>
+                {shown.map((transaction) =>
                   transaction.id === editingId ? (
                     <EditTransactionRow
                       key={transaction.id}
                       transaction={transaction}
                       categories={categories}
+                      accounts={accounts}
+                      showAccount={showAccount}
                       onSave={(input) => update(transaction.id, input)}
                       onCancel={() => setEditingId(null)}
                     />
@@ -217,8 +251,11 @@ export function TransactionsPage() {
                     <tr key={transaction.id}>
                       <td>{formatDay(transaction.date)}</td>
                       <td>{transaction.description}</td>
-                      <td>{categoryName(transaction.categoryId) ?? <span className="muted">Uncategorized</span>}</td>
-                      <td className="amount">{formatCents(transaction.amountCents)}</td>
+                      {showAccount && <td>{accountName(transaction.accountId)}</td>}
+                      <td>
+                        {categoryLabel(transaction, categories, accounts, viewing) ?? <span className="muted">Uncategorized</span>}
+                      </td>
+                      <td className="amount">{formatCents(shownAmount(transaction))}</td>
                       <td className="row-actions">
                         <button
                           type="button"

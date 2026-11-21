@@ -1,27 +1,32 @@
 import { useState, type KeyboardEvent } from 'react'
-import type { Category, Transaction, TransactionInput } from '../api/types'
+import type { Account, Category, Transaction, TransactionInput } from '../api/types'
 import { centsToInput } from '../money'
-import { readTransactionFields } from '../transactionInput'
+import { categoryChoiceOf, readTransactionFields } from '../transactionInput'
+import { CategoryOptions } from './CategoryOptions'
 
 type Props = {
   transaction: Transaction
   categories: Category[]
+  accounts: Account[]
+  // Whether the table has an Account column
+  showAccount: boolean
   onSave: (input: TransactionInput) => Promise<void>
   onCancel: () => void
 }
 
 // A table row whose cells become inputs, for editing a transaction in place.
 // Enter saves and Escape cancels.
-export function EditTransactionRow({ transaction, categories, onSave, onCancel }: Props) {
+export function EditTransactionRow({ transaction, categories, accounts, showAccount, onSave, onCancel }: Props) {
   const [date, setDate] = useState(transaction.date)
   const [description, setDescription] = useState(transaction.description)
-  const [categoryId, setCategoryId] = useState(transaction.categoryId ?? '')
+  const [accountId, setAccountId] = useState(transaction.accountId)
+  const [categoryChoice, setCategoryChoice] = useState(categoryChoiceOf(transaction))
   const [amount, setAmount] = useState(centsToInput(transaction.amountCents))
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
 
   const save = async () => {
-    const result = readTransactionFields({ date, description, categoryId, amount })
+    const result = readTransactionFields({ date, description, accountId, categoryChoice, amount })
     if ('error' in result) {
       setError(result.error)
       return
@@ -70,19 +75,25 @@ export function EditTransactionRow({ transaction, categories, onSave, onCancel }
             onChange={(e) => setDescription(e.target.value)}
           />
         </td>
+        {showAccount && (
+          <td>
+            <select className="cell-input" aria-label={label('Account')} value={accountId} onChange={(e) => setAccountId(e.target.value)}>
+              {accounts.map((account) => (
+                <option key={account.id} value={account.id}>
+                  {account.name}
+                </option>
+              ))}
+            </select>
+          </td>
+        )}
         <td>
           <select
             className="cell-input"
             aria-label={label('Category')}
-            value={categoryId}
-            onChange={(e) => setCategoryId(e.target.value)}
+            value={categoryChoice}
+            onChange={(e) => setCategoryChoice(e.target.value)}
           >
-            <option value="">Uncategorized</option>
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
+            <CategoryOptions categories={categories} accounts={accounts} accountId={accountId} />
           </select>
         </td>
         <td className="amount">
@@ -105,7 +116,7 @@ export function EditTransactionRow({ transaction, categories, onSave, onCancel }
       </tr>
       {error && (
         <tr>
-          <td colSpan={5} className="error" role="alert">
+          <td colSpan={showAccount ? 6 : 5} className="error" role="alert">
             {error}
           </td>
         </tr>

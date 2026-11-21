@@ -42,10 +42,16 @@ export type Transaction = {
   amountCents: number // positive = spent, negative = money back
   categoryId: string | null
   accountId: string
+  // For a transfer: the amount moved from accountId to this account. Transfers have no category
+  // and aren't spending.
+  transferAccountId: string | null
 }
 
 // Without an account, the API puts a transaction in the main bank account
-export type TransactionInput = Omit<Transaction, 'id' | 'accountId'> & { accountId?: string }
+export type TransactionInput = Omit<Transaction, 'id' | 'accountId' | 'transferAccountId'> & {
+  accountId?: string
+  transferAccountId?: string | null
+}
 
 // GET /api/accounts: where money is kept, each with its balance. Balances are what you have, so a
 // credit card's is negative (what you owe).

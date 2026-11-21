@@ -13,6 +13,7 @@ import {
 } from './categories.ts'
 import type { Database } from './db.ts'
 import { ValidationError } from './errors.ts'
+import { TRANSFER_HAS_CATEGORY, TRANSFER_SAME_ACCOUNT } from './transactions.ts'
 import {
   nullable,
   requireBalanceCents,
@@ -54,6 +55,7 @@ export type BackupTransaction = {
   amountCents: number
   category: string | null // the category's name
   account: string // the account's name
+  transferTo: string | null // for a transfer, the name of the account the money moved to
 }
 
 export type BackupAccount = AccountInput
@@ -174,12 +176,19 @@ export function parseBackup(raw: unknown): Backup {
       // Older backups have no accounts; their transactions all go in one bank account
       const account = hasAccounts ? requireText(t.account, 'Account', 100) : DEFAULT_ACCOUNT_NAME
       if (hasAccounts && !accountNames.has(account)) throw new ValidationError(`no account named "${account}" in the backup`)
+      const transferTo = hasAccounts ? nullable(t.transferTo ?? null, (v) => requireText(v, 'Transfer to', 100)) : null
+      if (transferTo !== null) {
+        if (!accountNames.has(transferTo)) throw new ValidationError(`no account named "${transferTo}" in the backup`)
+        if (transferTo === account) throw new ValidationError(TRANSFER_SAME_ACCOUNT)
+        if (category !== null) throw new ValidationError(TRANSFER_HAS_CATEGORY)
+      }
       return {
         date: requireDate(t.date, 'Date'),
         description: requireText(t.description, 'Description', 200),
         amountCents: requireCents(t.amountCents, 'Amount'),
         category,
         account,
+        transferTo,
       }
     } catch (error) {
       if (error instanceof ValidationError) throw new ValidationError(`Transaction ${index + 1}: ${error.message}`)
@@ -319,7 +328,7 @@ export function createBackupStore(db: Database): BackupStore {
       const transactions = await db.transaction.findMany({
         where: { userId },
         orderBy: [{ date: 'asc' }, { createdAt: 'asc' }],
-        select: { date: true, description: true, amountCents: true, category: { select: { name: true } }, account: { select: { name: true } } },
+        select: { date: true, description: true, amountCents: true, category: { select: { name: true } }, account: { select: { name: true } }, transferAccount: { select: { name: true } } },
       })
       return {
         format: BACKUP_FORMAT,
@@ -344,6 +353,7 @@ export function createBackupStore(db: Database): BackupStore {
           amountCents: t.amountCents,
           category: t.category?.name ?? null,
           account: t.account.name,
+          transferTo: t.transferAccount?.name ?? null,
         })),
       }
     },
@@ -392,6 +402,7 @@ export function createBackupStore(db: Database): BackupStore {
             amountCents: t.amountCents,
             categoryId: t.category === null ? null : idByName.get(t.category)!,
             accountId: accountIdByName.get(t.account)!,
+            transferAccountId: t.transferTo === null ? null : accountIdByName.get(t.transferTo)!,
           })),
         })
         return { categories: backup.categories.length, transactions: backup.transactions.length }

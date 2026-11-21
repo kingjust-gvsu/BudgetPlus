@@ -128,8 +128,9 @@ export function createSummaryStore(db: Database): SummaryStore {
         return category ? [{ ...category, startMonth: startMonthOf(record)! }] : []
       })
 
+      // Transfers between accounts aren't spending, so they're left out
       const transactions = await db.transaction.findMany({
-        where: { userId, date: { gte: start, lt: end } },
+        where: { userId, transferAccountId: null, date: { gte: start, lt: end } },
         select: { categoryId: true, amountCents: true },
       })
 
@@ -137,7 +138,7 @@ export function createSummaryStore(db: Database): SummaryStore {
       const fundIds = categories.filter((c) => c.kind === 'BILL' && c.frequencyMonths > 1).map((c) => c.id)
       const payments = fundIds.length
         ? await db.transaction.findMany({
-            where: { userId, categoryId: { in: fundIds }, date: { lt: end } },
+            where: { userId, transferAccountId: null, categoryId: { in: fundIds }, date: { lt: end } },
             select: { categoryId: true, date: true, amountCents: true },
           })
         : []

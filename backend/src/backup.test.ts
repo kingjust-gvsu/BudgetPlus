@@ -106,12 +106,15 @@ describe('parseBackup', () => {
       { name: 'Checking', type: 'BANK', startingBalanceCents: 724367, startDate: '2026-01-01' },
       { name: 'Amazon Card', type: 'CREDIT_CARD', startingBalanceCents: -20000, startDate: '2026-01-01' },
     ]
-    const transactions = [{ date: '2026-09-16', description: 'Books', amountCents: 4000, category: null, account: 'Amazon Card' }]
+    const transactions = [
+      { date: '2026-09-16', description: 'Books', amountCents: 4000, category: null, account: 'Amazon Card' },
+      { date: '2026-09-20', description: 'Pay off card', amountCents: 4000, category: null, account: 'Checking', transferTo: 'Amazon Card' },
+    ]
 
     const backup = parseBackup({ ...valid, version: 4, categories: [], accounts, transactions })
 
     expect(backup.accounts).toEqual(accounts)
-    expect(backup.transactions[0].account).toBe('Amazon Card')
+    expect(backup.transactions.map((t) => [t.account, t.transferTo])).toEqual([['Amazon Card', null], ['Checking', 'Amazon Card']])
   })
 
   it.each([
@@ -127,6 +130,7 @@ describe('parseBackup', () => {
     ['a transaction for a category that is not in the file', withChanges({ transactions: [{ date: '2026-09-01', description: 'X', amountCents: 1, category: 'Gas' }] }), 'Transaction 1: no category named "Gas" in the backup'],
     ['two accounts with the same name', withChanges({ version: 4, categories: [], transactions: [], accounts: [{ name: 'Checking', type: 'BANK', startingBalanceCents: 0, startDate: '2026-01-01' }, { name: 'Checking', type: 'FUND', startingBalanceCents: 0, startDate: '2026-01-01' }] }), 'Account 2: two accounts are named "Checking"'],
     ['a transaction for an account that is not in the file', withChanges({ version: 4, categories: [], accounts: [], transactions: [{ date: '2026-09-01', description: 'X', amountCents: 1, category: null, account: 'Savings' }] }), 'Transaction 1: no account named "Savings" in the backup'],
+    ['a transfer to the same account', withChanges({ version: 4, categories: [], accounts: [{ name: 'Checking', type: 'BANK', startingBalanceCents: 0, startDate: '2026-01-01' }], transactions: [{ date: '2026-09-01', description: 'X', amountCents: 1, category: null, account: 'Checking', transferTo: 'Checking' }] }), 'Transaction 1: A transfer has to go to a different account'],
     ['a version 4 backup without accounts', withChanges({ version: 4, categories: [], transactions: [] }), 'The backup has no accounts list'],
     ['a transaction with a bad date', withChanges({ transactions: [{ date: '2026-02-30', description: 'X', amountCents: 1, category: null }] }), 'Transaction 1: Date is not a real date'],
   ])('rejects %s', (_case, input, message) => {
