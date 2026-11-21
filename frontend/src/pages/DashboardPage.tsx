@@ -17,8 +17,13 @@ type FundBill = CategorySummary & FundBillStatus
 // "+$25.00" / "-$14.00"
 const signed = (cents: number) => (cents > 0 ? `+${formatCents(cents)}` : formatCents(cents))
 
+// Within this share of a limit, an expense is shown as near it
+const NEAR_LIMIT = 0.9
+
 function ExpenseRow({ expense }: { expense: Expense }) {
-  const { limitCents, spentCents, leftCents, state } = expense
+  const { limitCents, spentCents, leftCents } = expense
+  const near = expense.state === 'under' && limitCents !== null && limitCents > 0 && spentCents >= limitCents * NEAR_LIMIT
+  const state = near ? 'near' : expense.state
   const name = expense.budgetType === 'REMAINDER' ? `${expense.name} (remainder)` : expense.name
   return (
     <li className="dash-row">
@@ -27,10 +32,19 @@ function ExpenseRow({ expense }: { expense: Expense }) {
         <span>{limitCents === null ? formatCents(spentCents) : `${formatCents(spentCents)} of ${formatCents(limitCents)}`}</span>
       </div>
       {state !== 'noLimit' && limitCents !== null && (
-        <ProgressBar percent={limitCents === 0 ? 100 : (spentCents / limitCents) * 100} tone={state === 'over' ? 'bad' : 'good'} />
+        <ProgressBar
+          percent={limitCents === 0 ? 100 : (spentCents / limitCents) * 100}
+          tone={state === 'over' ? 'bad' : state === 'near' ? 'warn' : 'good'}
+        />
       )}
       <div className={`dash-row-note dash-row-note--${state}`}>
-        {state === 'noLimit' ? 'No limit set' : state === 'over' ? `${formatCents(-(leftCents ?? 0))} over` : `${formatCents(leftCents ?? 0)} left`}
+        {state === 'noLimit'
+          ? 'No limit set'
+          : state === 'over'
+            ? `${formatCents(-(leftCents ?? 0))} over`
+            : state === 'near'
+              ? `${formatCents(leftCents ?? 0)} left · near the limit`
+              : `${formatCents(leftCents ?? 0)} left`}
       </div>
     </li>
   )

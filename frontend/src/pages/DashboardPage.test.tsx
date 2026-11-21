@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { MonthSummary, SpendingSummary } from '../api/types'
+import type { CategorySummary, MonthSummary, SpendingSummary } from '../api/types'
 import { AuthContext, type AuthState } from '../auth/authContext'
 import { monthOf, shiftMonth, today } from '../dates'
 import { DashboardPage } from './DashboardPage'
@@ -139,6 +139,14 @@ describe('DashboardPage', () => {
     expect(within(expenseRow('Groceries')).getByText('$170.00 left')).toBeInTheDocument()
     expect(within(expenseRow('Gas')).getByText('$12.00 over')).toBeInTheDocument()
     expect(within(expenseRow('Gifts')).getByText('No limit set')).toBeInTheDocument()
+  })
+
+  it('points out an expense that is near its limit', async () => {
+    const groceries = { ...october.categories.find((c) => c.id === 'groceries')!, spentCents: 44000, leftCents: 4000 } as CategorySummary
+    renderDashboard({ ...october, categories: october.categories.map((c) => (c.id === 'groceries' ? groceries : c)) })
+    const expenses = within(await screen.findByRole('region', { name: 'Expenses' }))
+
+    expect(within(expenses.getByText('Groceries').closest('li')!).getByText('$40.00 left · near the limit')).toBeInTheDocument()
   })
 
   it('shows bills neutrally as paid or pending', async () => {

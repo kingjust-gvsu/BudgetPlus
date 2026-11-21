@@ -10,6 +10,9 @@
   --color-accent-hover: #163a8a;
   --color-good: #1a7f37;
   --color-bad: #c62828;
+  /* Near a limit: a bright amber bar, and a darker amber for text so it's easy to read */
+  --color-warn: #d4a017;
+  --color-warn-text: #8a5a00;
   --color-neutral: #6e7781;
 
   font-family: 'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;

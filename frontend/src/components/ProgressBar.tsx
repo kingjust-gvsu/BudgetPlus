@@ -3,8 +3,8 @@ import './ProgressBar.css'
 type Props = {
   // How full the bar is, 0 to 100 (anything outside is clamped)
   percent: number
-  // good = green (under a limit), bad = red (over), neutral = gray (bills and funds)
-  tone: 'good' | 'bad' | 'neutral'
+  // good = green (under a limit), warn = amber (near it), bad = red (over), neutral = gray (bills and funds)
+  tone: 'good' | 'warn' | 'bad' | 'neutral'
 }
 
 // A thin bar showing how much of a limit is used or how much of a bill is saved.
