@@ -2,14 +2,18 @@ import { fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Category } from '../api/types'
 import { AuthContext, type AuthState } from '../auth/authContext'
+import { formatMonth, monthOf, today } from '../dates'
 import { makeCategory } from '../test/factories'
 import { CategoriesSection } from './CategoriesSection'
+
+const thisMonth = monthOf(today())
 
 let categories: Category[]
 let fetchMock: ReturnType<typeof vi.fn>
 
 // A tiny stand-in for the categories API, keeping categories in memory
-function fakeApi(url: string, init?: RequestInit) {
+function fakeApi(fullUrl: string, init?: RequestInit) {
+  const url = fullUrl.split('?')[0]
   const method = init?.method ?? 'GET'
   const body = init?.body ? JSON.parse(String(init.body)) : undefined
   if (method === 'GET') return Response.json([...categories].sort((a, b) => a.name.localeCompare(b.name)))
@@ -94,6 +98,7 @@ describe('CategoriesSection', () => {
       budgetPercent: null,
       frequencyMonths: 1,
       nextDueDate: null,
+      month: thisMonth,
     })
   })
 
@@ -293,6 +298,7 @@ describe('CategoriesSection', () => {
       budgetPercent: 12.5,
       frequencyMonths: 1,
       nextDueDate: null,
+      month: thisMonth,
     })
   })
 
@@ -336,7 +342,8 @@ describe('CategoriesSection', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Delete Rent' }))
 
     await vi.waitFor(() => expect(screen.queryByText('Rent')).not.toBeInTheDocument())
-    expect(confirm).toHaveBeenCalledWith(expect.stringContaining('uncategorized'))
+    expect(confirm).toHaveBeenCalledWith(`Remove "Rent" from ${formatMonth(thisMonth)} on? Earlier months keep it.`)
+    expect(fetchMock).toHaveBeenCalledWith(`/api/categories/cat-rent?month=${thisMonth}`, expect.anything())
   })
 
   it('keeps the category when deletion is not confirmed', async () => {
