@@ -95,6 +95,10 @@
   color: var(--color-good);
 }
 
+.dash-row-note--near {
+  color: var(--color-warn-text);
+}
+
 .dash-row-note--over {
   color: var(--color-bad);
 }
