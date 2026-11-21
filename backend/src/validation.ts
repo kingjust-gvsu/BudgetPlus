@@ -43,6 +43,16 @@ export function requireDate(value: unknown, field: string): string {
 }
 
 // A month like 2026-10
+// This month as YYYY-MM, in the server's time zone
+export function currentMonth(now = new Date()): string {
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+}
+
+// A month like requireMonth, or this month when it's left out
+export function optionalMonth(value: unknown, field: string): string {
+  return value === undefined ? currentMonth() : requireMonth(value, field)
+}
+
 export function requireMonth(value: unknown, field: string): string {
   if (typeof value !== 'string' || !/^\d{4}-(0[1-9]|1[0-2])$/.test(value)) {
     throw new ValidationError(`${field} must be a month like 2026-10`)

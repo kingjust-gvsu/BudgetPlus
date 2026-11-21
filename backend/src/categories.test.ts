@@ -2,6 +2,7 @@ import request from 'supertest'
 import { describe, expect, it } from 'vitest'
 import { createApp } from './app.ts'
 import { DEFAULT_BUDGET_SETTINGS } from './categories.ts'
+import { currentMonth } from './validation.ts'
 import { createFakeCategoryStore, fakeDependencies, OTHER_USER_TOKEN, otherUser, testUser, VALID_TOKEN } from './test/fakes.ts'
 
 const config = { corsOrigin: 'http://localhost:5173' }
@@ -51,7 +52,7 @@ describe('POST /api/categories', () => {
 
     expect(response.status).toBe(201)
     expect(response.body).toEqual({ id: expect.any(String), name: 'Electric', kind: 'BILL', ...DEFAULT_BUDGET_SETTINGS })
-    expect(store.rows).toContainEqual({ ...response.body, userId: testUser.id })
+    expect(await store.list(testUser.id, currentMonth())).toContainEqual(response.body)
   })
 
   it('rejects a missing name', async () => {
@@ -217,13 +218,25 @@ describe('budget settings', () => {
 })
 
 describe('DELETE /api/categories/:id', () => {
-  it('deletes a category', async () => {
-    const { app, store } = setup()
+  it('removes a category from the month on, keeping it in earlier months', async () => {
+    const { app } = setup()
 
-    const response = await request(app).delete(`/api/categories/${rentId}`).set(auth)
+    const response = await request(app).delete(`/api/categories/${rentId}?month=2026-11`).set(auth)
+    const october = await request(app).get('/api/categories?month=2026-10').set(auth)
+    const november = await request(app).get('/api/categories?month=2026-11').set(auth)
 
     expect(response.status).toBe(204)
-    expect(store.rows.some((r) => r.id === rentId)).toBe(false)
+    expect(october.body.map((c: { name: string }) => c.name)).toContain('Rent')
+    expect(november.body.map((c: { name: string }) => c.name)).not.toContain('Rent')
+  })
+
+  it('deletes a category completely when it started in that month', async () => {
+    const { app, store } = setup()
+    const created = await request(app).post('/api/categories').set(auth).send({ name: 'Pets', kind: 'EXPENSE', month: '2026-11' })
+
+    await request(app).delete(`/api/categories/${created.body.id}?month=2026-11`).set(auth)
+
+    expect(store.rows.some((r) => r.id === created.body.id)).toBe(false)
   })
 
   it("can't delete another user's category", async () => {
@@ -233,5 +246,79 @@ describe('DELETE /api/categories/:id', () => {
 
     expect(response.status).toBe(404)
     expect(store.rows.some((r) => r.id === othersId)).toBe(true)
+  })
+})
+
+describe('budgets by month', () => {
+  it('applies a budget change from its month on, so earlier months keep theirs', async () => {
+    const { app } = setup()
+
+    await request(app).patch(`/api/categories/${groceriesId}`).set(auth).send({ budgetCents: 50000, month: '2026-11' })
+    const october = await request(app).get('/api/categories?month=2026-10').set(auth)
+    const december = await request(app).get('/api/categories?month=2026-12').set(auth)
+
+    const groceries = (body: { id: string; budgetCents: number | null }[]) => body.find((c) => c.id === groceriesId)?.budgetCents
+    expect(groceries(october.body)).toBeNull()
+    expect(groceries(december.body)).toBe(50000)
+  })
+
+  it('changes a name in every month', async () => {
+    const { app } = setup()
+
+    await request(app).patch(`/api/categories/${groceriesId}`).set(auth).send({ name: 'Food', month: '2026-11' })
+    const october = await request(app).get('/api/categories?month=2026-10').set(auth)
+
+    expect(october.body.map((c: { name: string }) => c.name)).toContain('Food')
+  })
+
+  it("shows a new category only from the month it's added", async () => {
+    const { app } = setup()
+
+    await request(app).post('/api/categories').set(auth).send({ name: 'Pets', kind: 'EXPENSE', month: '2026-11' })
+    const october = await request(app).get('/api/categories?month=2026-10').set(auth)
+    const november = await request(app).get('/api/categories?month=2026-11').set(auth)
+
+    expect(october.body.map((c: { name: string }) => c.name)).not.toContain('Pets')
+    expect(november.body.map((c: { name: string }) => c.name)).toContain('Pets')
+  })
+
+  it('restarts a removed category when one with the same name is added', async () => {
+    const { app } = setup()
+    await request(app).delete(`/api/categories/${rentId}?month=2026-06`).set(auth)
+
+    const restarted = await request(app).post('/api/categories').set(auth).send({ name: 'Rent', kind: 'BILL', budgetCents: 130000, month: '2026-09' })
+    const july = await request(app).get('/api/categories?month=2026-07').set(auth)
+
+    expect(restarted.status).toBe(201)
+    expect(restarted.body).toMatchObject({ id: rentId, budgetCents: 130000 })
+    expect(july.body.map((c: { name: string }) => c.name)).not.toContain('Rent')
+  })
+
+  it('lists every category ever with month=all', async () => {
+    const { app } = setup()
+    await request(app).delete(`/api/categories/${rentId}?month=2026-06`).set(auth)
+
+    const response = await request(app).get('/api/categories?month=all').set(auth)
+
+    expect(response.body.map((c: { name: string }) => c.name)).toContain('Rent')
+  })
+
+  it("can't change a category in a month it isn't in", async () => {
+    const { app } = setup()
+    await request(app).delete(`/api/categories/${rentId}?month=2026-06`).set(auth)
+
+    const response = await request(app).patch(`/api/categories/${rentId}`).set(auth).send({ budgetCents: 1, month: '2026-08' })
+
+    expect(response.status).toBe(404)
+  })
+
+  it('checks the one-remainder rule against the month', async () => {
+    const { app } = setup()
+    await request(app).patch(`/api/categories/${groceriesId}`).set(auth).send({ budgetType: 'REMAINDER', month: '2026-11' })
+
+    // Before November, Groceries isn't the remainder yet, so another category can be one then
+    const october = await request(app).post('/api/categories').set(auth).send({ name: 'Savings', kind: 'EXPENSE', budgetType: 'REMAINDER', month: '2026-10' })
+
+    expect(october.status).toBe(201)
   })
 })

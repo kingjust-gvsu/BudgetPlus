@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import type { Database } from './db.ts'
 import { ConflictError, ValidationError } from './errors.ts'
 import { Prisma } from './generated/prisma/client.ts'
@@ -28,15 +29,24 @@ export type CategoryChanges = Partial<CategoryInput>
 
 // Reads and writes a user's categories. Every method is scoped to one user, so a user can
 // never see or change another user's categories.
+//
+// A category's budget can change from a month on, so past months keep the budget they had.
+// `month` (YYYY-MM) says which month a read is for, or which month a change starts in.
 export type CategoryStore = {
-  list(userId: string): Promise<Category[]>
+  // The categories in use in `month`, with that month's budgets. Without a month: every category
+  // the user has ever had, with its latest budget (for naming old transactions).
+  list(userId: string, month?: string): Promise<Category[]>
+  // Adds a category from `month` on. Reusing the name of a category that was removed restarts it.
   // Throws ConflictError for a duplicate name or a second remainder category,
   // and ValidationError for budget settings that don't fit together
-  create(userId: string, input: CategoryInput): Promise<Category>
-  // Returns null if the category doesn't exist or belongs to another user; throws like create
-  update(userId: string, id: string, changes: CategoryChanges): Promise<Category | null>
-  // Returns false if the category doesn't exist or belongs to another user
-  delete(userId: string, id: string): Promise<boolean>
+  create(userId: string, input: CategoryInput, month: string): Promise<Category>
+  // A budget change applies from `month` on; the name, kind, and bill schedule change everywhere.
+  // Returns null if the category isn't in use in `month` or belongs to another user; throws like create
+  update(userId: string, id: string, changes: CategoryChanges, month: string): Promise<Category | null>
+  // Removes the category from `month` on; earlier months keep it. One that started in `month` or
+  // later is deleted completely (its transactions become uncategorized).
+  // Returns false if the category isn't in use in `month` or belongs to another user
+  delete(userId: string, id: string, month: string): Promise<boolean>
 }
 
 export const DUPLICATE_NAME = 'You already have a category with that name'
@@ -124,98 +134,218 @@ export function categoryAfterChange(existing: Category | null, changes: Category
   return { name, kind, ...resolveBudgetSettings(kind, current, budgetChangesOf(changes)) }
 }
 
+// ---- Budget history ----
+
+// A category's budget from `month` on. `stopped` means the category was removed from that month on.
+export type BudgetVersion = { month: string; stopped: boolean } & Pick<BudgetSettings, 'budgetType' | 'budgetCents' | 'budgetPercent'>
+
+// A category with every budget it has had, oldest first. It starts in its first version's month.
+export type CategoryRecord = Pick<Category, 'id' | 'name' | 'kind' | 'frequencyMonths' | 'nextDueDate'> & {
+  budgets: BudgetVersion[]
+}
+
+const toCategoryWith = (record: CategoryRecord, version: BudgetVersion): Category => ({
+  id: record.id,
+  name: record.name,
+  kind: record.kind,
+  budgetType: version.budgetType,
+  budgetCents: version.budgetCents,
+  budgetPercent: version.budgetPercent,
+  frequencyMonths: record.frequencyMonths,
+  nextDueDate: record.nextDueDate,
+})
+
+// The category as it was in `month`, or null if it hadn't started or had been removed by then
+export function categoryInMonth(record: CategoryRecord, month: string): Category | null {
+  const version = record.budgets.filter((b) => b.month <= month).at(-1)
+  return version && !version.stopped ? toCategoryWith(record, version) : null
+}
+
+// The category with the last budget it had (even if it has since been removed)
+export function latestCategory(record: CategoryRecord): Category | null {
+  const version = record.budgets.filter((b) => !b.stopped).at(-1)
+  return version ? toCategoryWith(record, version) : null
+}
+
+// The month a category starts in; bills that aren't monthly start saving here
+export const startMonthOf = (record: CategoryRecord) => record.budgets[0]?.month ?? null
+
+const byName = (a: Category, b: Category) => a.name.localeCompare(b.name)
+
+export function categoriesInMonth(records: CategoryRecord[], month?: string): Category[] {
+  return records
+    .map((r) => (month ? categoryInMonth(r, month) : latestCategory(r)))
+    .filter((c): c is Category => c !== null)
+    .sort(byName)
+}
+
+// One remainder, and percent budgets of at most 100%, among the categories in use in `month`
+function checkPlan(records: CategoryRecord[], month: string, category: Omit<Category, 'id'>, exceptId?: string) {
+  const others = categoriesInMonth(records, month).filter((c) => c.id !== exceptId)
+  if (category.budgetType === 'REMAINDER' && others.some((c) => c.budgetType === 'REMAINDER')) {
+    throw new ConflictError(SECOND_REMAINDER)
+  }
+  if (category.budgetType === 'PERCENT_OF_INCOME' && category.budgetPercent !== null) {
+    const total = others.reduce((sum, c) => sum + Math.round((c.budgetPercent ?? 0) * 100), 0) + Math.round(category.budgetPercent * 100)
+    const error = percentTotalError(total)
+    if (error) throw new ConflictError(error)
+  }
+}
+
+const versionOf = (category: Omit<Category, 'id'>, month: string): BudgetVersion => ({
+  month,
+  stopped: false,
+  budgetType: category.budgetType,
+  budgetCents: category.budgetCents,
+  budgetPercent: category.budgetPercent,
+})
+
+// Sets the budget from `month` on: replaces any change in `month` and drops later ones, since
+// a change starting now should hold for every month after it
+const withVersionFrom = (budgets: BudgetVersion[], version: BudgetVersion) => [
+  ...budgets.filter((b) => b.month < version.month),
+  version,
+]
+
+const sameBudget = (a: Pick<BudgetSettings, 'budgetType' | 'budgetCents' | 'budgetPercent'>, b: typeof a) =>
+  a.budgetType === b.budgetType && a.budgetCents === b.budgetCents && a.budgetPercent === b.budgetPercent
+
+// What a change does to a user's categories, worked out without touching the database so the
+// real store and the test store behave the same. Each returns the category's new record.
+
+export function recordAfterCreate(records: CategoryRecord[], input: CategoryInput, month: string, newId: string): CategoryRecord {
+  const category = categoryAfterChange(null, input)
+  const sameName = records.find((r) => r.name === category.name)
+  if (sameName && categoryInMonth(sameName, month)) throw new ConflictError(DUPLICATE_NAME)
+  checkPlan(records, month, category, sameName?.id)
+  const { name, kind, frequencyMonths, nextDueDate } = category
+  return {
+    id: sameName?.id ?? newId,
+    name,
+    kind,
+    frequencyMonths,
+    nextDueDate,
+    budgets: withVersionFrom(sameName?.budgets ?? [], versionOf(category, month)),
+  }
+}
+
+export function recordAfterUpdate(records: CategoryRecord[], id: string, changes: CategoryChanges, month: string): CategoryRecord | null {
+  const record = records.find((r) => r.id === id)
+  const current = record && categoryInMonth(record, month)
+  if (!record || !current) return null
+  const category = categoryAfterChange(current, changes)
+  if (records.some((r) => r.id !== id && r.name === category.name)) throw new ConflictError(DUPLICATE_NAME)
+  checkPlan(records, month, category, id)
+  const { name, kind, frequencyMonths, nextDueDate } = category
+  return {
+    id,
+    name,
+    kind,
+    frequencyMonths,
+    nextDueDate,
+    budgets: sameBudget(current, category) ? record.budgets : withVersionFrom(record.budgets, versionOf(category, month)),
+  }
+}
+
+// null if there's nothing to remove; 'delete' if the category hadn't started before `month`
+export function recordAfterDelete(records: CategoryRecord[], id: string, month: string): CategoryRecord | 'delete' | null {
+  const record = records.find((r) => r.id === id)
+  if (!record || !categoryInMonth(record, month)) return null
+  const earlier = record.budgets.filter((b) => b.month < month)
+  if (earlier.length === 0) return 'delete'
+  const stopped: BudgetVersion = { month, stopped: true, budgetType: 'FIXED', budgetCents: null, budgetPercent: null }
+  return { ...record, budgets: [...earlier, stopped] }
+}
+
+// ---- Database ----
+
 // The database stores percents as hundredths (12.5% → 1250) and dates as Date objects.
-const fields = {
+const recordSelect = {
   id: true,
   name: true,
   kind: true,
-  budgetType: true,
-  budgetCents: true,
-  budgetPercentHundredths: true,
   frequencyMonths: true,
   nextDueDate: true,
+  budgets: {
+    orderBy: { month: 'asc' },
+    select: { month: true, stopped: true, budgetType: true, budgetCents: true, budgetPercentHundredths: true },
+  },
 } as const
 
-type Row = Prisma.CategoryGetPayload<{ select: typeof fields }>
+type RecordRow = Prisma.CategoryGetPayload<{ select: typeof recordSelect }>
 
-const toCategory = ({ budgetPercentHundredths, nextDueDate, ...row }: Row): Category => ({
-  ...row,
-  budgetPercent: budgetPercentHundredths === null ? null : budgetPercentHundredths / 100,
-  nextDueDate: nextDueDate ? nextDueDate.toISOString().slice(0, 10) : null,
+export const toRecord = (row: RecordRow): CategoryRecord => ({
+  id: row.id,
+  name: row.name,
+  kind: row.kind,
+  frequencyMonths: row.frequencyMonths,
+  nextDueDate: row.nextDueDate ? row.nextDueDate.toISOString().slice(0, 10) : null,
+  budgets: row.budgets.map(({ budgetPercentHundredths, ...b }) => ({
+    ...b,
+    budgetPercent: budgetPercentHundredths === null ? null : budgetPercentHundredths / 100,
+  })),
 })
 
-const toRowData = ({ budgetPercent, nextDueDate, ...rest }: Omit<Category, 'id'>) => ({
-  ...rest,
+export const budgetRowData = ({ budgetPercent, ...b }: BudgetVersion) => ({
+  ...b,
   budgetPercentHundredths: budgetPercent === null ? null : Math.round(budgetPercent * 100),
-  nextDueDate: nextDueDate ? new Date(`${nextDueDate}T00:00:00Z`) : null,
 })
+
+const toDay = (date: string | null) => (date ? new Date(`${date}T00:00:00Z`) : null)
 
 function isDuplicateName(error: unknown) {
   return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002'
 }
 
+export async function loadCategoryRecords(db: Database, userId: string): Promise<CategoryRecord[]> {
+  const rows = await db.category.findMany({ where: { userId }, select: recordSelect, orderBy: { name: 'asc' } })
+  return rows.map(toRecord)
+}
+
 export function createCategoryStore(db: Database): CategoryStore {
-  const checkOneRemainder = async (userId: string, category: Omit<Category, 'id'>, exceptId?: string) => {
-    if (category.budgetType !== 'REMAINDER') return
-    const other = await db.category.findFirst({
-      where: { userId, budgetType: 'REMAINDER', ...(exceptId ? { id: { not: exceptId } } : {}) },
-    })
-    if (other) throw new ConflictError(SECOND_REMAINDER)
-  }
-
-  // The other percent-of-income categories plus this one can't go over 100%
-  const checkPercentTotal = async (userId: string, category: Omit<Category, 'id'>, exceptId?: string) => {
-    if (category.budgetType !== 'PERCENT_OF_INCOME' || category.budgetPercent === null) return
-    const others = await db.category.aggregate({
-      where: { userId, budgetType: 'PERCENT_OF_INCOME', ...(exceptId ? { id: { not: exceptId } } : {}) },
-      _sum: { budgetPercentHundredths: true },
-    })
-    const total = (others._sum.budgetPercentHundredths ?? 0) + Math.round(category.budgetPercent * 100)
-    const error = percentTotalError(total)
-    if (error) throw new ConflictError(error)
-  }
-
-  const findOwn = async (userId: string, id: string) => {
-    const row = await db.category.findFirst({ where: { id, userId }, select: fields })
-    return row ? toCategory(row) : null
+  // Saves a record: the category's own fields, and its budget history replaced as a whole
+  const save = async (userId: string, record: CategoryRecord, isNew: boolean) => {
+    const fields = { name: record.name, kind: record.kind, frequencyMonths: record.frequencyMonths, nextDueDate: toDay(record.nextDueDate) }
+    try {
+      await db.$transaction(async (tx) => {
+        if (isNew) {
+          await tx.category.create({ data: { id: record.id, userId, ...fields } })
+        } else {
+          await tx.category.update({ where: { id: record.id }, data: fields })
+          await tx.categoryBudget.deleteMany({ where: { categoryId: record.id } })
+        }
+        await tx.categoryBudget.createMany({ data: record.budgets.map((b) => ({ categoryId: record.id, ...budgetRowData(b) })) })
+      })
+    } catch (error) {
+      if (isDuplicateName(error)) throw new ConflictError(DUPLICATE_NAME)
+      throw error
+    }
   }
 
   return {
-    list: async (userId) => {
-      const rows = await db.category.findMany({ where: { userId }, select: fields, orderBy: { name: 'asc' } })
-      return rows.map(toCategory)
+    list: async (userId, month) => categoriesInMonth(await loadCategoryRecords(db, userId), month),
+
+    create: async (userId, input, month) => {
+      const records = await loadCategoryRecords(db, userId)
+      const record = recordAfterCreate(records, input, month, randomUUID())
+      await save(userId, record, !records.some((r) => r.id === record.id))
+      return categoryInMonth(record, month)!
     },
 
-    create: async (userId, input) => {
-      const category = categoryAfterChange(null, input)
-      await checkOneRemainder(userId, category)
-      await checkPercentTotal(userId, category)
-      try {
-        return toCategory(await db.category.create({ data: { userId, ...toRowData(category) }, select: fields }))
-      } catch (error) {
-        if (isDuplicateName(error)) throw new ConflictError(DUPLICATE_NAME)
-        throw error
-      }
+    update: async (userId, id, changes, month) => {
+      const record = recordAfterUpdate(await loadCategoryRecords(db, userId), id, changes, month)
+      if (!record) return null
+      await save(userId, record, false)
+      return categoryInMonth(record, month)
     },
 
-    update: async (userId, id, changes) => {
-      const existing = await findOwn(userId, id)
-      if (!existing) return null
-      const category = categoryAfterChange(existing, changes)
-      await checkOneRemainder(userId, category, id)
-      await checkPercentTotal(userId, category, id)
-      try {
-        return toCategory(await db.category.update({ where: { id }, data: toRowData(category), select: fields }))
-      } catch (error) {
-        if (isDuplicateName(error)) throw new ConflictError(DUPLICATE_NAME)
-        throw error
-      }
-    },
-
-    // The database leaves the category's transactions in place, uncategorized
-    delete: async (userId, id) => {
-      const { count } = await db.category.deleteMany({ where: { id, userId } })
-      return count > 0
+    delete: async (userId, id, month) => {
+      const result = recordAfterDelete(await loadCategoryRecords(db, userId), id, month)
+      if (result === null) return false
+      // Deleting completely leaves the category's transactions in place, uncategorized
+      if (result === 'delete') await db.category.delete({ where: { id } })
+      else await save(userId, result, false)
+      return true
     },
   }
 }
