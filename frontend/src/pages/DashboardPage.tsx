@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { apiGet } from '../api/client'
-import type { BillStatus, CategorySummary, ExpenseStatus, FundBillStatus, MonthSummary } from '../api/types'
+import type { BillStatus, CategorySummary, ExpenseStatus, FundBillStatus, MonthSummary, SpendingSummary } from '../api/types'
 import { useAuth } from '../auth/useAuth'
 import { formatLongDate } from '../budgetText'
+import { CategoryDonut } from '../components/CategoryDonut'
 import { ProgressBar } from '../components/ProgressBar'
 import { formatMonth, monthOf, shiftMonth, today } from '../dates'
 import { formatCents } from '../money'
@@ -78,6 +79,38 @@ function FundRow({ bill }: { bill: FundBill }) {
         {fund.paidCents !== 0 && ` · paid ${formatCents(fund.paidCents)} from the fund`}
       </div>
     </li>
+  )
+}
+
+// How the month's spending splits across categories. Left out if there's nothing to show.
+function SpendingSplitCard({ month }: { month: string }) {
+  const { getToken } = useAuth()
+  const [spending, setSpending] = useState<SpendingSummary | null>(null)
+
+  useEffect(() => {
+    let current = true
+    getToken()
+      .then((token) => apiGet<SpendingSummary>(`/spending?to=${month}&months=1`, token))
+      .then((loaded) => {
+        if (current) setSpending(loaded)
+      })
+      .catch(() => {
+        if (current) setSpending(null)
+      })
+    return () => {
+      current = false
+    }
+  }, [getToken, month])
+
+  if (!spending?.categories?.length) return null
+  return (
+    <section className="card" aria-labelledby="split-heading">
+      <div className="dash-card-top">
+        <h2 id="split-heading">Where it went</h2>
+        <Link to="/trends">See trends</Link>
+      </div>
+      <CategoryDonut categories={spending.categories} />
+    </section>
   )
 }
 
@@ -232,6 +265,8 @@ export function DashboardPage() {
               )}
             </div>
           </div>
+
+          <SpendingSplitCard month={month} />
         </>
       )}
     </>

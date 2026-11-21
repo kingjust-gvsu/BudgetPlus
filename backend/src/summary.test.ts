@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { createApp } from './app.ts'
 import { DEFAULT_BUDGET_SETTINGS } from './categories.ts'
 import { buildMonthSummary, type SummaryCategory, type SummaryData } from './summary.ts'
-import { createFakeUserStore, fakeDependencies, testUser, VALID_TOKEN } from './test/fakes.ts'
+import { createFakeIncomeStore, fakeDependencies, testUser, VALID_TOKEN } from './test/fakes.ts'
 
 function category(id: string, fields: Partial<SummaryCategory> & Pick<SummaryCategory, 'kind'>): SummaryCategory {
   return { id, name: id, ...DEFAULT_BUDGET_SETTINGS, startMonth: '2026-09', ...fields }
@@ -102,14 +102,18 @@ describe('buildMonthSummary', () => {
 
 describe('GET /api/summary', () => {
   const auth = { Authorization: `Bearer ${VALID_TOKEN}` }
+  const incomeOf400 = createFakeIncomeStore()
+  incomeOf400.data.set(testUser.id, {
+    sources: [{ id: 'job', name: 'Job', amounts: [{ month: '2026-01', amountCents: 400000 }] }],
+    other: new Map(),
+  })
 
   it("returns the signed-in user's summary for the month, using their income", async () => {
     let loaded: { userId: string; month: string } | null = null
     const app = createApp(
       { corsOrigin: 'http://localhost:5173' },
       fakeDependencies({
-        findOrCreateUser: async () => ({ ...testUser, monthlyIncomeCents: 400000 }),
-        users: createFakeUserStore(),
+        income: incomeOf400,
         summary: {
           load: async (userId, month) => {
             loaded = { userId, month }

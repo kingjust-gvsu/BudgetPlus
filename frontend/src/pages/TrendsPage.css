@@ -1,0 +1,26 @@
+/* Trends */
+
+.range-toggle {
+  display: flex;
+}
+
+.range-toggle .button {
+  border-radius: 0;
+  margin-left: -1px;
+}
+
+.range-toggle .button:first-child {
+  margin-left: 0;
+  border-radius: 8px 0 0 8px;
+}
+
+.range-toggle .button:last-child {
+  border-radius: 0 8px 8px 0;
+}
+
+.range-toggle .button[aria-pressed='true'] {
+  position: relative;
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #ffffff;
+}

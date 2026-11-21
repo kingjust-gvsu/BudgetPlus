@@ -1,0 +1,99 @@
+/* The Income card on Budget setup: a month's income sources, Other, and the total */
+
+.income-top {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.income-top h2 {
+  margin: 0;
+}
+
+.income-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.income-item {
+  display: grid;
+  grid-template-columns: minmax(120px, 220px) 130px 1fr auto;
+  align-items: center;
+  gap: 4px 16px;
+  min-height: 48px;
+  border-top: 1px solid #ececea;
+}
+
+.income-item.editing {
+  display: block;
+  padding: 8px 12px;
+  margin: 0 -12px;
+  background: #f3f6fd;
+}
+
+.income-name {
+  font-weight: 500;
+}
+
+/* Name and amount sit together on the left; Edit and Delete go to the right edge */
+.income-amount {
+  grid-column: 2;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.income-total {
+  border-top: 2px solid var(--color-border);
+  font-weight: 600;
+}
+
+.income-total .income-name,
+.income-total .income-amount {
+  font-weight: 600;
+}
+
+.income-edit {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.income-edit .input {
+  font: inherit;
+  min-height: 44px;
+  box-sizing: border-box;
+  padding: 0 12px;
+  border: 1px solid #d0d0ca;
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.income-edit-note {
+  flex-basis: 100%;
+}
+
+.income-add {
+  margin-top: 12px;
+}
+
+@media (max-width: 560px) {
+  .income-item {
+    grid-template-columns: 1fr auto;
+    padding: 8px 0;
+  }
+
+  .income-amount {
+    grid-column: auto;
+  }
+}
+
+.income-item .row-actions {
+  grid-column: 4;
+  justify-self: end;
+}

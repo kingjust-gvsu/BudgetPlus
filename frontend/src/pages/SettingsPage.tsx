@@ -9,7 +9,8 @@ import './SettingsPage.css'
 type BackupFile = {
   name: string
   contents: unknown
-  monthlyIncomeCents: number | null
+  // A short description of the income in the file, e.g. "2 income sources"
+  income: string | null
   categories: number
   transactions: number
   firstDate: string | null
@@ -17,6 +18,14 @@ type BackupFile = {
 }
 
 type RestoreResult = { categories: number; transactions: number }
+
+// Version 1 files have one monthly income; version 2 files have income sources by month
+function describeIncome(data: Record<string, unknown>): string | null {
+  if (typeof data.monthlyIncomeCents === 'number') return `income of ${formatCents(data.monthlyIncomeCents)} a month`
+  const sources = (data.income as { sources?: unknown } | undefined)?.sources
+  if (!Array.isArray(sources) || sources.length === 0) return null
+  return sources.length === 1 ? '1 income source' : `${sources.length} income sources`
+}
 
 // Reads just enough of a backup file to describe it; the server checks everything properly
 function describeBackup(name: string, text: string): BackupFile | string {
@@ -34,7 +43,7 @@ function describeBackup(name: string, text: string): BackupFile | string {
   return {
     name,
     contents,
-    monthlyIncomeCents: typeof data.monthlyIncomeCents === 'number' ? data.monthlyIncomeCents : null,
+    income: describeIncome(data),
     categories: categories.length,
     transactions: transactions.length,
     firstDate: dates[0] ?? null,
@@ -135,7 +144,7 @@ export function SettingsPage() {
               <strong>{backupFile.name}</strong> has {backupFile.categories} categories and {backupFile.transactions}{' '}
               transactions
               {backupFile.firstDate && backupFile.lastDate && ` from ${backupFile.firstDate} to ${backupFile.lastDate}`}
-              {backupFile.monthlyIncomeCents !== null && `, with income of ${formatCents(backupFile.monthlyIncomeCents)} a month`}.
+              {backupFile.income !== null && `, with ${backupFile.income}`}.
             </p>
             <button type="button" className="button button-danger" onClick={restore} disabled={restoring}>
               {restoring ? 'Replacing…' : 'Replace my data with this backup'}

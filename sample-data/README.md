@@ -10,6 +10,7 @@ These replace all of your data, including income and categories, so there's noth
 | --- | --- |
 | `full-budget-3-months.json` | The $4,000 budget below with Sep–Nov 2026 transactions. |
 | `full-budget-12-months.json` | The same budget plus Car registration and Gifts, with a year of transactions (Dec 2025 – Nov 2026). |
+| `full-budget-5-years.json` | Five years (Dec 2021 – Nov 2026) for the Trends page: two incomes with raises, a second job starting in 2024, yearly bonuses and tax refunds as Other income, seasonal electric bills, rent going up each year, slowly rising prices, December gift spikes, refunds, and big purchases like a couch, vacations, and car repairs. Adds Car repairs and Travel categories. |
 
 ## CSV files
 

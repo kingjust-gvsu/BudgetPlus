@@ -8,9 +8,15 @@ import { fakeDependencies, testUser, VALID_TOKEN } from './test/fakes.ts'
 
 const valid = {
   format: 'budget-plus-backup',
-  version: 1,
+  version: 2,
   exportedAt: '2026-11-13T21:04:00.000Z',
-  monthlyIncomeCents: 400000,
+  income: {
+    sources: [
+      { name: 'Job', amounts: [{ month: '2026-09', amountCents: 300000 }, { month: '2026-03', amountCents: 280000 }] },
+      { name: 'Side gig', amounts: [{ month: '2026-06', amountCents: 50000 }] },
+    ],
+    other: [{ month: '2026-09', amountCents: 150000 }],
+  },
   categories: [
     { name: 'Rent', kind: 'BILL', budgetCents: 120000, createdOn: '2026-09-01' },
     { name: 'Car insurance', kind: 'BILL', budgetCents: 60000, frequencyMonths: 6, nextDueDate: '2027-03-15', createdOn: '2026-03-01' },
@@ -41,11 +47,24 @@ describe('parseBackup', () => {
       createdOn: '2026-09-01',
     })
     expect(backup.transactions).toHaveLength(3)
+    // Amounts come back oldest first
+    expect(backup.income.sources[0].amounts.map((a) => a.month)).toEqual(['2026-03', '2026-09'])
+  })
+
+  it("turns a version 1 backup's single income into a source starting with its earliest data", () => {
+    const { income: _income, ...version1 } = valid
+    const backup = parseBackup({ ...version1, version: 1, monthlyIncomeCents: 400000 })
+
+    expect(backup.version).toBe(2)
+    // The car insurance category was added in March 2026, before any transaction
+    expect(backup.income).toEqual({ sources: [{ name: 'Income', amounts: [{ month: '2026-03', amountCents: 400000 }] }], other: [] })
   })
 
   it.each([
     ['not a backup', { hello: 'world' }, "This isn't a Budget+ backup file"],
-    ['a newer version', withChanges({ version: 2 }), 'This backup is version 2; only version 1 can be restored'],
+    ['a newer version', withChanges({ version: 3 }), 'This backup is version 3; only versions 1 and 2 can be restored'],
+    ['two income sources with the same name', withChanges({ income: { sources: [{ name: 'Job', amounts: [] }, { name: 'Job', amounts: [] }] } }), 'Two income sources are named "Job"'],
+    ['the same month twice for a source', withChanges({ income: { sources: [{ name: 'Job', amounts: [{ month: '2026-01', amountCents: 1 }, { month: '2026-01', amountCents: 2 }] }] } }), 'Income source "Job" has 2026-01 twice'],
     ['a bill with a percent budget', withChanges({ categories: [{ name: 'Rent', kind: 'BILL', budgetType: 'PERCENT_OF_INCOME', budgetPercent: 10 }] }), 'Category 1: Bills use a fixed estimate'],
     ['a non-monthly bill without a due date', withChanges({ categories: [{ name: 'Insurance', kind: 'BILL', budgetCents: 600, frequencyMonths: 6 }] }), "Category 1: Enter when a bill that isn't monthly is next due"],
     ['two categories with the same name', withChanges({ categories: [{ name: 'Gas', kind: 'EXPENSE' }, { name: 'Gas', kind: 'BILL' }], transactions: [] }), 'Two categories are named "Gas"'],
@@ -62,6 +81,7 @@ describe('sample backups', () => {
   it.each([
     ['full-budget-3-months.json', 11, 72],
     ['full-budget-12-months.json', 13, 289],
+    ['full-budget-5-years.json', 15, 1699],
   ])('sample-data/%s is a valid backup', (name, categories, transactions) => {
     // Tests run from the backend folder; sample-data/ sits beside it
     const file = JSON.parse(readFileSync(resolve(process.cwd(), '../sample-data', name), 'utf-8'))
@@ -96,7 +116,7 @@ describe('/api/backup', () => {
 
     expect(response.status).toBe(200)
     expect(response.body).toEqual({ categories: 4, transactions: 3 })
-    expect(restore).toHaveBeenCalledWith(testUser.id, expect.objectContaining({ monthlyIncomeCents: 400000 }))
+    expect(restore).toHaveBeenCalledWith(testUser.id, expect.objectContaining({ income: expect.objectContaining({ other: [{ month: '2026-09', amountCents: 150000 }] }) }))
   })
 
   it('changes nothing when the backup has a problem', async () => {

@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { MonthSummary } from '../api/types'
+import type { MonthSummary, SpendingSummary } from '../api/types'
 import { AuthContext, type AuthState } from '../auth/authContext'
 import { monthOf, shiftMonth, today } from '../dates'
 import { DashboardPage } from './DashboardPage'
@@ -47,8 +47,16 @@ const october: MonthSummary = {
 
 let fetchMock: ReturnType<typeof vi.fn>
 
+const spending: SpendingSummary = {
+  months: [{ month: '2026-10', billsCents: 120000, expensesCents: 30000, incomeCents: 400000 }],
+  categories: [
+    { id: 'rent', name: 'Rent', kind: 'BILL', spentCents: 120000, byMonthCents: [120000] },
+    { id: 'groceries', name: 'Groceries', kind: 'EXPENSE', spentCents: 30000, byMonthCents: [30000] },
+  ],
+}
+
 function renderDashboard(summary: MonthSummary = october) {
-  fetchMock = vi.fn(() => Promise.resolve(Response.json(summary)))
+  fetchMock = vi.fn((url: string) => Promise.resolve(Response.json(url.startsWith('/api/spending') ? spending : summary)))
   vi.stubGlobal('fetch', fetchMock)
   const auth: AuthState = {
     user: { email: 'test@example.com', displayName: 'Test User' },
@@ -76,6 +84,16 @@ describe('DashboardPage', () => {
     vi.unstubAllGlobals()
   })
 
+  it("shows how the month's spending splits across categories", async () => {
+    renderDashboard()
+
+    expect(await screen.findByRole('heading', { name: 'Where it went' })).toBeInTheDocument()
+    const rent = screen.getByText('Rent', { selector: '.donut-legend-name' }).closest('li')!
+    expect(rent).toHaveTextContent('Rent$1,200.0080%')
+    expect(screen.getByRole('link', { name: 'See trends' })).toHaveAttribute('href', '/trends')
+    expect(fetchMock).toHaveBeenCalledWith(`/api/spending?to=${thisMonth}&months=1`, expect.anything())
+  })
+
   it("loads this month's summary", async () => {
     renderDashboard()
     await screen.findByText('Groceries')
@@ -96,11 +114,13 @@ describe('DashboardPage', () => {
 
   it('shows expenses as left or over their limit', async () => {
     renderDashboard()
-    await screen.findByText('Groceries')
+    // Groceries is also in the spending donut, so look only in the Expenses card
+    const expenses = within(await screen.findByRole('region', { name: 'Expenses' }))
+    const expenseRow = (name: string) => expenses.getByText(name).closest('li')!
 
-    expect(within(row('Groceries')).getByText('$170.00 left')).toBeInTheDocument()
-    expect(within(row('Gas')).getByText('$12.00 over')).toBeInTheDocument()
-    expect(within(row('Gifts')).getByText('No limit set')).toBeInTheDocument()
+    expect(within(expenseRow('Groceries')).getByText('$170.00 left')).toBeInTheDocument()
+    expect(within(expenseRow('Gas')).getByText('$12.00 over')).toBeInTheDocument()
+    expect(within(expenseRow('Gifts')).getByText('No limit set')).toBeInTheDocument()
   })
 
   it('shows bills neutrally as paid or pending', async () => {

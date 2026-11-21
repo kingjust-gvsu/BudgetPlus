@@ -26,15 +26,15 @@ enum BudgetType {
 }
 
 model User {
-  id                 String        @id @default(uuid()) @db.Uuid
+  id            String         @id @default(uuid()) @db.Uuid
   // Sign-up and login are handled by Firebase; this links our data to the Firebase account.
-  firebaseUid        String        @unique @map("firebase_uid")
-  email              String?
-  // Estimated monthly income in whole cents; null until the user enters it
-  monthlyIncomeCents Int?          @map("monthly_income_cents")
-  createdAt          DateTime      @default(now()) @map("created_at")
-  categories         Category[]
-  transactions       Transaction[]
+  firebaseUid   String         @unique @map("firebase_uid")
+  email         String?
+  createdAt     DateTime       @default(now()) @map("created_at")
+  categories    Category[]
+  transactions  Transaction[]
+  incomeSources IncomeSource[]
+  otherIncome   OtherIncome[]
 
   @@map("users")
 }
@@ -76,4 +76,40 @@ model Transaction {
 
   @@index([userId, date])
   @@map("transactions")
+}
+
+// A regular source of income, like a job. Its amount carries over from month to month: each month
+// uses the most recent amount set in that month or before it.
+model IncomeSource {
+  id        String         @id @default(uuid()) @db.Uuid
+  userId    String         @map("user_id") @db.Uuid
+  name      String
+  createdAt DateTime       @default(now()) @map("created_at")
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amounts   IncomeAmount[]
+
+  @@unique([userId, name])
+  @@map("income_sources")
+}
+
+// An income source's amount from `month` (YYYY-MM) on, until a later month sets a new one
+model IncomeAmount {
+  sourceId    String       @map("source_id") @db.Uuid
+  month       String       @db.Char(7)
+  amountCents Int          @map("amount_cents")
+  source      IncomeSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+
+  @@id([sourceId, month])
+  @@map("income_amounts")
+}
+
+// One-off income for a single month (a bonus, a tax refund). Unlike sources, it doesn't carry over.
+model OtherIncome {
+  userId      String @map("user_id") @db.Uuid
+  month       String @db.Char(7)
+  amountCents Int    @map("amount_cents")
+  user        User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, month])
+  @@map("other_income")
 }
