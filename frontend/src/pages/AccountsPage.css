@@ -1,0 +1,22 @@
+/* The Accounts page: each account with its balance, and the total */
+
+.accounts-table .account-name {
+  font-weight: 500;
+}
+
+.accounts-table .account-balance {
+  font-weight: 600;
+}
+
+.accounts-total th,
+.accounts-total td {
+  padding: 10px 8px;
+  border-top: 2px solid var(--color-border);
+  font-weight: 600;
+  text-align: left;
+}
+
+.accounts-total td.amount {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}

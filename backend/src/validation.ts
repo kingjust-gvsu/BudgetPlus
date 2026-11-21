@@ -87,6 +87,17 @@ export function requireBudgetCents(value: unknown, field: string): number {
   return value
 }
 
+// An account balance in whole cents: zero, positive, or negative (what's owed)
+export function requireBalanceCents(value: unknown, field: string): number {
+  if (typeof value !== 'number' || !Number.isInteger(value)) {
+    throw new ValidationError(`${field} must be a whole number of cents`)
+  }
+  if (Math.abs(value) > MAX_CENTS) {
+    throw new ValidationError(`${field} is too large`)
+  }
+  return value
+}
+
 // A percent above 0 and up to 100, with at most two decimal places (12.5 or 12.25)
 export function requirePercent(value: unknown, field: string): number {
   if (typeof value !== 'number' || !(value > 0 && value <= 100)) {

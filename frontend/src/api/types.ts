@@ -41,9 +41,27 @@ export type Transaction = {
   description: string
   amountCents: number // positive = spent, negative = money back
   categoryId: string | null
+  accountId: string
 }
 
-export type TransactionInput = Omit<Transaction, 'id'>
+// Without an account, the API puts a transaction in the main bank account
+export type TransactionInput = Omit<Transaction, 'id' | 'accountId'> & { accountId?: string }
+
+// GET /api/accounts: where money is kept, each with its balance. Balances are what you have, so a
+// credit card's is negative (what you owe).
+export type AccountType = 'BANK' | 'CREDIT_CARD' | 'FUND'
+
+export type AccountInput = {
+  name: string
+  type: AccountType
+  startingBalanceCents: number
+  startDate: string // YYYY-MM-DD: the day the starting balance is from
+}
+
+export type Account = AccountInput & {
+  id: string
+  balanceCents: number // the starting balance plus everything from the start date on
+}
 
 // GET /api/summary?month=YYYY-MM: one month at a glance
 
