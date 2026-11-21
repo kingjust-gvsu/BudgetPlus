@@ -1,16 +1,18 @@
 import { useMemo, useState } from 'react'
 import { ApiError, apiSend } from '../api/client'
-import type { Category } from '../api/types'
+import type { Account, Category } from '../api/types'
 import { useAuth } from '../auth/useAuth'
 import { guessMapping, previewImport, type ColumnMapping, type CsvFile } from '../csvImport'
 import { formatDay } from '../dates'
 import { formatCents } from '../money'
+import { categoryLabel } from '../transactionInput'
 import './CsvImport.css'
 
 type Props = {
   fileName: string
   file: CsvFile // the file the user picked, already read
   categories: Category[]
+  accounts: Account[]
   // Called after a successful import with a message to show
   onImported: (message: string) => void
   onCancel: () => void
@@ -22,14 +24,21 @@ const PREVIEW_ROWS = 8
 
 // Import transactions from a CSV file the user picked: say which column is which, check the
 // preview, then import.
-export function CsvImport({ fileName, file, categories, onImported, onCancel }: Props) {
+export function CsvImport({ fileName, file, categories, accounts, onImported, onCancel }: Props) {
   const { getToken } = useAuth()
-  const [mapping, setMapping] = useState<ColumnMapping>(() => guessMapping(file))
+  const [mapping, setMapping] = useState<ColumnMapping>(() => guessMapping(file, accounts))
   const [error, setError] = useState<string | null>(null)
   const [importing, setImporting] = useState(false)
 
-  const preview = useMemo(() => previewImport(file, mapping, categories), [file, mapping, categories])
-  const categoryName = (id: string | null) => categories.find((c) => c.id === id)?.name
+  const preview = useMemo(() => previewImport(file, mapping, categories, accounts), [file, mapping, categories, accounts])
+  const showAccount = accounts.length > 1
+  const accountName = (id: string | undefined) => accounts.find((a) => a.id === id)?.name
+  // The Account picker's value: an account id, or "column:<header>"
+  const accountChoice = mapping.accountColumn ? `column:${mapping.accountColumn}` : mapping.accountId
+  const chooseAccount = (value: string) =>
+    value.startsWith('column:')
+      ? update({ accountColumn: value.slice('column:'.length) })
+      : update({ accountColumn: null, accountId: value })
 
   const update = (changes: Partial<ColumnMapping>) => setMapping({ ...mapping, ...changes })
 
@@ -98,6 +107,25 @@ export function CsvImport({ fileName, file, categories, onImported, onCancel }: 
             {headerOptions}
           </select>
         </div>
+        {showAccount && (
+          <div className="field">
+            <label htmlFor="csv-account">Account</label>
+            <select id="csv-account" value={accountChoice} onChange={(e) => chooseAccount(e.target.value)}>
+              {accounts.map((account) => (
+                <option key={account.id} value={account.id}>
+                  {account.name}
+                </option>
+              ))}
+              <optgroup label="From a column">
+                {file.headers.map((h) => (
+                  <option key={h} value={`column:${h}`}>
+                    {h}
+                  </option>
+                ))}
+              </optgroup>
+            </select>
+          </div>
+        )}
       </div>
       <label className="csv-checkbox">
         <input type="checkbox" checked={mapping.invertAmounts} onChange={(e) => update({ invertAmounts: e.target.checked })} />
@@ -132,6 +160,7 @@ export function CsvImport({ fileName, file, categories, onImported, onCancel }: 
               <tr>
                 <th scope="col">Date</th>
                 <th scope="col">Description</th>
+                {showAccount && <th scope="col">Account</th>}
                 <th scope="col">Category</th>
                 <th scope="col" className="amount">
                   Amount
@@ -143,7 +172,12 @@ export function CsvImport({ fileName, file, categories, onImported, onCancel }: 
                 <tr key={row.line}>
                   <td>{formatDay(row.date)}</td>
                   <td>{row.description}</td>
-                  <td>{categoryName(row.categoryId) ?? <span className="muted">Uncategorized</span>}</td>
+                  {showAccount && <td>{accountName(row.accountId)}</td>}
+                  <td>
+                    {categoryLabel({ ...row, accountId: row.accountId ?? '', transferAccountId: row.transferAccountId ?? null }, categories, accounts) ?? (
+                      <span className="muted">Uncategorized</span>
+                    )}
+                  </td>
                   <td className="amount">{formatCents(row.amountCents)}</td>
                 </tr>
               ))}

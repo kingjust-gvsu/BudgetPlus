@@ -535,3 +535,11 @@ h2 {
   align-items: center;
   gap: 12px;
 }
+
+/* Transactions: which account's transactions to show */
+.transactions-filter {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
