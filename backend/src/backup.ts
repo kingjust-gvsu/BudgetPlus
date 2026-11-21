@@ -1,9 +1,13 @@
 import {
   BUDGET_TYPES,
+  budgetRowData,
   CATEGORY_KINDS,
+  categoriesInMonth,
   categoryAfterChange,
   percentTotalError,
   SECOND_REMAINDER,
+  toRecord,
+  type BudgetVersion,
   type Category,
 } from './categories.ts'
 import type { Database } from './db.ts'
@@ -26,15 +30,18 @@ import {
 // into any account. Restoring replaces everything the user had.
 
 export const BACKUP_FORMAT = 'budget-plus-backup'
-// Version 2 keeps income month by month; version 1 files (one monthly income) can still be restored
-export const BACKUP_VERSION = 2
+// Version 3 keeps each category's budget history; version 2 added income by month. Older files can
+// still be restored: their one budget per category starts in the month the category was added.
+export const BACKUP_VERSION = 3
 const MAX_INCOME_ROWS = 2000
 const MAX_CATEGORIES = 500
 const MAX_TRANSACTIONS = 20000
 
-export type BackupCategory = Omit<Category, 'id'> & {
-  // When the category was added; bills that aren't monthly start saving from here
+export type BackupCategory = Pick<Category, 'name' | 'kind' | 'frequencyMonths' | 'nextDueDate'> & {
+  // When the category was added
   createdOn: string
+  // Every budget it has had, oldest first, each from its month on; the first is when it starts
+  budgets: BudgetVersion[]
 }
 
 export type BackupTransaction = {
@@ -64,8 +71,8 @@ export type Backup = {
 export function parseBackup(raw: unknown): Backup {
   const body = requireObject(raw)
   if (body.format !== BACKUP_FORMAT) throw new ValidationError("This isn't a Budget+ backup file")
-  if (body.version !== 1 && body.version !== BACKUP_VERSION) {
-    throw new ValidationError(`This backup is version ${String(body.version)}; only versions 1 and ${BACKUP_VERSION} can be restored`)
+  if (body.version !== 1 && body.version !== 2 && body.version !== BACKUP_VERSION) {
+    throw new ValidationError(`This backup is version ${String(body.version)}; only versions 1 to ${BACKUP_VERSION} can be restored`)
   }
 
   if (!Array.isArray(body.categories)) throw new ValidationError('The backup has no categories list')
@@ -74,17 +81,55 @@ export function parseBackup(raw: unknown): Backup {
     const where = (message: string) => new ValidationError(`Category ${index + 1}: ${message}`)
     try {
       const c = requireObject(raw)
-      // Same rules as creating a category through the app
-      const settled = categoryAfterChange(null, {
-        name: requireText(c.name, 'Name', 100),
-        kind: requireOneOf(c.kind, 'Kind', CATEGORY_KINDS),
-        budgetType: c.budgetType === undefined ? undefined : requireOneOf(c.budgetType, 'Budget type', BUDGET_TYPES),
-        budgetCents: c.budgetCents === undefined ? undefined : nullable(c.budgetCents, (v) => requireBudgetCents(v, 'Budget amount')),
-        budgetPercent: c.budgetPercent === undefined ? undefined : nullable(c.budgetPercent, (v) => requirePercent(v, 'Budget percent')),
+      const name = requireText(c.name, 'Name', 100)
+      const kind = requireOneOf(c.kind, 'Kind', CATEGORY_KINDS)
+      const schedule = {
         frequencyMonths: c.frequencyMonths === undefined ? undefined : requireFrequencyMonths(c.frequencyMonths, 'Frequency'),
         nextDueDate: c.nextDueDate === undefined ? undefined : nullable(c.nextDueDate, (v) => requireDate(v, 'Next due date')),
-      })
-      return { ...settled, createdOn: c.createdOn === undefined ? new Date().toISOString().slice(0, 10) : requireDate(c.createdOn, 'Created on') }
+      }
+      const createdOn = c.createdOn === undefined ? null : requireDate(c.createdOn, 'Created on')
+      // Same rules as setting a budget through the app
+      const settle = (b: Record<string, unknown>) =>
+        categoryAfterChange(null, {
+          name,
+          kind,
+          ...schedule,
+          budgetType: b.budgetType === undefined ? undefined : requireOneOf(b.budgetType, 'Budget type', BUDGET_TYPES),
+          budgetCents: b.budgetCents === undefined ? undefined : nullable(b.budgetCents, (v) => requireBudgetCents(v, 'Budget amount')),
+          budgetPercent: b.budgetPercent === undefined ? undefined : nullable(b.budgetPercent, (v) => requirePercent(v, 'Budget percent')),
+        })
+
+      let budgets: BudgetVersion[]
+      let settled: Omit<Category, 'id'>
+      if (body.version === 3) {
+        if (!Array.isArray(c.budgets) || c.budgets.length === 0) throw new ValidationError('No budgets list')
+        settled = settle({})
+        budgets = c.budgets.map((item: unknown): BudgetVersion => {
+          const b = requireObject(item)
+          const month = requireMonth(b.month, 'Budget month')
+          if (b.stopped === true) return { month, stopped: true, budgetType: 'FIXED', budgetCents: null, budgetPercent: null }
+          const { budgetType, budgetCents, budgetPercent } = settle(b)
+          return { month, stopped: false, budgetType, budgetCents, budgetPercent }
+        })
+        for (let i = 1; i < budgets.length; i++) {
+          if (budgets[i].month <= budgets[i - 1].month) throw new ValidationError('Budgets must be in month order, each month once')
+        }
+        if (budgets[0].stopped) throw new ValidationError("A category can't start out removed")
+      } else {
+        // Older backups have one budget, from the month the category was added
+        settled = settle(c)
+        const { budgetType, budgetCents, budgetPercent } = settled
+        const month = (createdOn ?? new Date().toISOString().slice(0, 10)).slice(0, 7)
+        budgets = [{ month, stopped: false, budgetType, budgetCents, budgetPercent }]
+      }
+      return {
+        name,
+        kind,
+        frequencyMonths: settled.frequencyMonths,
+        nextDueDate: settled.nextDueDate,
+        createdOn: createdOn ?? `${budgets[0].month}-01`,
+        budgets,
+      }
     } catch (error) {
       if (error instanceof ValidationError) throw where(error.message)
       throw error
@@ -97,10 +142,15 @@ export function parseBackup(raw: unknown): Backup {
     if (names.has(category.name)) throw new ValidationError(`Two categories are named "${category.name}"`)
     names.add(category.name)
   }
-  if (categories.filter((c) => c.budgetType === 'REMAINDER').length > 1) throw new ValidationError(SECOND_REMAINDER)
-  const percentHundredths = categories.reduce((sum, c) => sum + Math.round((c.budgetPercent ?? 0) * 100), 0)
-  const percentError = percentTotalError(percentHundredths)
-  if (percentError) throw new ValidationError(percentError)
+  // In every month a budget changes: one remainder, and percent budgets of at most 100%
+  const records = categories.map((c, i) => ({ ...c, id: String(i) }))
+  const changeMonths = [...new Set(categories.flatMap((c) => c.budgets.map((b) => b.month)))].sort()
+  for (const month of changeMonths) {
+    const plan = categoriesInMonth(records, month)
+    if (plan.filter((c) => c.budgetType === 'REMAINDER').length > 1) throw new ValidationError(`${month}: ${SECOND_REMAINDER}`)
+    const percentError = percentTotalError(plan.reduce((sum, c) => sum + Math.round((c.budgetPercent ?? 0) * 100), 0))
+    if (percentError) throw new ValidationError(`${month}: ${percentError}`)
+  }
 
   if (!Array.isArray(body.transactions)) throw new ValidationError('The backup has no transactions list')
   if (body.transactions.length > MAX_TRANSACTIONS) throw new ValidationError(`A backup can have at most ${MAX_TRANSACTIONS} transactions`)
@@ -192,7 +242,22 @@ export function createBackupStore(db: Database): BackupStore {
         select: { name: true, amounts: { orderBy: { month: 'asc' }, select: { month: true, amountCents: true } } },
       })
       const other = await db.otherIncome.findMany({ where: { userId }, orderBy: { month: 'asc' }, select: { month: true, amountCents: true } })
-      const categories = await db.category.findMany({ where: { userId }, orderBy: { name: 'asc' } })
+      const categories = await db.category.findMany({
+        where: { userId },
+        orderBy: { name: 'asc' },
+        select: {
+          id: true,
+          name: true,
+          kind: true,
+          frequencyMonths: true,
+          nextDueDate: true,
+          createdAt: true,
+          budgets: {
+            orderBy: { month: 'asc' },
+            select: { month: true, stopped: true, budgetType: true, budgetCents: true, budgetPercentHundredths: true },
+          },
+        },
+      })
       const transactions = await db.transaction.findMany({
         where: { userId },
         orderBy: [{ date: 'asc' }, { createdAt: 'asc' }],
@@ -203,16 +268,17 @@ export function createBackupStore(db: Database): BackupStore {
         version: BACKUP_VERSION,
         exportedAt: new Date().toISOString(),
         income: { sources, other },
-        categories: categories.map((c) => ({
-          name: c.name,
-          kind: c.kind,
-          budgetType: c.budgetType,
-          budgetCents: c.budgetCents,
-          budgetPercent: c.budgetPercentHundredths === null ? null : c.budgetPercentHundredths / 100,
-          frequencyMonths: c.frequencyMonths,
-          nextDueDate: c.nextDueDate ? day(c.nextDueDate) : null,
-          createdOn: day(c.createdAt),
-        })),
+        categories: categories.map((c) => {
+          const record = toRecord(c)
+          return {
+            name: record.name,
+            kind: record.kind,
+            frequencyMonths: record.frequencyMonths,
+            nextDueDate: record.nextDueDate,
+            createdOn: day(c.createdAt),
+            budgets: record.budgets,
+          }
+        }),
         transactions: transactions.map((t) => ({
           date: day(t.date),
           description: t.description,
@@ -241,12 +307,10 @@ export function createBackupStore(db: Database): BackupStore {
               userId,
               name: c.name,
               kind: c.kind,
-              budgetType: c.budgetType,
-              budgetCents: c.budgetCents,
-              budgetPercentHundredths: c.budgetPercent === null ? null : Math.round(c.budgetPercent * 100),
               frequencyMonths: c.frequencyMonths,
               nextDueDate: c.nextDueDate ? toDay(c.nextDueDate) : null,
               createdAt: toDay(c.createdOn),
+              budgets: { create: c.budgets.map(budgetRowData) },
             },
             select: { id: true },
           })

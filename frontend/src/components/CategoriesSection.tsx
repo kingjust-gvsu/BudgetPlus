@@ -17,10 +17,14 @@ import { BudgetInputs } from './BudgetInputs'
 import { HelpTip } from './HelpTip'
 import { PercentSlider } from './PercentSlider'
 import { EditCategoryRow } from './EditCategoryRow'
+import { formatMonth, monthOf, today } from '../dates'
 
 const KIND_LABELS: Record<CategoryKind, string> = { BILL: 'Bill', EXPENSE: 'Expense' }
 
 // The user's categories and their budgets: add, edit in place, and delete.
+// Budget setup is always for this month: changes start now, so past months keep their budgets
+const thisMonth = monthOf(today())
+
 export function CategoriesSection() {
   const { getToken } = useAuth()
   const [categories, setCategories] = useState<Category[] | null>(null)
@@ -37,7 +41,7 @@ export function CategoriesSection() {
   useEffect(() => {
     let current = true
     getToken()
-      .then((token) => apiGet<Category[]>('/categories', token))
+      .then((token) => apiGet<Category[]>(`/categories?month=${thisMonth}`, token))
       .then((loaded) => {
         if (!current) return
         setCategories(loaded)
@@ -69,7 +73,7 @@ export function CategoriesSection() {
     if (!addErrors.trySubmit()) return
     setAdding(true)
     try {
-      await apiSend('POST', '/categories', await getToken(), { name: name.trim(), kind, ...readBudgetValues(kind, budget) })
+      await apiSend('POST', '/categories', await getToken(), { name: name.trim(), kind, ...readBudgetValues(kind, budget), month: thisMonth })
       setName('')
       setBudget(EMPTY_BUDGET_VALUES)
       addErrors.reset()
@@ -82,18 +86,17 @@ export function CategoriesSection() {
   }
 
   const update = async (id: string, changes: CategoryChanges) => {
-    await apiSend('PATCH', `/categories/${id}`, await getToken(), changes)
+    await apiSend('PATCH', `/categories/${id}`, await getToken(), { ...changes, month: thisMonth })
     setEditingId(null)
     setVersion((v) => v + 1)
   }
 
   const remove = async (category: Category) => {
-    const confirmed = window.confirm(
-      `Delete "${category.name}"? Its transactions will stay, but they'll become uncategorized.`,
-    )
+    // Removes it from this month on; earlier months keep it and its transactions
+    const confirmed = window.confirm(`Remove "${category.name}" from ${formatMonth(thisMonth)} on? Earlier months keep it.`)
     if (!confirmed) return
     try {
-      await apiSend('DELETE', `/categories/${category.id}`, await getToken())
+      await apiSend('DELETE', `/categories/${category.id}?month=${thisMonth}`, await getToken())
       setVersion((v) => v + 1)
     } catch {
       setLoadError("Couldn't delete that category. Please try again.")

@@ -32,7 +32,7 @@ export function TransactionsPage() {
       .then((token) =>
         Promise.all([
           apiGet<Transaction[]>(`/transactions?month=${month}`, token),
-          apiGet<Category[]>('/categories', token),
+          apiGet<Category[]>(`/categories?month=${month}`, token),
         ]),
       )
       .then(([loadedTransactions, loadedCategories]) => {

@@ -1,4 +1,4 @@
-import type { Category } from './categories.ts'
+import { categoryInMonth, loadCategoryRecords, startMonthOf, type Category } from './categories.ts'
 import type { Database } from './db.ts'
 import { fundForMonth, type FundMonth } from './fund.ts'
 import { monthStatus, type CategoryStatus } from './monthStatus.ts'
@@ -121,18 +121,12 @@ export function createSummaryStore(db: Database): SummaryStore {
   return {
     load: async (userId, month) => {
       const { start, end } = monthRange(month)
-      const rows = await db.category.findMany({ where: { userId }, orderBy: { name: 'asc' } })
-      const categories: SummaryCategory[] = rows.map((row) => ({
-        id: row.id,
-        name: row.name,
-        kind: row.kind,
-        budgetType: row.budgetType,
-        budgetCents: row.budgetCents,
-        budgetPercent: row.budgetPercentHundredths === null ? null : row.budgetPercentHundredths / 100,
-        frequencyMonths: row.frequencyMonths,
-        nextDueDate: row.nextDueDate ? row.nextDueDate.toISOString().slice(0, 10) : null,
-        startMonth: toMonth(row.createdAt),
-      }))
+      // The categories in use this month, with the budgets they had this month
+      const records = await loadCategoryRecords(db, userId)
+      const categories: SummaryCategory[] = records.flatMap((record) => {
+        const category = categoryInMonth(record, month)
+        return category ? [{ ...category, startMonth: startMonthOf(record)! }] : []
+      })
 
       const transactions = await db.transaction.findMany({
         where: { userId, date: { gte: start, lt: end } },

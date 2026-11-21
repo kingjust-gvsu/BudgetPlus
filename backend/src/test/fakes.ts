@@ -2,13 +2,15 @@ import { randomUUID } from 'node:crypto'
 import type { AppDependencies } from '../app.ts'
 import type { AuthenticatedUser } from '../auth.ts'
 import {
-  categoryAfterChange,
+  categoriesInMonth,
+  categoryInMonth,
   DEFAULT_BUDGET_SETTINGS,
-  DUPLICATE_NAME,
-  percentTotalError,
-  SECOND_REMAINDER,
+  recordAfterCreate,
+  recordAfterDelete,
+  recordAfterUpdate,
   type BudgetSettings,
   type Category,
+  type CategoryRecord,
   type CategoryStore,
 } from '../categories.ts'
 import { ConflictError, ValidationError } from '../errors.ts'
@@ -37,68 +39,61 @@ const usersByToken: Record<string, AuthenticatedUser> = {
   [OTHER_USER_TOKEN]: otherUser,
 }
 
-type StoredCategory = Category & { userId: string }
+type StoredCategory = CategoryRecord & { userId: string }
 
 // Tests can give just id, name, and kind; the budget settings default like a new category's.
-type CategorySeed = Omit<StoredCategory, keyof BudgetSettings> & Partial<BudgetSettings>
+// Seeded categories have had their budget since long ago, so they're in use in any month.
+type CategorySeed = Omit<Category, keyof BudgetSettings> & Partial<BudgetSettings> & { userId: string }
 
-// Behaves like the real category store, but keeps everything in memory.
+export const SEEDED_SINCE = '2000-01'
+
+// Behaves like the real category store (it uses the same budget history rules), but keeps
+// everything in memory.
 export function createFakeCategoryStore(seeds: CategorySeed[] = []): CategoryStore & { rows: StoredCategory[] } {
-  // Fill in defaults on the same objects, so other fakes sharing this list see the changes
+  // Turn seeds into records on the same objects, so other fakes sharing this list see changes
   for (const seed of seeds) {
-    for (const [key, value] of Object.entries(DEFAULT_BUDGET_SETTINGS)) {
-      const field = key as keyof BudgetSettings
-      if (seed[field] === undefined) Object.assign(seed, { [field]: value })
-    }
+    const settings = { ...DEFAULT_BUDGET_SETTINGS, ...Object.fromEntries(Object.entries(seed).filter(([, v]) => v !== undefined)) }
+    Object.assign(seed, {
+      frequencyMonths: settings.frequencyMonths,
+      nextDueDate: settings.nextDueDate,
+      budgets: [
+        {
+          month: SEEDED_SINCE,
+          stopped: false,
+          budgetType: settings.budgetType,
+          budgetCents: settings.budgetCents,
+          budgetPercent: settings.budgetPercent,
+        },
+      ],
+    })
   }
-  const rows = seeds as StoredCategory[]
-
-  const toCategory = ({ userId: _userId, ...category }: StoredCategory): Category => category
-  const nameTaken = (userId: string, name: string, exceptId?: string) =>
-    rows.some((r) => r.userId === userId && r.name === name && r.id !== exceptId)
-  const checkOneRemainder = (userId: string, category: Omit<Category, 'id'>, exceptId?: string) => {
-    const other = rows.some((r) => r.userId === userId && r.budgetType === 'REMAINDER' && r.id !== exceptId)
-    if (category.budgetType === 'REMAINDER' && other) throw new ConflictError(SECOND_REMAINDER)
-  }
-  const checkPercentTotal = (userId: string, category: Omit<Category, 'id'>, exceptId?: string) => {
-    if (category.budgetType !== 'PERCENT_OF_INCOME' || category.budgetPercent === null) return
-    const others = rows
-      .filter((r) => r.userId === userId && r.budgetType === 'PERCENT_OF_INCOME' && r.id !== exceptId)
-      .reduce((sum, r) => sum + Math.round((r.budgetPercent ?? 0) * 100), 0)
-    const error = percentTotalError(others + Math.round(category.budgetPercent * 100))
-    if (error) throw new ConflictError(error)
+  const rows = seeds as unknown as StoredCategory[]
+  const recordsOf = (userId: string) => rows.filter((r) => r.userId === userId)
+  const save = (userId: string, record: CategoryRecord) => {
+    const existing = rows.find((r) => r.id === record.id)
+    if (existing) Object.assign(existing, record)
+    else rows.push({ ...record, userId })
   }
 
   return {
     rows,
-    list: async (userId) =>
-      rows
-        .filter((r) => r.userId === userId)
-        .sort((a, b) => a.name.localeCompare(b.name))
-        .map(toCategory),
-    create: async (userId, input) => {
-      const category = categoryAfterChange(null, input)
-      checkOneRemainder(userId, category)
-      checkPercentTotal(userId, category)
-      if (nameTaken(userId, category.name)) throw new ConflictError(DUPLICATE_NAME)
-      const row = { id: randomUUID(), userId, ...category }
-      rows.push(row)
-      return toCategory(row)
+    list: async (userId, month) => categoriesInMonth(recordsOf(userId), month),
+    create: async (userId, input, month) => {
+      const record = recordAfterCreate(recordsOf(userId), input, month, randomUUID())
+      save(userId, record)
+      return categoryInMonth(record, month)!
     },
-    update: async (userId, id, changes) => {
-      const row = rows.find((r) => r.id === id && r.userId === userId)
-      if (!row) return null
-      const category = categoryAfterChange(toCategory(row), changes)
-      checkOneRemainder(userId, category, id)
-      checkPercentTotal(userId, category, id)
-      if (nameTaken(userId, category.name, id)) throw new ConflictError(DUPLICATE_NAME)
-      Object.assign(row, category)
-      return toCategory(row)
+    update: async (userId, id, changes, month) => {
+      const record = recordAfterUpdate(recordsOf(userId), id, changes, month)
+      if (!record) return null
+      save(userId, record)
+      return categoryInMonth(record, month)
     },
-    delete: async (userId, id) => {
-      const index = rows.findIndex((r) => r.id === id && r.userId === userId)
-      if (index === -1) return false
-      rows.splice(index, 1)
+    delete: async (userId, id, month) => {
+      const result = recordAfterDelete(recordsOf(userId), id, month)
+      if (result === null) return false
+      if (result === 'delete') rows.splice(rows.findIndex((r) => r.id === id), 1)
+      else save(userId, result)
       return true
     },
   }

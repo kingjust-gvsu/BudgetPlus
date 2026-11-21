@@ -17,7 +17,7 @@ let fetchMock: ReturnType<typeof vi.fn>
 function fakeApi(url: string, init?: RequestInit) {
   const method = init?.method ?? 'GET'
   if (method === 'GET' && url.startsWith('/api/transactions')) return Response.json(transactions)
-  if (method === 'GET' && url === '/api/categories') return Response.json(categories)
+  if (method === 'GET' && url.startsWith('/api/categories')) return Response.json(categories)
   if (method === 'POST' && url === '/api/transactions') {
     const created = { id: `tx-${transactions.length + 1}`, ...JSON.parse(String(init?.body)) }
     transactions = [created, ...transactions]

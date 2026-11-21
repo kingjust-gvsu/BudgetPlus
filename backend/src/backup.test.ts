@@ -39,12 +39,11 @@ describe('parseBackup', () => {
     expect(backup.categories[0]).toEqual({
       name: 'Rent',
       kind: 'BILL',
-      budgetType: 'FIXED',
-      budgetCents: 120000,
-      budgetPercent: null,
       frequencyMonths: 1,
       nextDueDate: null,
       createdOn: '2026-09-01',
+      // An older backup's one budget starts in the month the category was added
+      budgets: [{ month: '2026-09', stopped: false, budgetType: 'FIXED', budgetCents: 120000, budgetPercent: null }],
     })
     expect(backup.transactions).toHaveLength(3)
     // Amounts come back oldest first
@@ -55,14 +54,49 @@ describe('parseBackup', () => {
     const { income: _income, ...version1 } = valid
     const backup = parseBackup({ ...version1, version: 1, monthlyIncomeCents: 400000 })
 
-    expect(backup.version).toBe(2)
+    expect(backup.version).toBe(3)
     // The car insurance category was added in March 2026, before any transaction
     expect(backup.income).toEqual({ sources: [{ name: 'Income', amounts: [{ month: '2026-03', amountCents: 400000 }] }], other: [] })
   })
 
+  it('reads a version 3 budget history', () => {
+    const backup = parseBackup({
+      ...valid,
+      version: 3,
+      categories: [
+        {
+          name: 'Groceries',
+          kind: 'EXPENSE',
+          createdOn: '2026-01-04',
+          budgets: [
+            { month: '2026-01', budgetCents: 40000 },
+            { month: '2026-06', budgetType: 'PERCENT_OF_INCOME', budgetPercent: 12 },
+            { month: '2026-09', stopped: true },
+          ],
+        },
+      ],
+      transactions: [],
+    })
+
+    expect(backup.categories[0].budgets).toEqual([
+      { month: '2026-01', stopped: false, budgetType: 'FIXED', budgetCents: 40000, budgetPercent: null },
+      { month: '2026-06', stopped: false, budgetType: 'PERCENT_OF_INCOME', budgetCents: null, budgetPercent: 12 },
+      { month: '2026-09', stopped: true, budgetType: 'FIXED', budgetCents: null, budgetPercent: null },
+    ])
+  })
+
+  it('checks the one-remainder rule in each month of a version 3 history', () => {
+    const categories = [
+      { name: 'A', kind: 'EXPENSE', budgets: [{ month: '2026-01', budgetType: 'REMAINDER' }, { month: '2026-05', stopped: true }] },
+      { name: 'B', kind: 'EXPENSE', budgets: [{ month: '2026-03', budgetType: 'REMAINDER' }] },
+    ]
+
+    expect(() => parseBackup({ ...valid, version: 3, categories, transactions: [] })).toThrow('2026-03: Only one category can be the remainder')
+  })
+
   it.each([
     ['not a backup', { hello: 'world' }, "This isn't a Budget+ backup file"],
-    ['a newer version', withChanges({ version: 3 }), 'This backup is version 3; only versions 1 and 2 can be restored'],
+    ['a newer version', withChanges({ version: 4 }), 'This backup is version 4; only versions 1 to 3 can be restored'],
     ['two income sources with the same name', withChanges({ income: { sources: [{ name: 'Job', amounts: [] }, { name: 'Job', amounts: [] }] } }), 'Two income sources are named "Job"'],
     ['the same month twice for a source', withChanges({ income: { sources: [{ name: 'Job', amounts: [{ month: '2026-01', amountCents: 1 }, { month: '2026-01', amountCents: 2 }] }] } }), 'Income source "Job" has 2026-01 twice'],
     ['a bill with a percent budget', withChanges({ categories: [{ name: 'Rent', kind: 'BILL', budgetType: 'PERCENT_OF_INCOME', budgetPercent: 10 }] }), 'Category 1: Bills use a fixed estimate'],
