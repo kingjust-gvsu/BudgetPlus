@@ -66,8 +66,8 @@ function fillForm(fields: { description?: string; amount?: string; category?: st
 describe('TransactionsPage', () => {
   beforeEach(() => {
     transactions = [
-      { id: 'tx-meijer', date: `${thisMonth}-15`, description: 'Meijer', amountCents: 8412, categoryId: 'cat-groceries' },
-      { id: 'tx-refund', date: `${thisMonth}-08`, description: 'Target refund', amountCents: -1800, categoryId: null },
+      { id: 'tx-meijer', date: `${thisMonth}-15`, description: 'Meijer', amountCents: 8412, categoryId: 'cat-groceries', accountId: 'acct-checking' },
+      { id: 'tx-refund', date: `${thisMonth}-08`, description: 'Target refund', amountCents: -1800, categoryId: null, accountId: 'acct-checking' },
     ]
     fetchMock = vi.fn((url: string, init?: RequestInit) => Promise.resolve(fakeApi(url, init)))
     vi.stubGlobal('fetch', fetchMock)

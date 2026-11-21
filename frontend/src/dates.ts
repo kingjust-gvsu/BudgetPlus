@@ -41,3 +41,8 @@ export function formatDay(date: string): string {
   const [, m, d] = date.split('-').map(Number)
   return `${SHORT_MONTH_NAMES[m - 1]} ${d}`
 }
+
+// "2026-10-05" → "Oct 5, 2026"
+export function formatDate(date: string): string {
+  return `${formatDay(date)}, ${date.slice(0, 4)}`
+}

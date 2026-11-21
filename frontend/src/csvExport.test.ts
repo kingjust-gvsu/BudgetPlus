@@ -7,9 +7,9 @@ import { makeCategory } from './test/factories'
 const categories = [makeCategory({ id: 'cat-groceries', name: 'Groceries', kind: 'EXPENSE' })]
 
 const transactions: Transaction[] = [
-  { id: 'tx-1', date: '2026-10-15', description: 'Meijer', amountCents: 8412, categoryId: 'cat-groceries' },
-  { id: 'tx-2', date: '2026-10-08', description: 'Target refund, returned shirt', amountCents: -1800, categoryId: null },
-  { id: 'tx-3', date: '2026-10-20', description: 'Coffee', amountCents: 450, categoryId: null },
+  { id: 'tx-1', date: '2026-10-15', description: 'Meijer', amountCents: 8412, categoryId: 'cat-groceries', accountId: 'acct-checking' },
+  { id: 'tx-2', date: '2026-10-08', description: 'Target refund, returned shirt', amountCents: -1800, categoryId: null, accountId: 'acct-checking' },
+  { id: 'tx-3', date: '2026-10-20', description: 'Coffee', amountCents: 450, categoryId: null, accountId: 'acct-checking' },
 ]
 
 describe('transactionsToCsv', () => {
@@ -30,7 +30,7 @@ describe('transactionsToCsv', () => {
 
     expect(preview.problems).toEqual([])
     expect(preview.ready.map(({ line: _line, ...t }) => t)).toEqual(
-      [...transactions].sort((a, b) => a.date.localeCompare(b.date)).map(({ id: _id, ...t }) => t),
+      [...transactions].sort((a, b) => a.date.localeCompare(b.date)).map(({ id: _id, accountId: _accountId, ...t }) => t),
     )
   })
 })

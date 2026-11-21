@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router'
 import { useAuth } from './auth/useAuth'
 import { Layout } from './components/Layout'
+import { AccountsPage } from './pages/AccountsPage'
 import { BillsPage } from './pages/BillsPage'
 import { BudgetSetupPage } from './pages/BudgetSetupPage'
 import { DashboardPage } from './pages/DashboardPage'
@@ -25,6 +26,7 @@ function App() {
       <Route element={<Layout />}>
         <Route index element={<DashboardPage />} />
         <Route path="transactions" element={<TransactionsPage />} />
+        <Route path="accounts" element={<AccountsPage />} />
         <Route path="bills" element={<BillsPage />} />
         <Route path="trends" element={<TrendsPage />} />
         <Route path="budget-setup" element={<BudgetSetupPage />} />
