@@ -217,7 +217,7 @@ export function parseBackup(raw: unknown): Backup {
   if (!hasAccounts && transactions.length > 0) {
     // Starting at $0 on the first transaction's day
     const startDate = transactions.map((t) => t.date).sort()[0]
-    accounts.push({ name: DEFAULT_ACCOUNT_NAME, type: 'BANK', startingBalanceCents: 0, startDate })
+    accounts.push({ name: DEFAULT_ACCOUNT_NAME, type: 'BANK', startingBalanceCents: 0, startDate, closed: false })
   }
 
   return {
@@ -246,6 +246,7 @@ function parseAccounts(raw: unknown): BackupAccount[] {
         type: requireOneOf(a.type, 'Type', ACCOUNT_TYPES),
         startingBalanceCents: requireBalanceCents(a.startingBalanceCents, 'Starting balance'),
         startDate: requireDate(a.startDate, 'Start date'),
+        closed: a.closed === true,
       }
     } catch (error) {
       if (error instanceof ValidationError) throw new ValidationError(`Account ${index + 1}: ${error.message}`)
@@ -320,7 +321,7 @@ export function createBackupStore(db: Database): BackupStore {
       const accounts = await db.account.findMany({
         where: { userId },
         orderBy: { createdAt: 'asc' },
-        select: { name: true, type: true, startingBalanceCents: true, startDate: true },
+        select: { name: true, type: true, startingBalanceCents: true, startDate: true, closed: true },
       })
       const categories = await db.category.findMany({
         where: { userId },

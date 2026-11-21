@@ -94,9 +94,9 @@ describe('GET /api/accounts', () => {
 
     expect(response.status).toBe(200)
     expect(response.body).toEqual([
-      { id: checkingId, name: 'Checking', type: 'BANK', startingBalanceCents: 500000, startDate: '2026-10-01', balanceCents: 500000 - 120000 + 2500 },
-      { id: cardId, name: 'Amazon Card', type: 'CREDIT_CARD', startingBalanceCents: -20000, startDate: '2026-10-01', balanceCents: -24000 },
-      { id: fundId, name: 'Car insurance fund', type: 'FUND', startingBalanceCents: 94800, startDate: '2026-10-01', balanceCents: 94800 },
+      { id: checkingId, name: 'Checking', type: 'BANK', startingBalanceCents: 500000, startDate: '2026-10-01', closed: false, balanceCents: 500000 - 120000 + 2500 },
+      { id: cardId, name: 'Amazon Card', type: 'CREDIT_CARD', startingBalanceCents: -20000, startDate: '2026-10-01', closed: false, balanceCents: -24000 },
+      { id: fundId, name: 'Car insurance fund', type: 'FUND', startingBalanceCents: 94800, startDate: '2026-10-01', closed: false, balanceCents: 94800 },
     ])
   })
 
@@ -116,7 +116,7 @@ describe('POST /api/accounts', () => {
     const response = await request(app).post('/api/accounts').set(auth).send(newAccount)
 
     expect(response.status).toBe(201)
-    expect(response.body).toEqual({ id: expect.any(String), ...newAccount, balanceCents: 0 })
+    expect(response.body).toEqual({ id: expect.any(String), ...newAccount, closed: false, balanceCents: 0 })
   })
 
   it('allows a negative starting balance, like a fund that went below zero', async () => {
@@ -160,6 +160,24 @@ describe('PATCH /api/accounts/:id', () => {
 
     expect(response.status).toBe(200)
     expect(response.body).toMatchObject({ startingBalanceCents: -10000, balanceCents: -14000 })
+  })
+
+  it('closes an account and reopens it', async () => {
+    const { app } = setup()
+
+    const closed = await request(app).patch(`/api/accounts/${fundId}`).set(auth).send({ closed: true })
+    const reopened = await request(app).patch(`/api/accounts/${fundId}`).set(auth).send({ closed: false })
+
+    expect(closed.body.closed).toBe(true)
+    expect(reopened.body.closed).toBe(false)
+  })
+
+  it('rejects a closed value that is not true or false', async () => {
+    const { app } = setup()
+
+    const response = await request(app).patch(`/api/accounts/${fundId}`).set(auth).send({ closed: 'yes' })
+
+    expect(response.body.error).toBe('Closed must be true or false')
   })
 
   it("can't change another user's account", async () => {

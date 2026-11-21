@@ -165,6 +165,8 @@ model Account {
   startingBalanceCents Int           @map("starting_balance_cents")
   // The day the starting balance is from; earlier transactions don't change the balance
   startDate            DateTime      @map("start_date") @db.Date
+  // A closed account is no longer used: it keeps its transactions but isn't offered for new ones
+  closed               Boolean       @default(false)
   createdAt            DateTime      @default(now()) @map("created_at")
   user                 User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions         Transaction[] @relation("TransactionAccount")

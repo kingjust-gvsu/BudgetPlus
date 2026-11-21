@@ -97,14 +97,14 @@ describe('parseBackup', () => {
   it("puts an older backup's transactions in a Checking account starting on the first transaction's day", () => {
     const backup = parseBackup(valid)
 
-    expect(backup.accounts).toEqual([{ name: 'Checking', type: 'BANK', startingBalanceCents: 0, startDate: '2026-09-01' }])
+    expect(backup.accounts).toEqual([{ name: 'Checking', type: 'BANK', startingBalanceCents: 0, startDate: '2026-09-01', closed: false }])
     expect(backup.transactions.every((t) => t.account === 'Checking')).toBe(true)
   })
 
   it('reads version 4 accounts', () => {
     const accounts = [
       { name: 'Checking', type: 'BANK', startingBalanceCents: 724367, startDate: '2026-01-01' },
-      { name: 'Amazon Card', type: 'CREDIT_CARD', startingBalanceCents: -20000, startDate: '2026-01-01' },
+      { name: 'Amazon Card', type: 'CREDIT_CARD', startingBalanceCents: -20000, startDate: '2026-01-01', closed: true },
     ]
     const transactions = [
       { date: '2026-09-16', description: 'Books', amountCents: 4000, category: null, account: 'Amazon Card' },
@@ -115,7 +115,7 @@ describe('parseBackup', () => {
 
     const backup = parseBackup({ ...valid, version: 4, categories: [], accounts, transactions })
 
-    expect(backup.accounts).toEqual(accounts)
+    expect(backup.accounts).toEqual([{ ...accounts[0], closed: false }, accounts[1]])
     expect(backup.transactions.map((t) => [t.account, t.transferTo])).toEqual([['Amazon Card', null], ['Checking', 'Amazon Card'], ['Checking', null], ['Checking', null]])
     expect(backup.transactions.map((t) => [t.incomeSource, t.otherIncome])).toEqual([[null, false], [null, false], ['Job', false], [null, true]])
   })
