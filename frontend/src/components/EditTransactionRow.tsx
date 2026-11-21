@@ -79,11 +79,13 @@ export function EditTransactionRow({ transaction, categories, accounts, incomeSo
         {showAccount && (
           <td>
             <select className="cell-input" aria-label={label('Account')} value={accountId} onChange={(e) => setAccountId(e.target.value)}>
-              {accounts.map((account) => (
-                <option key={account.id} value={account.id}>
-                  {account.name}
-                </option>
-              ))}
+              {accounts
+                .filter((account) => !account.closed || account.id === transaction.accountId)
+                .map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {account.name}
+                  </option>
+                ))}
             </select>
           </td>
         )}
@@ -94,7 +96,13 @@ export function EditTransactionRow({ transaction, categories, accounts, incomeSo
             value={categoryChoice}
             onChange={(e) => setCategoryChoice(e.target.value)}
           >
-            <CategoryOptions categories={categories} accounts={accounts} incomeSources={incomeSources} accountId={accountId} />
+            <CategoryOptions
+              categories={categories}
+              accounts={accounts}
+              incomeSources={incomeSources}
+              accountId={accountId}
+              currentTransferId={transaction.transferAccountId}
+            />
           </select>
         </td>
         <td className="amount">

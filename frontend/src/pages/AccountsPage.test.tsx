@@ -7,9 +7,9 @@ import { AccountsPage } from './AccountsPage'
 let accounts: Account[]
 let fetchMock: ReturnType<typeof vi.fn>
 
-const checking: Account = { id: 'acct-1', name: 'Checking', type: 'BANK', startingBalanceCents: 500000, startDate: '2026-10-01', balanceCents: 724367 }
-const card: Account = { id: 'acct-2', name: 'Amazon Card', type: 'CREDIT_CARD', startingBalanceCents: -20000, startDate: '2026-10-01', balanceCents: -24000 }
-const fund: Account = { id: 'acct-3', name: 'Mortgage fund', type: 'FUND', startingBalanceCents: 0, startDate: '2026-10-01', balanceCents: -211230 }
+const checking: Account = { id: 'acct-1', name: 'Checking', type: 'BANK', startingBalanceCents: 500000, startDate: '2026-10-01', closed: false, balanceCents: 724367 }
+const card: Account = { id: 'acct-2', name: 'Amazon Card', type: 'CREDIT_CARD', startingBalanceCents: -20000, startDate: '2026-10-01', closed: false, balanceCents: -24000 }
+const fund: Account = { id: 'acct-3', name: 'Mortgage fund', type: 'FUND', startingBalanceCents: 0, startDate: '2026-10-01', closed: false, balanceCents: -211230 }
 
 // A small stand-in for the API: lists accounts, and answers changes the way the real one does
 function fakeApi(url: string, init?: RequestInit): Response {
@@ -117,6 +117,32 @@ describe('AccountsPage', () => {
       url: `/api/accounts/${card.id}`,
       body: { name: 'Amazon Card', type: 'CREDIT_CARD', startingBalanceCents: -15000, startDate: '2026-10-01' },
     })
+  })
+
+  it('closes an account after confirming, mentioning what it still holds', async () => {
+    renderPage()
+    await screen.findByText('Checking')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close Mortgage fund' }))
+
+    expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining('It still has -$2,112.30.'))
+    await vi.waitFor(() => expect(fetchMock.mock.calls.some(([, init]) => init?.method === 'PATCH')).toBe(true))
+    expect(sent('PATCH')).toEqual({ url: `/api/accounts/${fund.id}`, body: { closed: true } })
+  })
+
+  it('lists closed accounts apart, leaving them out of the total, and reopens them', async () => {
+    accounts = [checking, card, { ...fund, closed: true }]
+    renderPage()
+    await screen.findByText('Checking')
+
+    const section = screen.getByRole('region', { name: 'Closed accounts' })
+    expect(within(section).getByText('Mortgage fund')).toBeInTheDocument()
+    expect(screen.getByText('Total').closest('tr')).toHaveTextContent('$7,003.67')
+
+    fireEvent.click(within(section).getByRole('button', { name: 'Reopen Mortgage fund' }))
+
+    await vi.waitFor(() => expect(fetchMock.mock.calls.some(([, init]) => init?.method === 'PATCH')).toBe(true))
+    expect(sent('PATCH').body).toEqual({ closed: false })
   })
 
   it("says why an account with transactions can't be deleted", async () => {

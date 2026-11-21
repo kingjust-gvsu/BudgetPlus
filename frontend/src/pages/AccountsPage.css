@@ -20,3 +20,32 @@
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
+
+/* Closed accounts: a short list under the open ones */
+
+.closed-accounts {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.closed-account {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) 120px 140px auto;
+  align-items: center;
+  gap: 4px 16px;
+  min-height: 44px;
+  border-top: 1px solid #ececea;
+}
+
+.closed-account-balance {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 560px) {
+  .closed-account {
+    grid-template-columns: 1fr auto;
+    padding: 8px 0;
+  }
+}

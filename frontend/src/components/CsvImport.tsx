@@ -32,7 +32,8 @@ const previewKind = (row: ImportRow) => ({
 // Import transactions from a CSV file the user picked: say which column is which, check the
 // preview, then import.
 export function CsvImport({ fileName, file, names, onImported, onCancel }: Props) {
-  const { accounts } = names
+  // A file is imported into an open account
+  const accounts = names.accounts.filter((a) => !a.closed)
   const { getToken } = useAuth()
   const [mapping, setMapping] = useState<ColumnMapping>(() => guessMapping(file, accounts))
   const [error, setError] = useState<string | null>(null)

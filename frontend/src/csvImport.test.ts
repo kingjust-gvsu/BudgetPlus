@@ -75,8 +75,8 @@ describe('previewImport', () => {
     invertAmounts: true,
   }
   const accounts: Account[] = [
-    { id: 'acct-checking', name: 'Checking', type: 'BANK', startingBalanceCents: 0, startDate: '2026-01-01', balanceCents: 0 },
-    { id: 'acct-card', name: 'Amazon Card', type: 'CREDIT_CARD', startingBalanceCents: 0, startDate: '2026-01-01', balanceCents: 0 },
+    { id: 'acct-checking', name: 'Checking', type: 'BANK', startingBalanceCents: 0, startDate: '2026-01-01', closed: false, balanceCents: 0 },
+    { id: 'acct-card', name: 'Amazon Card', type: 'CREDIT_CARD', startingBalanceCents: 0, startDate: '2026-01-01', closed: false, balanceCents: 0 },
   ]
 
   it('turns rows into transactions, matching categories by name', () => {

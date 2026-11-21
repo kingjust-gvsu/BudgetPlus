@@ -81,7 +81,7 @@ export function parseMoney(text: string): number | null {
 }
 
 // Guess which column is which from the header names
-export function guessMapping(file: CsvFile, accounts: { id: string }[] = []): ColumnMapping {
+export function guessMapping(file: CsvFile, accounts: { id: string; closed?: boolean }[] = []): ColumnMapping {
   const find = (...patterns: RegExp[]) => {
     for (const pattern of patterns) {
       const header = file.headers.find((h) => pattern.test(h))
@@ -97,7 +97,8 @@ export function guessMapping(file: CsvFile, accounts: { id: string }[] = []): Co
   // If most amounts are negative, money spent is probably shown as negative (like most banks)
   const values = file.rows.map((r) => parseMoney(r[amountColumn] ?? '')).filter((v): v is number => v !== null && v !== 0)
   const invertAmounts = values.filter((v) => v < 0).length > values.length / 2
-  return { dateColumn, descriptionColumn, amountColumn, categoryColumn, accountId: accounts[0]?.id ?? '', accountColumn, invertAmounts }
+  const firstOpen = accounts.find((a) => !('closed' in a) || !a.closed)
+  return { dateColumn, descriptionColumn, amountColumn, categoryColumn, accountId: firstOpen?.id ?? '', accountColumn, invertAmounts }
 }
 
 export function previewImport(file: CsvFile, mapping: ColumnMapping, names: Partial<Names>): ImportPreview {

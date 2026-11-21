@@ -22,7 +22,9 @@ export function TransactionForm({ categories, accounts, incomeSources, onSave }:
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
 
-  const accountId = accounts.some((a) => a.id === pickedAccountId) ? pickedAccountId : (accounts[0]?.id ?? '')
+  // Closed accounts aren't offered for new transactions
+  const openAccounts = accounts.filter((a) => !a.closed)
+  const accountId = openAccounts.some((a) => a.id === pickedAccountId) ? pickedAccountId : (openAccounts[0]?.id ?? '')
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
@@ -65,11 +67,11 @@ export function TransactionForm({ categories, accounts, incomeSources, onSave }:
             onChange={(e) => setDescription(e.target.value)}
           />
         </div>
-        {accounts.length > 1 && (
+        {openAccounts.length > 1 && (
           <div className="field">
             <label htmlFor="add-account">Account</label>
             <select id="add-account" value={accountId} onChange={(e) => setPickedAccountId(e.target.value)}>
-              {accounts.map((account) => (
+              {openAccounts.map((account) => (
                 <option key={account.id} value={account.id}>
                   {account.name}
                 </option>

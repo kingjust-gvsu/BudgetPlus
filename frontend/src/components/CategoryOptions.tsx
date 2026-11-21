@@ -7,12 +7,15 @@ type Props = {
   incomeSources: IncomeSourceName[]
   // The transaction's own account, which it can't transfer to
   accountId: string
+  // The account a transfer already goes to, offered even if it's closed
+  currentTransferId?: string | null
 }
 
 // The choices in a transaction's Category picker: uncategorized, each category, a transfer to
 // each other account (paying off a credit card, saving into a fund), and income (a paycheck).
-export function CategoryOptions({ categories, accounts, incomeSources, accountId }: Props) {
-  const others = accounts.filter((a) => a.id !== accountId)
+export function CategoryOptions({ categories, accounts, incomeSources, accountId, currentTransferId }: Props) {
+  // Closed accounts aren't offered, unless this transfer already goes to one
+  const others = accounts.filter((a) => a.id !== accountId && (!a.closed || a.id === currentTransferId))
   return (
     <>
       <option value="">Uncategorized</option>
