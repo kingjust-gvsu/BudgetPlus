@@ -194,6 +194,7 @@ export function createFakeAccountStore(
 ): AccountStore & { rows: StoredAccount[] } {
   const toAccount = ({ userId: _userId, ...account }: StoredAccount): Account => ({
     ...account,
+    closed: account.closed ?? false,
     balanceCents: balanceOf(account, transactions),
   })
   const nameTaken = (userId: string, name: string, id?: string) =>

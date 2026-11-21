@@ -10,8 +10,8 @@ const thisMonth = monthOf(today())
 
 const categories: Category[] = [makeCategory({ id: 'cat-groceries', name: 'Groceries', kind: 'EXPENSE' })]
 
-const checking: Account = { id: 'acct-checking', name: 'Checking', type: 'BANK', startingBalanceCents: 0, startDate: '2026-01-01', balanceCents: 0 }
-const card: Account = { id: 'acct-card', name: 'Amazon Card', type: 'CREDIT_CARD', startingBalanceCents: 0, startDate: '2026-01-01', balanceCents: 0 }
+const checking: Account = { id: 'acct-checking', name: 'Checking', type: 'BANK', startingBalanceCents: 0, startDate: '2026-01-01', closed: false, balanceCents: 0 }
+const card: Account = { id: 'acct-card', name: 'Amazon Card', type: 'CREDIT_CARD', startingBalanceCents: 0, startDate: '2026-01-01', closed: false, balanceCents: 0 }
 
 let transactions: Transaction[]
 let accounts: Account[]
@@ -190,6 +190,19 @@ describe('TransactionsPage', () => {
       const choices = within(within(form).getByLabelText('Category')).getAllByRole('option').map((o) => o.textContent)
 
       expect(choices).toEqual(['Uncategorized', 'Groceries', 'VR', 'Other income', 'Checking'])
+    })
+
+    it("doesn't offer a closed account for new transactions or transfers", async () => {
+      accounts = [checking, card, { ...card, id: 'acct-old', name: 'Old savings', closed: true }]
+      renderPage()
+      await screen.findByText('Meijer')
+
+      const form = screen.getByRole('form', { name: 'Add a transaction' })
+      const accountChoices = within(within(form).getByLabelText('Account')).getAllByRole('option').map((o) => o.textContent)
+      const categoryChoices = within(within(form).getByLabelText('Category')).getAllByRole('option').map((o) => o.textContent)
+
+      expect(accountChoices).toEqual(['Checking', 'Amazon Card'])
+      expect(categoryChoices).not.toContain('Old savings')
     })
 
     it("shows one account's money in and out, with a transfer in as money coming from the other account", async () => {

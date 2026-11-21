@@ -75,6 +75,7 @@ export type AccountInput = {
 
 export type Account = AccountInput & {
   id: string
+  closed: boolean // no longer used: keeps its transactions but isn't offered for new ones
   balanceCents: number // the starting balance plus everything from the start date on
 }
 

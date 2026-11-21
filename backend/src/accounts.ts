@@ -14,10 +14,13 @@ export type AccountInput = {
   // negative: what you owe.
   startingBalanceCents: number
   startDate: string // YYYY-MM-DD
+  // No longer used: it keeps its transactions but isn't offered for new ones. Left out = open.
+  closed?: boolean
 }
 
 export type Account = AccountInput & {
   id: string
+  closed: boolean
   // The starting balance plus everything from the start date on: less what was spent or moved
   // out, plus what was moved in
   balanceCents: number
@@ -70,8 +73,8 @@ const isUniqueViolation = (error: unknown) => (error as { code?: string })?.code
 const toDay = (date: string) => new Date(`${date}T00:00:00Z`)
 const fromDay = (date: Date) => date.toISOString().slice(0, 10)
 
-const fields = { id: true, name: true, type: true, startingBalanceCents: true, startDate: true } as const
-type Row = { id: string; name: string; type: AccountType; startingBalanceCents: number; startDate: Date }
+const fields = { id: true, name: true, type: true, startingBalanceCents: true, startDate: true, closed: true } as const
+type Row = { id: string; name: string; type: AccountType; startingBalanceCents: number; startDate: Date; closed: boolean }
 
 // The account a transaction goes in when it doesn't name one: the user's first bank account, or a
 // new "Checking" account (starting at $0 on `date`) if they have none

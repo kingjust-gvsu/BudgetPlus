@@ -208,11 +208,24 @@ export function TransactionsPage() {
             <label htmlFor="account-filter">Show</label>
             <select id="account-filter" value={viewing} onChange={(e) => setAccountFilter(e.target.value)}>
               <option value="">All accounts</option>
-              {accounts.map((account) => (
-                <option key={account.id} value={account.id}>
-                  {account.name}
-                </option>
-              ))}
+              {accounts
+                .filter((a) => !a.closed)
+                .map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {account.name}
+                  </option>
+                ))}
+              {accounts.some((a) => a.closed) && (
+                <optgroup label="Closed">
+                  {accounts
+                    .filter((a) => a.closed)
+                    .map((account) => (
+                      <option key={account.id} value={account.id}>
+                        {account.name}
+                      </option>
+                    ))}
+                </optgroup>
+              )}
             </select>
           </div>
         )}

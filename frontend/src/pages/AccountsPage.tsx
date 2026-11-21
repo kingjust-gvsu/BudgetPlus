@@ -103,7 +103,16 @@ export function AccountsPage() {
     send('DELETE', `/accounts/${account.id}`)
   }
 
-  const total = accounts?.reduce((sum, a) => sum + a.balanceCents, 0) ?? 0
+  // A closed account keeps its transactions but isn't offered for new ones
+  const close = (account: Account) => {
+    const left = account.balanceCents !== 0 ? ` It still has ${formatBalance(account.type, account.balanceCents)}.` : ''
+    if (!window.confirm(`Close "${account.name}"?${left} It keeps its transactions, but won't be offered for new ones.`)) return
+    send('PATCH', `/accounts/${account.id}`, { closed: true })
+  }
+
+  const open = accounts?.filter((a) => !a.closed) ?? []
+  const closed = accounts?.filter((a) => a.closed) ?? []
+  const total = open.reduce((sum, a) => sum + a.balanceCents, 0)
 
   return (
     <>
@@ -113,7 +122,7 @@ export function AccountsPage() {
         <h2 id="accounts-heading">Your accounts</h2>
         {!accounts ? (
           !error && <p className="muted">Loading…</p>
-        ) : accounts.length === 0 ? (
+        ) : open.length === 0 ? (
           <p className="muted">Add each place you keep money: bank accounts, credit cards, and savings funds.</p>
         ) : (
           <div className="table-scroll">
@@ -131,7 +140,7 @@ export function AccountsPage() {
                 </tr>
               </thead>
               <tbody>
-                {accounts.map((account) =>
+                {open.map((account) =>
                   account.id === editingId ? (
                     <tr key={account.id} className="editing-row" onKeyDown={editKeys}>
                       <td>
@@ -205,6 +214,14 @@ export function AccountsPage() {
                         <button
                           type="button"
                           className="link-button"
+                          aria-label={`Close ${account.name}`}
+                          onClick={() => close(account)}
+                        >
+                          Close
+                        </button>
+                        <button
+                          type="button"
+                          className="link-button"
                           aria-label={`Delete ${account.name}`}
                           onClick={() => remove(account)}
                         >
@@ -233,6 +250,40 @@ export function AccountsPage() {
           </p>
         )}
       </section>
+
+      {closed.length > 0 && (
+        <section className="card" aria-labelledby="closed-accounts-heading">
+          <h2 id="closed-accounts-heading">Closed accounts</h2>
+          <p className="muted small">They keep their transactions but aren't offered for new ones.</p>
+          <ul className="closed-accounts">
+            {closed.map((account) => (
+              <li key={account.id} className="closed-account">
+                <span className="account-name">{account.name}</span>
+                <span className="muted">{ACCOUNT_TYPE_NAMES[account.type]}</span>
+                <span className="closed-account-balance">{formatBalance(account.type, account.balanceCents)}</span>
+                <span className="row-actions">
+                  <button
+                    type="button"
+                    className="link-button"
+                    aria-label={`Reopen ${account.name}`}
+                    onClick={() => send('PATCH', `/accounts/${account.id}`, { closed: false })}
+                  >
+                    Reopen
+                  </button>
+                  <button
+                    type="button"
+                    className="link-button"
+                    aria-label={`Delete ${account.name}`}
+                    onClick={() => remove(account)}
+                  >
+                    Delete
+                  </button>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className="card" aria-labelledby="add-account-heading">
         <h2 id="add-account-heading">Add an account</h2>
