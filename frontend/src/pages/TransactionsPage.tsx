@@ -261,7 +261,7 @@ export function TransactionsPage() {
           <p className="muted">No transactions in {formatMonth(month)} yet.</p>
         ) : (
           <div className="table-scroll">
-            <table className="table transactions-table">
+            <table className="table table-navy transactions-table">
               <thead>
                 <tr>
                   <th scope="col" aria-sort={sort === 'date' ? ariaOrder : undefined}>

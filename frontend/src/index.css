@@ -621,13 +621,40 @@ h2 {
   gap: 8px;
 }
 
-/* Transactions table: navy heading row, a line between days, and the row under the mouse highlighted */
+/* Tables with a navy heading row and the row under the mouse highlighted (Transactions, Bills) */
 
-.transactions-table th {
+.table-navy thead th {
   color: var(--band-muted);
   background: var(--band);
   border-bottom: 0;
 }
+
+.table-navy thead th:first-child {
+  border-radius: 8px 0 0 8px;
+}
+
+.table-navy thead th:last-child {
+  border-radius: 0 8px 8px 0;
+}
+
+.table-navy thead th :focus-visible {
+  outline: 2px solid var(--band-accent);
+  outline-offset: 2px;
+}
+
+.table-navy td {
+  border-bottom: 0;
+}
+
+.table-navy tbody tr:not(.editing-row):hover td {
+  background: #e8eefc;
+}
+
+.table-navy tbody tr:not(.editing-row):hover td:first-child {
+  box-shadow: inset 3px 0 0 var(--color-accent);
+}
+
+/* Transactions: sorting and filters in the heading row, and a line between days */
 
 /* Sorting and filtering live in the heading row */
 .sort-button {
@@ -665,23 +692,6 @@ h2 {
   background: var(--color-surface);
 }
 
-.transactions-table th :focus-visible {
-  outline: 2px solid var(--band-accent);
-  outline-offset: 2px;
-}
-
-.transactions-table th:first-child {
-  border-radius: 8px 0 0 8px;
-}
-
-.transactions-table th:last-child {
-  border-radius: 0 8px 8px 0;
-}
-
-.transactions-table td {
-  border-bottom: 0;
-}
-
 .transactions-table .day-start td {
   border-top: 1px solid #d5dae6;
 }
@@ -689,14 +699,6 @@ h2 {
 .transactions-table .transaction-date {
   font-weight: 500;
   white-space: nowrap;
-}
-
-.transactions-table tbody tr:not(.editing-row):hover td {
-  background: #e8eefc;
-}
-
-.transactions-table tbody tr:not(.editing-row):hover td:first-child {
-  box-shadow: inset 3px 0 0 var(--color-accent);
 }
 
 /* Edit and Delete show on the row under the mouse (or with the keyboard), and always on touch screens */

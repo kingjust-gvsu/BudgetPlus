@@ -25,6 +25,7 @@
   background: linear-gradient(90deg, var(--color-bad), #f0525a);
 }
 
+/* Money saved toward a bill: blue to teal, so it doesn't read as good or bad */
 .progress-fill--neutral {
-  background: var(--color-neutral);
+  background: linear-gradient(90deg, #5b7cfa, #3cc9b4);
 }

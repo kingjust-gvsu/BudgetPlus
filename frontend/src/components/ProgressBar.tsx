@@ -3,7 +3,7 @@ import './ProgressBar.css'
 type Props = {
   // How full the bar is, 0 to 100 (anything outside is clamped)
   percent: number
-  // good = green (under a limit), warn = amber (near it), bad = red (over), neutral = gray (bills and funds)
+  // good = green (under a limit), warn = amber (near it), bad = red (over), neutral = blue to teal (money saved for a bill)
   tone: 'good' | 'warn' | 'bad' | 'neutral'
 }
 
