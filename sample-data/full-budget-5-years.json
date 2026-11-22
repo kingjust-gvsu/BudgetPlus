@@ -1,6 +1,6 @@
 {
   "format": "budget-plus-backup",
-  "version": 4,
+  "version": 5,
   "exportedAt": "2026-11-19T12:00:00.000Z",
   "income": {
     "sources": [
@@ -108,35 +108,56 @@
       "type": "BANK",
       "startingBalanceCents": 240000,
       "startDate": "2021-12-01",
-      "closed": false
+      "closed": false,
+      "inAccount": null
     },
     {
       "name": "Visa",
       "type": "CREDIT_CARD",
       "startingBalanceCents": 0,
       "startDate": "2021-12-01",
-      "closed": false
+      "closed": false,
+      "inAccount": null
     },
     {
       "name": "Discover (old card)",
       "type": "CREDIT_CARD",
       "startingBalanceCents": -31250,
       "startDate": "2021-12-01",
-      "closed": true
+      "closed": true,
+      "inAccount": null
     },
     {
       "name": "High-yield savings",
       "type": "BANK",
-      "startingBalanceCents": 100000,
+      "startingBalanceCents": 50000,
       "startDate": "2021-12-01",
-      "closed": false
+      "closed": false,
+      "inAccount": null
     },
     {
-      "name": "Car insurance fund",
+      "name": "Car insurance",
       "type": "FUND",
       "startingBalanceCents": 30000,
       "startDate": "2021-12-01",
-      "closed": false
+      "closed": false,
+      "inAccount": "High-yield savings"
+    },
+    {
+      "name": "Emergency",
+      "type": "FUND",
+      "startingBalanceCents": 300000,
+      "startDate": "2021-12-01",
+      "closed": false,
+      "inAccount": "High-yield savings"
+    },
+    {
+      "name": "Vacation",
+      "type": "FUND",
+      "startingBalanceCents": 20000,
+      "startDate": "2021-12-01",
+      "closed": false,
+      "inAccount": "High-yield savings"
     }
   ],
   "categories": [
@@ -500,7 +521,7 @@
       "amountCents": 10000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -696,11 +717,11 @@
     },
     {
       "date": "2021-12-16",
-      "description": "Move to savings",
+      "description": "Save for emergencies",
       "amountCents": 20000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -840,7 +861,7 @@
       "amountCents": 10000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -986,11 +1007,11 @@
     },
     {
       "date": "2022-01-16",
-      "description": "Move to savings",
+      "description": "Save for emergencies",
       "amountCents": 20000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -1130,7 +1151,7 @@
       "amountCents": 10000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -1276,11 +1297,11 @@
     },
     {
       "date": "2022-02-16",
-      "description": "Move to savings",
+      "description": "Save for emergencies",
       "amountCents": 20000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -1460,7 +1481,7 @@
       "amountCents": 10000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -1606,11 +1627,11 @@
     },
     {
       "date": "2022-03-12",
-      "description": "Put the bonus in savings",
+      "description": "Put the bonus toward vacation",
       "amountCents": 100000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Vacation",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -1659,18 +1680,18 @@
       "description": "Progressive Insurance",
       "amountCents": 56484,
       "category": "Car insurance",
-      "account": "Car insurance fund",
+      "account": "Car insurance",
       "transferTo": null,
       "incomeSource": null,
       "otherIncome": false
     },
     {
       "date": "2022-03-16",
-      "description": "Move to savings",
+      "description": "Save for emergencies",
       "amountCents": 20000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -1880,7 +1901,7 @@
       "amountCents": 10000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -2046,11 +2067,11 @@
     },
     {
       "date": "2022-04-16",
-      "description": "Move to savings",
+      "description": "Save for emergencies",
       "amountCents": 20000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -2270,7 +2291,7 @@
       "amountCents": 10000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -2456,11 +2477,11 @@
     },
     {
       "date": "2022-05-16",
-      "description": "Move to savings",
+      "description": "Save for emergencies",
       "amountCents": 20000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -2650,7 +2671,7 @@
       "amountCents": 10000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -2741,6 +2762,16 @@
       "category": "Eating out",
       "account": "Discover (old card)",
       "transferTo": null,
+      "incomeSource": null,
+      "otherIncome": false
+    },
+    {
+      "date": "2022-06-10",
+      "description": "Use vacation savings",
+      "amountCents": 90000,
+      "category": null,
+      "account": "Vacation",
+      "transferTo": "Checking",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -2836,11 +2867,11 @@
     },
     {
       "date": "2022-06-16",
-      "description": "Move to savings",
+      "description": "Save for emergencies",
       "amountCents": 20000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -2987,7 +3018,7 @@
     {
       "date": "2022-06-28",
       "description": "Month-end move to savings",
-      "amountCents": 40000,
+      "amountCents": 130000,
       "category": null,
       "account": "Checking",
       "transferTo": "High-yield savings",
@@ -3020,7 +3051,7 @@
       "amountCents": 10000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -3216,11 +3247,11 @@
     },
     {
       "date": "2022-07-16",
-      "description": "Move to savings",
+      "description": "Save for emergencies",
       "amountCents": 20000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -3420,7 +3451,7 @@
       "amountCents": 10000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -3606,11 +3637,11 @@
     },
     {
       "date": "2022-08-16",
-      "description": "Move to savings",
+      "description": "Save for emergencies",
       "amountCents": 20000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -3750,7 +3781,7 @@
       "amountCents": 10000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -3929,18 +3960,18 @@
       "description": "Progressive Insurance",
       "amountCents": 57464,
       "category": "Car insurance",
-      "account": "Car insurance fund",
+      "account": "Car insurance",
       "transferTo": null,
       "incomeSource": null,
       "otherIncome": false
     },
     {
       "date": "2022-09-16",
-      "description": "Move to savings",
+      "description": "Save for emergencies",
       "amountCents": 20000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -4110,7 +4141,7 @@
       "amountCents": 10000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -4286,11 +4317,11 @@
     },
     {
       "date": "2022-10-16",
-      "description": "Move to savings",
+      "description": "Save for emergencies",
       "amountCents": 20000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -4430,7 +4461,7 @@
       "amountCents": 10000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -4606,11 +4637,11 @@
     },
     {
       "date": "2022-11-16",
-      "description": "Move to savings",
+      "description": "Save for emergencies",
       "amountCents": 20000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -4790,7 +4821,7 @@
       "amountCents": 10000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -5016,11 +5047,11 @@
     },
     {
       "date": "2022-12-16",
-      "description": "Move to savings",
+      "description": "Save for emergencies",
       "amountCents": 20000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -5140,7 +5171,7 @@
       "amountCents": 10000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -5316,11 +5347,11 @@
     },
     {
       "date": "2023-01-16",
-      "description": "Move to savings",
+      "description": "Save for emergencies",
       "amountCents": 20000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -5520,7 +5551,7 @@
       "amountCents": 10000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -5706,11 +5737,11 @@
     },
     {
       "date": "2023-02-16",
-      "description": "Move to savings",
+      "description": "Save for emergencies",
       "amountCents": 20000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -5880,7 +5911,7 @@
       "amountCents": 10000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -6016,11 +6047,11 @@
     },
     {
       "date": "2023-03-12",
-      "description": "Put the bonus in savings",
+      "description": "Put the bonus toward vacation",
       "amountCents": 100000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Vacation",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -6069,18 +6100,18 @@
       "description": "Progressive Insurance",
       "amountCents": 58461,
       "category": "Car insurance",
-      "account": "Car insurance fund",
+      "account": "Car insurance",
       "transferTo": null,
       "incomeSource": null,
       "otherIncome": false
     },
     {
       "date": "2023-03-16",
-      "description": "Move to savings",
+      "description": "Save for emergencies",
       "amountCents": 20000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -6240,7 +6271,7 @@
       "amountCents": 10000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -6426,11 +6457,11 @@
     },
     {
       "date": "2023-04-16",
-      "description": "Move to savings",
+      "description": "Save for emergencies",
       "amountCents": 20000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -6610,7 +6641,7 @@
       "amountCents": 10000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -6776,11 +6807,11 @@
     },
     {
       "date": "2023-05-16",
-      "description": "Move to savings",
+      "description": "Save for emergencies",
       "amountCents": 20000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -6990,7 +7021,7 @@
       "amountCents": 10000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -7041,6 +7072,16 @@
       "category": "Groceries",
       "account": "Discover (old card)",
       "transferTo": null,
+      "incomeSource": null,
+      "otherIncome": false
+    },
+    {
+      "date": "2023-06-10",
+      "description": "Use vacation savings",
+      "amountCents": 90000,
+      "category": null,
+      "account": "Vacation",
+      "transferTo": "Checking",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -7126,11 +7167,11 @@
     },
     {
       "date": "2023-06-16",
-      "description": "Move to savings",
+      "description": "Save for emergencies",
       "amountCents": 20000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -7237,7 +7278,7 @@
     {
       "date": "2023-06-28",
       "description": "Month-end move to savings",
-      "amountCents": 60000,
+      "amountCents": 150000,
       "category": null,
       "account": "Checking",
       "transferTo": "High-yield savings",
@@ -7280,7 +7321,7 @@
       "amountCents": 10000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -7456,21 +7497,21 @@
     },
     {
       "date": "2023-07-16",
-      "description": "Move to savings",
-      "amountCents": 20000,
-      "category": null,
-      "account": "Checking",
-      "transferTo": "High-yield savings",
-      "incomeSource": null,
-      "otherIncome": false
-    },
-    {
-      "date": "2023-07-16",
       "description": "Panera Bread",
       "amountCents": 5535,
       "category": "Eating out",
       "account": "Visa",
       "transferTo": null,
+      "incomeSource": null,
+      "otherIncome": false
+    },
+    {
+      "date": "2023-07-16",
+      "description": "Save for emergencies",
+      "amountCents": 20000,
+      "category": null,
+      "account": "Checking",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -7620,7 +7661,7 @@
       "amountCents": 10000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -7836,11 +7877,11 @@
     },
     {
       "date": "2023-08-16",
-      "description": "Move to savings",
+      "description": "Save for emergencies",
       "amountCents": 20000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -8010,7 +8051,7 @@
       "amountCents": 10000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -8169,18 +8210,18 @@
       "description": "Progressive Insurance",
       "amountCents": 59475,
       "category": "Car insurance",
-      "account": "Car insurance fund",
+      "account": "Car insurance",
       "transferTo": null,
       "incomeSource": null,
       "otherIncome": false
     },
     {
       "date": "2023-09-16",
-      "description": "Move to savings",
+      "description": "Save for emergencies",
       "amountCents": 20000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -8350,7 +8391,7 @@
       "amountCents": 10000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -8546,11 +8587,11 @@
     },
     {
       "date": "2023-10-16",
-      "description": "Move to savings",
+      "description": "Save for emergencies",
       "amountCents": 20000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -8690,7 +8731,7 @@
       "amountCents": 10000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -8886,11 +8927,11 @@
     },
     {
       "date": "2023-11-16",
-      "description": "Move to savings",
+      "description": "Save for emergencies",
       "amountCents": 20000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -9090,7 +9131,7 @@
       "amountCents": 10000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -9306,11 +9347,11 @@
     },
     {
       "date": "2023-12-16",
-      "description": "Move to savings",
+      "description": "Save for emergencies",
       "amountCents": 20000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -9500,7 +9541,7 @@
       "amountCents": 10000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -9626,11 +9667,11 @@
     },
     {
       "date": "2024-01-16",
-      "description": "Move to savings",
+      "description": "Save for emergencies",
       "amountCents": 20000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -9850,7 +9891,7 @@
       "amountCents": 10000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -10006,11 +10047,11 @@
     },
     {
       "date": "2024-02-16",
-      "description": "Move to savings",
+      "description": "Save for emergencies",
       "amountCents": 20000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -10180,7 +10221,7 @@
       "amountCents": 11000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -10336,11 +10377,11 @@
     },
     {
       "date": "2024-03-12",
-      "description": "Put the bonus in savings",
+      "description": "Put the bonus toward vacation",
       "amountCents": 100000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Vacation",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -10379,7 +10420,7 @@
       "description": "Progressive Insurance",
       "amountCents": 60507,
       "category": "Car insurance",
-      "account": "Car insurance fund",
+      "account": "Car insurance",
       "transferTo": null,
       "incomeSource": null,
       "otherIncome": false
@@ -10396,11 +10437,11 @@
     },
     {
       "date": "2024-03-16",
-      "description": "Move to savings",
+      "description": "Save for emergencies",
       "amountCents": 20000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -10550,7 +10591,7 @@
       "amountCents": 11000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -10756,11 +10797,11 @@
     },
     {
       "date": "2024-04-16",
-      "description": "Move to savings",
+      "description": "Save for emergencies",
       "amountCents": 20000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -10920,7 +10961,7 @@
       "amountCents": 11000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -11086,11 +11127,11 @@
     },
     {
       "date": "2024-05-16",
-      "description": "Move to savings",
+      "description": "Save for emergencies",
       "amountCents": 20000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -11270,7 +11311,7 @@
       "amountCents": 11000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -11375,6 +11416,16 @@
       "otherIncome": false
     },
     {
+      "date": "2024-06-10",
+      "description": "Use vacation savings",
+      "amountCents": 90000,
+      "category": null,
+      "account": "Vacation",
+      "transferTo": "Checking",
+      "incomeSource": null,
+      "otherIncome": false
+    },
+    {
       "date": "2024-06-11",
       "description": "SQ *COFFEE CORNER",
       "amountCents": 585,
@@ -11446,11 +11497,11 @@
     },
     {
       "date": "2024-06-16",
-      "description": "Move to savings",
+      "description": "Save for emergencies",
       "amountCents": 20000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -11567,7 +11618,7 @@
     {
       "date": "2024-06-28",
       "description": "Month-end move to savings",
-      "amountCents": 150000,
+      "amountCents": 240000,
       "category": null,
       "account": "Checking",
       "transferTo": "High-yield savings",
@@ -11610,7 +11661,7 @@
       "amountCents": 11000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -11776,11 +11827,11 @@
     },
     {
       "date": "2024-07-16",
-      "description": "Move to savings",
+      "description": "Save for emergencies",
       "amountCents": 20000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -12010,7 +12061,7 @@
       "amountCents": 11000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -12186,11 +12237,11 @@
     },
     {
       "date": "2024-08-16",
-      "description": "Move to savings",
+      "description": "Save for emergencies",
       "amountCents": 20000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -12370,7 +12421,7 @@
       "amountCents": 11000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -12519,18 +12570,18 @@
       "description": "Progressive Insurance",
       "amountCents": 61557,
       "category": "Car insurance",
-      "account": "Car insurance fund",
+      "account": "Car insurance",
       "transferTo": null,
       "incomeSource": null,
       "otherIncome": false
     },
     {
       "date": "2024-09-16",
-      "description": "Move to savings",
+      "description": "Save for emergencies",
       "amountCents": 20000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -12700,7 +12751,7 @@
       "amountCents": 11000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -12866,11 +12917,11 @@
     },
     {
       "date": "2024-10-16",
-      "description": "Move to savings",
+      "description": "Save for emergencies",
       "amountCents": 20000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -13050,7 +13101,7 @@
       "amountCents": 11000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -13149,7 +13200,7 @@
       "description": "Spectrum Health - ER visit",
       "amountCents": 45000,
       "category": null,
-      "account": "High-yield savings",
+      "account": "Emergency",
       "transferTo": null,
       "incomeSource": null,
       "otherIncome": false
@@ -13196,11 +13247,11 @@
     },
     {
       "date": "2024-11-16",
-      "description": "Move to savings",
+      "description": "Save for emergencies",
       "amountCents": 20000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -13390,7 +13441,7 @@
       "amountCents": 11000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -13586,11 +13637,11 @@
     },
     {
       "date": "2024-12-16",
-      "description": "Move to savings",
+      "description": "Save for emergencies",
       "amountCents": 20000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -13810,7 +13861,7 @@
       "amountCents": 11000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -13956,11 +14007,11 @@
     },
     {
       "date": "2025-01-16",
-      "description": "Move to savings",
+      "description": "Save for emergencies",
       "amountCents": 20000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -14160,7 +14211,7 @@
       "amountCents": 11000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -14296,11 +14347,11 @@
     },
     {
       "date": "2025-02-16",
-      "description": "Move to savings",
+      "description": "Save for emergencies",
       "amountCents": 20000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -14510,7 +14561,7 @@
       "amountCents": 11000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -14626,11 +14677,11 @@
     },
     {
       "date": "2025-03-12",
-      "description": "Put the bonus in savings",
+      "description": "Put the bonus toward vacation",
       "amountCents": 100000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Vacation",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -14669,18 +14720,18 @@
       "description": "Progressive Insurance",
       "amountCents": 62624,
       "category": "Car insurance",
-      "account": "Car insurance fund",
+      "account": "Car insurance",
       "transferTo": null,
       "incomeSource": null,
       "otherIncome": false
     },
     {
       "date": "2025-03-16",
-      "description": "Move to savings",
+      "description": "Save for emergencies",
       "amountCents": 20000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -14900,7 +14951,7 @@
       "amountCents": 11000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -15076,11 +15127,11 @@
     },
     {
       "date": "2025-04-16",
-      "description": "Move to savings",
+      "description": "Save for emergencies",
       "amountCents": 20000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -15270,7 +15321,7 @@
       "amountCents": 11000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -15416,11 +15467,11 @@
     },
     {
       "date": "2025-05-16",
-      "description": "Move to savings",
+      "description": "Save for emergencies",
       "amountCents": 20000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -15456,10 +15507,10 @@
     },
     {
       "date": "2025-05-20",
-      "description": "Move savings for car repair",
+      "description": "Move emergency savings for car repair",
       "amountCents": 92000,
       "category": null,
-      "account": "High-yield savings",
+      "account": "Emergency",
       "transferTo": "Checking",
       "incomeSource": null,
       "otherIncome": false
@@ -15650,7 +15701,7 @@
       "amountCents": 11000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -15755,6 +15806,16 @@
       "otherIncome": false
     },
     {
+      "date": "2025-06-10",
+      "description": "Use vacation savings",
+      "amountCents": 90000,
+      "category": null,
+      "account": "Vacation",
+      "transferTo": "Checking",
+      "incomeSource": null,
+      "otherIncome": false
+    },
+    {
       "date": "2025-06-12",
       "description": "Consumers Energy",
       "amountCents": 12855,
@@ -15786,11 +15847,11 @@
     },
     {
       "date": "2025-06-16",
-      "description": "Move to savings",
+      "description": "Save for emergencies",
       "amountCents": 20000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -15957,7 +16018,7 @@
     {
       "date": "2025-06-28",
       "description": "Month-end move to savings",
-      "amountCents": 30000,
+      "amountCents": 120000,
       "category": null,
       "account": "Checking",
       "transferTo": "High-yield savings",
@@ -16000,7 +16061,7 @@
       "amountCents": 11000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -16156,11 +16217,11 @@
     },
     {
       "date": "2025-07-16",
-      "description": "Move to savings",
+      "description": "Save for emergencies",
       "amountCents": 20000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -16320,7 +16381,7 @@
       "amountCents": 11000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -16476,11 +16537,11 @@
     },
     {
       "date": "2025-08-16",
-      "description": "Move to savings",
+      "description": "Save for emergencies",
       "amountCents": 20000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -16650,7 +16711,7 @@
       "amountCents": 11000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -16799,18 +16860,18 @@
       "description": "Progressive Insurance",
       "amountCents": 63711,
       "category": "Car insurance",
-      "account": "Car insurance fund",
+      "account": "Car insurance",
       "transferTo": null,
       "incomeSource": null,
       "otherIncome": false
     },
     {
       "date": "2025-09-16",
-      "description": "Move to savings",
+      "description": "Save for emergencies",
       "amountCents": 20000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -16980,7 +17041,7 @@
       "amountCents": 11000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -17096,21 +17157,21 @@
     },
     {
       "date": "2025-10-16",
-      "description": "Move to savings",
-      "amountCents": 20000,
-      "category": null,
-      "account": "Checking",
-      "transferTo": "High-yield savings",
-      "incomeSource": null,
-      "otherIncome": false
-    },
-    {
-      "date": "2025-10-16",
       "description": "Noodles & Co",
       "amountCents": 5371,
       "category": "Eating out",
       "account": "Visa",
       "transferTo": null,
+      "incomeSource": null,
+      "otherIncome": false
+    },
+    {
+      "date": "2025-10-16",
+      "description": "Save for emergencies",
+      "amountCents": 20000,
+      "category": null,
+      "account": "Checking",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -17300,7 +17361,7 @@
       "amountCents": 11000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -17476,11 +17537,11 @@
     },
     {
       "date": "2025-11-16",
-      "description": "Move to savings",
+      "description": "Save for emergencies",
       "amountCents": 20000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -17680,7 +17741,7 @@
       "amountCents": 11000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -17876,11 +17937,11 @@
     },
     {
       "date": "2025-12-16",
-      "description": "Move to savings",
+      "description": "Save for emergencies",
       "amountCents": 20000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -18050,7 +18111,7 @@
       "amountCents": 11000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -18216,21 +18277,21 @@
     },
     {
       "date": "2026-01-16",
-      "description": "Move to savings",
-      "amountCents": 20000,
-      "category": null,
-      "account": "Checking",
-      "transferTo": "High-yield savings",
-      "incomeSource": null,
-      "otherIncome": false
-    },
-    {
-      "date": "2026-01-16",
       "description": "SQ *COFFEE CORNER",
       "amountCents": 572,
       "category": null,
       "account": "Checking",
       "transferTo": null,
+      "incomeSource": null,
+      "otherIncome": false
+    },
+    {
+      "date": "2026-01-16",
+      "description": "Save for emergencies",
+      "amountCents": 20000,
+      "category": null,
+      "account": "Checking",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -18370,7 +18431,7 @@
       "amountCents": 11000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -18496,11 +18557,11 @@
     },
     {
       "date": "2026-02-16",
-      "description": "Move to savings",
+      "description": "Save for emergencies",
       "amountCents": 20000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -18690,7 +18751,7 @@
       "amountCents": 11000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -18816,11 +18877,11 @@
     },
     {
       "date": "2026-03-12",
-      "description": "Put the bonus in savings",
+      "description": "Put the bonus toward vacation",
       "amountCents": 100000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Vacation",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -18849,18 +18910,18 @@
       "description": "Progressive Insurance",
       "amountCents": 64816,
       "category": "Car insurance",
-      "account": "Car insurance fund",
+      "account": "Car insurance",
       "transferTo": null,
       "incomeSource": null,
       "otherIncome": false
     },
     {
       "date": "2026-03-16",
-      "description": "Move to savings",
+      "description": "Save for emergencies",
       "amountCents": 20000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -19050,7 +19111,7 @@
       "amountCents": 11000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -19196,11 +19257,11 @@
     },
     {
       "date": "2026-04-16",
-      "description": "Move to savings",
+      "description": "Save for emergencies",
       "amountCents": 20000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -19410,7 +19471,7 @@
       "amountCents": 11000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -19556,11 +19617,11 @@
     },
     {
       "date": "2026-05-16",
-      "description": "Move to savings",
+      "description": "Save for emergencies",
       "amountCents": 20000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -19720,7 +19781,7 @@
       "amountCents": 11000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -19801,6 +19862,16 @@
       "category": "Internet",
       "account": "Checking",
       "transferTo": null,
+      "incomeSource": null,
+      "otherIncome": false
+    },
+    {
+      "date": "2026-06-10",
+      "description": "Use vacation savings",
+      "amountCents": 90000,
+      "category": null,
+      "account": "Vacation",
+      "transferTo": "Checking",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -19886,11 +19957,11 @@
     },
     {
       "date": "2026-06-16",
-      "description": "Move to savings",
+      "description": "Save for emergencies",
       "amountCents": 20000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -20077,7 +20148,7 @@
     {
       "date": "2026-06-28",
       "description": "Month-end move to savings",
-      "amountCents": 240000,
+      "amountCents": 330000,
       "category": null,
       "account": "Checking",
       "transferTo": "High-yield savings",
@@ -20110,7 +20181,7 @@
       "amountCents": 11000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -20286,11 +20357,11 @@
     },
     {
       "date": "2026-07-16",
-      "description": "Move to savings",
+      "description": "Save for emergencies",
       "amountCents": 20000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -20490,7 +20561,7 @@
       "amountCents": 11000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -20646,11 +20717,11 @@
     },
     {
       "date": "2026-08-16",
-      "description": "Move to savings",
+      "description": "Save for emergencies",
       "amountCents": 20000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -20810,7 +20881,7 @@
       "amountCents": 11000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -20979,7 +21050,7 @@
       "description": "Progressive Insurance",
       "amountCents": 65941,
       "category": "Car insurance",
-      "account": "Car insurance fund",
+      "account": "Car insurance",
       "transferTo": null,
       "incomeSource": null,
       "otherIncome": false
@@ -21016,11 +21087,11 @@
     },
     {
       "date": "2026-09-16",
-      "description": "Move to savings",
+      "description": "Save for emergencies",
       "amountCents": 20000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -21190,7 +21261,7 @@
       "amountCents": 11000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -21336,11 +21407,11 @@
     },
     {
       "date": "2026-10-16",
-      "description": "Move to savings",
+      "description": "Save for emergencies",
       "amountCents": 20000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -21550,7 +21621,7 @@
       "amountCents": 11000,
       "category": null,
       "account": "Checking",
-      "transferTo": "Car insurance fund",
+      "transferTo": "Car insurance",
       "incomeSource": null,
       "otherIncome": false
     },
@@ -21686,11 +21757,11 @@
     },
     {
       "date": "2026-11-16",
-      "description": "Move to savings",
+      "description": "Save for emergencies",
       "amountCents": 20000,
       "category": null,
       "account": "Checking",
-      "transferTo": "High-yield savings",
+      "transferTo": "Emergency",
       "incomeSource": null,
       "otherIncome": false
     },
