@@ -112,9 +112,10 @@ export function TransactionsPage() {
     viewing && t.transferAccountId === viewing ? formatCents(-t.amountCents) : formatAmount(t)
   const names = { categories, accounts, incomeSources }
 
-  // After a save, show the month the transaction belongs to
+  // After a save, show the month the transaction belongs to, keeping the add form open there
   const showChange = (input: TransactionInput) => {
     setMonth(monthOf(input.date))
+    setAddingMonth(monthOf(input.date))
     setVersion((v) => v + 1)
   }
 
@@ -170,6 +171,12 @@ export function TransactionsPage() {
       setExporting(false)
     }
   }
+
+  // Adding to another month is rare, so its add form stays tucked away until asked for.
+  // This holds the month whose form was opened.
+  const [addingMonth, setAddingMonth] = useState<string | null>(null)
+  const isThisMonth = month === monthOf(today())
+  const showAddForm = isThisMonth || addingMonth === month
 
   // Stop editing when the month changes
   const [editingMonth, setEditingMonth] = useState(month)
@@ -245,7 +252,25 @@ export function TransactionsPage() {
           }}
         />
       ) : (
-        <TransactionForm categories={categories} accounts={accounts} incomeSources={incomeSources} onSave={add} actions={csvButtons} />
+        showAddForm ? (
+          <TransactionForm
+            key={month}
+            categories={categories}
+            accounts={accounts}
+            incomeSources={incomeSources}
+            defaultDate={isThisMonth ? today() : `${month}-01`}
+            onSave={add}
+            onClose={isThisMonth ? undefined : () => setAddingMonth(null)}
+            actions={csvButtons}
+          />
+        ) : (
+          <div className="card add-collapsed">
+            <button type="button" className="link-button" onClick={() => setAddingMonth(month)}>
+              + Add a transaction to {formatMonth(month)}
+            </button>
+            <div className="page-actions">{csvButtons}</div>
+          </div>
+        )
       )}
 
       {error && (

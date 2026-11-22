@@ -412,4 +412,18 @@ describe('TransactionsPage', () => {
     expect(screen.getByText(/No uncategorized transactions in/)).toBeInTheDocument()
     expect(screen.getByLabelText('Filter by category')).toBeInTheDocument()
   })
+
+  it('tucks the add form away on another month, starting on that month when opened', async () => {
+    const lastMonth = shiftMonth(thisMonth, -1)
+    renderPage(`/transactions?month=${lastMonth}`)
+    await screen.findByText('Meijer')
+
+    expect(screen.queryByRole('form', { name: 'Add a transaction' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /Add a transaction to/ }))
+
+    const form = screen.getByRole('form', { name: 'Add a transaction' })
+    expect(within(form).getByLabelText('Date')).toHaveValue(`${lastMonth}-01`)
+    fireEvent.click(within(form).getByRole('button', { name: 'Cancel' }))
+    expect(screen.queryByRole('form', { name: 'Add a transaction' })).not.toBeInTheDocument()
+  })
 })

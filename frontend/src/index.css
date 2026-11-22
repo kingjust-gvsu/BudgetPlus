@@ -590,6 +590,16 @@ h2 {
   gap: 8px;
 }
 
+/* On another month, a slim bar in place of the add form */
+.add-collapsed {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
 /* A card's heading with buttons at the right end */
 .form-card-top {
   display: flex;

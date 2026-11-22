@@ -9,13 +9,17 @@ type Props = {
   accounts: Account[]
   incomeSources: IncomeSourceName[]
   onSave: (input: TransactionInput) => Promise<void>
+  // The date it starts on; today if left out
+  defaultDate?: string
+  // When given, a Cancel link closes the form
+  onClose?: () => void
   // Extra buttons beside the heading, like import and export
   actions?: ReactNode
 }
 
 // Form for adding a transaction, or a transfer between accounts.
-export function TransactionForm({ categories, accounts, incomeSources, onSave, actions }: Props) {
-  const [date, setDate] = useState(today())
+export function TransactionForm({ categories, accounts, incomeSources, onSave, defaultDate, onClose, actions }: Props) {
+  const [date, setDate] = useState(defaultDate ?? today())
   const [description, setDescription] = useState('')
   // '' until picked: then the first account (bank accounts come first)
   const [pickedAccountId, setPickedAccountId] = useState('')
@@ -104,6 +108,11 @@ export function TransactionForm({ categories, accounts, incomeSources, onSave, a
         <button type="submit" className="button button-primary" disabled={saving}>
           Add
         </button>
+        {onClose && (
+          <button type="button" className="link-button" onClick={onClose}>
+            Cancel
+          </button>
+        )}
       </div>
       {error && (
         <p className="error" role="alert">
