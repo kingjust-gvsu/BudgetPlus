@@ -11,7 +11,7 @@ function requireBoolean(value: unknown, field: string): boolean {
 
 const MAX_NAME_LENGTH = 100
 
-// /api/accounts: where the signed-in user keeps money (bank accounts, credit cards, savings funds),
+// /api/accounts: where the signed-in user keeps money (bank accounts, credit cards, buckets),
 // each with its balance.
 export function createAccountsRouter(store: AccountStore) {
   const router = Router()

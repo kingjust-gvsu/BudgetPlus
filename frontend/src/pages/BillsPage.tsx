@@ -93,7 +93,7 @@ export function BillsPage() {
       ) : (
         <>
           <section className="card" aria-labelledby="monthly-bills-heading">
-            <h2 id="monthly-bills-heading">This month’s bills</h2>
+            <h2 id="monthly-bills-heading">Monthly bills</h2>
             {bills.length === 0 ? (
               <p className="muted">
                 No monthly bills yet. Add them on <Link to="/budget-setup">Budget setup</Link>.

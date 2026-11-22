@@ -40,7 +40,7 @@ describe('MonthLayout', () => {
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(formatMonth(thisMonth))
     expect(screen.getByText(`Dashboard for ${thisMonth} at /`)).toBeInTheDocument()
     const tabs = within(screen.getByRole('navigation', { name: 'Month views' })).getAllByRole('link')
-    expect(tabs.map((tab) => tab.textContent)).toEqual(['Dashboard', 'Transactions', 'Bills & funds'])
+    expect(tabs.map((tab) => tab.textContent)).toEqual(['Dashboard', 'Transactions', 'Bills'])
   })
 
   it('moves a month with the arrows and keeps it across tabs', () => {

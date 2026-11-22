@@ -12,7 +12,7 @@ type Props = {
 }
 
 // The choices in a transaction's Category picker: uncategorized, each category, a transfer to
-// each other account (paying off a credit card, saving into a fund), and income (a paycheck).
+// each other account (paying off a credit card, moving money into a bucket), and income (a paycheck).
 export function CategoryOptions({ categories, accounts, incomeSources, accountId, currentTransferId }: Props) {
   // Closed accounts aren't offered, unless this transfer already goes to one
   const others = accounts.filter((a) => a.id !== accountId && (!a.closed || a.id === currentTransferId))

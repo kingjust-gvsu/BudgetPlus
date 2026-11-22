@@ -1,7 +1,7 @@
 import type { Database } from './db.ts'
 import { ConflictError } from './errors.ts'
 
-// Where money is kept: a bank account, a credit card, or a savings fund (money set aside for
+// Where money is kept: a bank account, a credit card, or a bucket (money set aside for
 // something, like car insurance). Every transaction belongs to one account.
 
 export const ACCOUNT_TYPES = ['BANK', 'CREDIT_CARD', 'FUND'] as const

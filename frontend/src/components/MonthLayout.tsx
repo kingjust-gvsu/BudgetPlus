@@ -7,7 +7,7 @@ import './MonthLayout.css'
 const tabs = [
   { to: '/', label: 'Dashboard' },
   { to: '/transactions', label: 'Transactions' },
-  { to: '/bills', label: 'Bills & funds' },
+  { to: '/bills', label: 'Bills' },
 ]
 
 // The home view: a month picker over the pages that show one month. The month carries across them.

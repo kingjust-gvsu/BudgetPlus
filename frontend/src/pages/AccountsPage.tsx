@@ -23,7 +23,7 @@ function readForm(values: FormValues): AccountInput | string {
   return { name: values.name.trim(), type: values.type, startingBalanceCents: flipForCard(values.type, shown), startDate: values.startDate }
 }
 
-// Where money is kept: bank accounts, credit cards, and savings funds, each with its balance.
+// Where money is kept: bank accounts, credit cards, and buckets (money earmarked for something), each with its balance.
 export function AccountsPage() {
   const { getToken } = useAuth()
   const [accounts, setAccounts] = useState<Account[] | null>(null)
@@ -178,7 +178,7 @@ export function AccountsPage() {
         {!accounts ? (
           !error && <p className="muted">Loading…</p>
         ) : open.length === 0 ? (
-          <p className="muted">Add each place you keep money: bank accounts, credit cards, and savings funds.</p>
+          <p className="muted">Add each place you keep money: bank accounts, credit cards, and buckets for money you set aside.</p>
         ) : (
           <div className="table-scroll">
             <table className="table table-navy accounts-table">
