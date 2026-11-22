@@ -167,8 +167,13 @@ model Account {
   startDate            DateTime      @map("start_date") @db.Date
   // A closed account is no longer used: it keeps its transactions but isn't offered for new ones
   closed               Boolean       @default(false)
+  // Buckets only: the bank account the bucket's money sits in. The bank account's total is its own
+  // balance plus its buckets'. The app won't delete a bank account that still has buckets.
+  parentAccountId      String?       @map("parent_account_id") @db.Uuid
   createdAt            DateTime      @default(now()) @map("created_at")
   user                 User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parentAccount        Account?      @relation("AccountBuckets", fields: [parentAccountId], references: [id], onDelete: SetNull)
+  buckets              Account[]     @relation("AccountBuckets")
   transactions         Transaction[] @relation("TransactionAccount")
   transfersIn          Transaction[] @relation("TransferAccount")
 

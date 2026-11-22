@@ -1,4 +1,4 @@
-import { ACCOUNT_TYPES, DEFAULT_ACCOUNT_NAME, type AccountInput } from './accounts.ts'
+import { ACCOUNT_TYPES, checkBuckets, DEFAULT_ACCOUNT_NAME, type AccountInput } from './accounts.ts'
 import {
   BUDGET_TYPES,
   budgetRowData,
@@ -12,7 +12,7 @@ import {
   type Category,
 } from './categories.ts'
 import type { Database } from './db.ts'
-import { ValidationError } from './errors.ts'
+import { ConflictError, ValidationError } from './errors.ts'
 import { INCOME_ONLY, TRANSFER_HAS_CATEGORY, TRANSFER_SAME_ACCOUNT } from './transactions.ts'
 import {
   nullable,
@@ -33,10 +33,11 @@ import {
 // backup can be restored into any user. Restoring replaces everything the user had.
 
 export const BACKUP_FORMAT = 'budget-plus-backup'
-// Version 4 added accounts; version 3, each category's budget history; version 2, income by month.
-// Older files can still be restored: their transactions go in a "Checking" account, and their one
-// budget per category starts in the month the category was added.
-export const BACKUP_VERSION = 4
+// Version 5 added the bank account each bucket is in; version 4, accounts; version 3, each
+// category's budget history; version 2, income by month. Older files can still be restored: their
+// transactions go in a "Checking" account, and their one budget per category starts in the month
+// the category was added.
+export const BACKUP_VERSION = 5
 const MAX_ACCOUNTS = 200
 const MAX_INCOME_ROWS = 2000
 const MAX_CATEGORIES = 500
@@ -60,7 +61,9 @@ export type BackupTransaction = {
   otherIncome: boolean // money in marked as other income
 }
 
-export type BackupAccount = AccountInput
+export type BackupAccount = Omit<AccountInput, 'parentAccountId'> & {
+  inAccount: string | null // for a bucket, the name of the bank account it's in
+}
 
 // Income sources with every amount they've had (each from its month on), plus one-off other income
 export type BackupIncome = {
@@ -83,7 +86,7 @@ export type Backup = {
 export function parseBackup(raw: unknown): Backup {
   const body = requireObject(raw)
   if (body.format !== BACKUP_FORMAT) throw new ValidationError("This isn't a Budget+ backup file")
-  if (![1, 2, 3, BACKUP_VERSION].includes(body.version as number)) {
+  if (![1, 2, 3, 4, BACKUP_VERSION].includes(body.version as number)) {
     throw new ValidationError(`This backup is version ${String(body.version)}; only versions 1 to ${BACKUP_VERSION} can be restored`)
   }
 
@@ -165,7 +168,7 @@ export function parseBackup(raw: unknown): Backup {
   }
 
   const hasAccounts = (body.version as number) >= 4
-  const accounts = hasAccounts ? parseAccounts(body.accounts) : []
+  const accounts = hasAccounts ? parseAccounts(body.accounts, (body.version as number) >= 5) : []
   const accountNames = new Set(accounts.map((a) => a.name))
 
   if (!Array.isArray(body.transactions)) throw new ValidationError('The backup has no transactions list')
@@ -217,7 +220,7 @@ export function parseBackup(raw: unknown): Backup {
   if (!hasAccounts && transactions.length > 0) {
     // Starting at $0 on the first transaction's day
     const startDate = transactions.map((t) => t.date).sort()[0]
-    accounts.push({ name: DEFAULT_ACCOUNT_NAME, type: 'BANK', startingBalanceCents: 0, startDate, closed: false })
+    accounts.push({ name: DEFAULT_ACCOUNT_NAME, type: 'BANK', startingBalanceCents: 0, startDate, closed: false, inAccount: null })
   }
 
   return {
@@ -231,11 +234,12 @@ export function parseBackup(raw: unknown): Backup {
   }
 }
 
-function parseAccounts(raw: unknown): BackupAccount[] {
+// `hasBuckets`: version 5 and later say which bank account each bucket is in
+function parseAccounts(raw: unknown, hasBuckets: boolean): BackupAccount[] {
   if (!Array.isArray(raw)) throw new ValidationError('The backup has no accounts list')
   if (raw.length > MAX_ACCOUNTS) throw new ValidationError(`A backup can have at most ${MAX_ACCOUNTS} accounts`)
   const names = new Set<string>()
-  return raw.map((item: unknown, index: number) => {
+  const accounts = raw.map((item: unknown, index: number): BackupAccount => {
     try {
       const a = requireObject(item)
       const name = requireText(a.name, 'Name', 100)
@@ -247,12 +251,32 @@ function parseAccounts(raw: unknown): BackupAccount[] {
         startingBalanceCents: requireBalanceCents(a.startingBalanceCents, 'Starting balance'),
         startDate: requireDate(a.startDate, 'Start date'),
         closed: a.closed === true,
+        inAccount: hasBuckets ? nullable(a.inAccount ?? null, (v) => requireText(v, 'In account', 100)) : null,
       }
     } catch (error) {
       if (error instanceof ValidationError) throw new ValidationError(`Account ${index + 1}: ${error.message}`)
       throw error
     }
   })
+  // Each bucket's bank account, by the same rules as the app. (A bucket's account has to be a bank
+  // account, so no other account can end up holding buckets.)
+  const accountNames = new Set(accounts.map((a) => a.name))
+  accounts.forEach((a, index) => {
+    if (a.inAccount === null) return
+    try {
+      if (!accountNames.has(a.inAccount)) throw new ValidationError(`no account named "${a.inAccount}" in the backup`)
+      checkBuckets(
+        { id: a.name, type: a.type, parentAccountId: a.inAccount },
+        accounts.filter((o) => o !== a).map((o) => ({ id: o.name, type: o.type, parentAccountId: o.inAccount })),
+      )
+    } catch (error) {
+      if (error instanceof ValidationError || error instanceof ConflictError) {
+        throw new ValidationError(`Account ${index + 1}: ${error.message}`)
+      }
+      throw error
+    }
+  })
+  return accounts
 }
 
 // A list of { month, amountCents } with each month at most once
@@ -321,7 +345,7 @@ export function createBackupStore(db: Database): BackupStore {
       const accounts = await db.account.findMany({
         where: { userId },
         orderBy: { createdAt: 'asc' },
-        select: { name: true, type: true, startingBalanceCents: true, startDate: true, closed: true },
+        select: { name: true, type: true, startingBalanceCents: true, startDate: true, closed: true, parentAccount: { select: { name: true } } },
       })
       const categories = await db.category.findMany({
         where: { userId },
@@ -349,7 +373,7 @@ export function createBackupStore(db: Database): BackupStore {
         version: BACKUP_VERSION,
         exportedAt: new Date().toISOString(),
         income: { sources, other },
-        accounts: accounts.map((a) => ({ ...a, startDate: day(a.startDate) })),
+        accounts: accounts.map(({ parentAccount, ...a }) => ({ ...a, startDate: day(a.startDate), inAccount: parentAccount?.name ?? null })),
         categories: categories.map((c) => {
           const record = toRecord(c)
           return {
@@ -393,9 +417,14 @@ export function createBackupStore(db: Database): BackupStore {
         await tx.otherIncome.createMany({ data: backup.income.other.map((o) => ({ userId, ...o })) })
 
         const accountIdByName = new Map<string, string>()
-        for (const a of backup.accounts) {
+        for (const { inAccount: _inAccount, ...a } of backup.accounts) {
           const created = await tx.account.create({ data: { userId, ...a, startDate: toDay(a.startDate) }, select: { id: true } })
           accountIdByName.set(a.name, created.id)
+        }
+        // Then put each bucket in its bank account, now that every account exists
+        for (const a of backup.accounts) {
+          if (a.inAccount === null) continue
+          await tx.account.update({ where: { id: accountIdByName.get(a.name)! }, data: { parentAccountId: accountIdByName.get(a.inAccount)! } })
         }
 
         const idByName = new Map<string, string>()

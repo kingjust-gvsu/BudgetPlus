@@ -57,7 +57,7 @@ describe('App', () => {
   it('shows the page tabs and the signed-in user', () => {
     renderApp({ user: signedInUser })
 
-    for (const tab of ['Dashboard', 'Transactions', 'Bills & funds', 'Budget setup']) {
+    for (const tab of ['Dashboard', 'Transactions', 'Bills', 'Budget setup']) {
       expect(screen.getByRole('link', { name: tab })).toBeInTheDocument()
     }
   })

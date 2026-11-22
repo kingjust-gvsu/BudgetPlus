@@ -20,3 +20,32 @@
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
+
+/* Buckets sit indented under their bank account */
+.accounts-table .bucket-row td:first-child {
+  padding-left: 40px;
+}
+
+.accounts-table .bucket-row td {
+  font-size: 15px;
+}
+
+.accounts-table .bucket-rest td {
+  color: var(--color-muted);
+}
+
+.accounts-table .bucket-add td {
+  padding-top: 0;
+  padding-bottom: 8px;
+}
+
+.accounts-table .bucket-add .link-button {
+  padding: 4px 0;
+  font-size: 14px;
+}
+
+.accounts-table tbody tr.bucket-add:hover td,
+.accounts-table tbody tr.bucket-rest:hover td {
+  background: none;
+  box-shadow: none;
+}

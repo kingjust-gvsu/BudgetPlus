@@ -6,8 +6,8 @@ import { makeCategory } from './test/factories'
 
 const categories = [makeCategory({ id: 'cat-groceries', name: 'Groceries', kind: 'EXPENSE' })]
 const accounts: Account[] = [
-  { id: 'acct-checking', name: 'Checking', type: 'BANK', startingBalanceCents: 0, startDate: '2026-01-01', closed: false, balanceCents: 0 },
-  { id: 'acct-card', name: 'Amazon Card', type: 'CREDIT_CARD', startingBalanceCents: 0, startDate: '2026-01-01', closed: false, balanceCents: 0 },
+  { id: 'acct-checking', name: 'Checking', type: 'BANK', startingBalanceCents: 0, startDate: '2026-01-01', closed: false, parentAccountId: null, balanceCents: 0 },
+  { id: 'acct-card', name: 'Amazon Card', type: 'CREDIT_CARD', startingBalanceCents: 0, startDate: '2026-01-01', closed: false, parentAccountId: null, balanceCents: 0 },
 ]
 
 const names = { categories, accounts, incomeSources: [{ id: 'src-vr', name: 'VR' }] }

@@ -7,9 +7,9 @@ import { AccountsPage } from './AccountsPage'
 let accounts: Account[]
 let fetchMock: ReturnType<typeof vi.fn>
 
-const checking: Account = { id: 'acct-1', name: 'Checking', type: 'BANK', startingBalanceCents: 500000, startDate: '2026-10-01', closed: false, balanceCents: 724367 }
-const card: Account = { id: 'acct-2', name: 'Amazon Card', type: 'CREDIT_CARD', startingBalanceCents: -20000, startDate: '2026-10-01', closed: false, balanceCents: -24000 }
-const fund: Account = { id: 'acct-3', name: 'Mortgage fund', type: 'FUND', startingBalanceCents: 0, startDate: '2026-10-01', closed: false, balanceCents: -211230 }
+const checking: Account = { id: 'acct-1', name: 'Checking', type: 'BANK', startingBalanceCents: 500000, startDate: '2026-10-01', closed: false, parentAccountId: null, balanceCents: 724367 }
+const card: Account = { id: 'acct-2', name: 'Amazon Card', type: 'CREDIT_CARD', startingBalanceCents: -20000, startDate: '2026-10-01', closed: false, parentAccountId: null, balanceCents: -24000 }
+const fund: Account = { id: 'acct-3', name: 'Mortgage fund', type: 'FUND', startingBalanceCents: 0, startDate: '2026-10-01', closed: false, parentAccountId: null, balanceCents: -211230 }
 
 // A small stand-in for the API: lists accounts, and answers changes the way the real one does
 function fakeApi(url: string, init?: RequestInit): Response {
@@ -152,5 +152,43 @@ describe('AccountsPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Delete Amazon Card' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('This account has transactions. Move or delete them first.')
+  })
+
+  it("shows buckets under their bank account, with the bank's total and what's not in a bucket", async () => {
+    const funMoney: Account = { ...fund, id: 'acct-4', name: 'Fun money', startingBalanceCents: 50000, balanceCents: 50000, parentAccountId: checking.id }
+    accounts = [checking, card, funMoney]
+    renderPage()
+    await screen.findByText('Fun money')
+
+    expect(row('Checking')).toHaveTextContent('$7,743.67') // $7,243.67 of its own plus the bucket's $500
+    expect(row('Fun money')).toHaveClass('bucket-row')
+    expect(screen.getByText('Not in a bucket').closest('tr')).toHaveTextContent('$7,243.67')
+  })
+
+  it('adds a bucket under a bank account, and only offers bank accounts and cards in the add form', async () => {
+    renderPage()
+    await screen.findByText('Checking')
+    const types = within(screen.getByRole('form', { name: 'Add an account' })).getByLabelText('Type')
+    expect(within(types).getAllByRole('option').map((o) => o.textContent)).toEqual(['Bank account', 'Credit card'])
+
+    fireEvent.click(screen.getByRole('button', { name: '+ Add bucket to Checking' }))
+    fireEvent.change(screen.getByLabelText('New bucket name in Checking'), { target: { value: 'Fun money' } })
+    fireEvent.change(screen.getByLabelText('New bucket starting balance in Checking'), { target: { value: '500' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+
+    await vi.waitFor(() => expect(fetchMock.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(true))
+    expect(sent('POST').body).toMatchObject({ name: 'Fun money', type: 'FUND', startingBalanceCents: 50000, parentAccountId: checking.id })
+  })
+
+  it('moves a bucket that is not in an account into a bank account', async () => {
+    renderPage()
+    await screen.findByText('Mortgage fund')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Mortgage fund' }))
+    fireEvent.change(screen.getByLabelText('Bank account for Mortgage fund'), { target: { value: checking.id } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    await vi.waitFor(() => expect(fetchMock.mock.calls.some(([, init]) => init?.method === 'PATCH')).toBe(true))
+    expect(sent('PATCH').body).toMatchObject({ parentAccountId: checking.id })
   })
 })

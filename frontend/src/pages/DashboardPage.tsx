@@ -196,7 +196,7 @@ function FundRow({ bill }: { bill: FundBill }) {
       <ProgressBar percent={bill.targetCents === 0 ? 100 : (fund.balanceCents / bill.targetCents) * 100} tone="neutral" />
       <div className="dash-row-note muted">
         Due {formatLongDate(fund.nextDueDate)} · {formatCents(fund.setAsideCents)} set aside this month
-        {fund.paidCents !== 0 && ` · paid ${formatCents(fund.paidCents)} from the fund`}
+        {fund.paidCents !== 0 && ` · paid ${formatCents(fund.paidCents)} from what was saved`}
       </div>
     </li>
   )

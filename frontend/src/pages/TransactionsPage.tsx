@@ -222,7 +222,7 @@ export function TransactionsPage() {
     <>
       <p className="page-intro page-intro-top">
         Add the money you spend, and refunds as negative amounts. For a paycheck, pick its income under Category.
-        For paying off a card or saving into a fund, pick the account the money went to.
+        For paying off a card or moving money into a bucket, pick the account the money went to.
       </p>
       <input
         ref={filePicker}
