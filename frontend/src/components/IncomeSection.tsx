@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { ApiError, apiGet, apiSend } from '../api/client'
 import type { MonthIncome } from '../api/types'
 import { useAuth } from '../auth/useAuth'
-import { formatMonth, monthOf, shiftMonth, today } from '../dates'
+import { formatMonth, monthOf, today } from '../dates'
 import { centsToInput, formatCents, parseDollars } from '../money'
 import './IncomeSection.css'
 
@@ -10,11 +10,12 @@ type Editing = { kind: 'source'; id: string } | { kind: 'other' } | { kind: 'new
 
 const AMOUNT_HINT = 'Enter an amount like 2600 or 2,600.00.'
 
-// Income for one month at a time: regular sources (which carry over to later months) and
-// "Other" income, which is for that month only. Percent budgets and the remainder use the total.
+// This month's income: regular sources (which carry over to later months) and "Other" income,
+// which is for this month only. Percent budgets and the remainder use the total. Like the rest of
+// Budget setup, changes start this month, so past months keep what they had.
 export function IncomeSection() {
   const { getToken } = useAuth()
-  const [month, setMonth] = useState(monthOf(today()))
+  const month = monthOf(today())
   const [income, setIncome] = useState<MonthIncome | null>(null)
   const [editing, setEditing] = useState<Editing>(null)
   const [name, setName] = useState('')
@@ -44,11 +45,6 @@ export function IncomeSection() {
     setName(startName)
     setAmount(startCents === null ? '' : centsToInput(startCents))
     setError(null)
-  }
-
-  const changeMonth = (by: number) => {
-    setEditing(null)
-    setMonth(shiftMonth(month, by))
   }
 
   // Sends a change; the API answers with the month's updated income
@@ -117,15 +113,6 @@ export function IncomeSection() {
     <section className="card" aria-labelledby="income-heading">
       <div className="income-top">
         <h2 id="income-heading">Income</h2>
-        <div className="month-nav">
-          <button type="button" className="button" aria-label="Previous month" onClick={() => changeMonth(-1)}>
-            ‹
-          </button>
-          <span className="month-name">{formatMonth(month)}</span>
-          <button type="button" className="button" aria-label="Next month" onClick={() => changeMonth(1)}>
-            ›
-          </button>
-        </div>
       </div>
 
       {!income ? (

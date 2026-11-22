@@ -1,0 +1,103 @@
+/* ‹ November 2026 › with a calendar of months under the name */
+
+.month-picker {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.month-picker-arrow {
+  width: 40px;
+  padding: 0;
+  font-size: 20px;
+}
+
+.month-picker-title {
+  margin: 0;
+  font-size: 30px;
+}
+
+.month-picker-name {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 260px;
+  padding: 2px 12px;
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.month-picker-name:hover,
+.month-picker-name[aria-expanded='true'] {
+  background: var(--color-surface);
+  border-color: var(--color-border);
+}
+
+.month-picker-name:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.month-calendar {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 48px;
+  z-index: 10;
+  width: 280px;
+  padding: 12px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.12);
+}
+
+.month-calendar-year {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.month-calendar-year .link-button {
+  padding: 4px 12px;
+  font-size: 20px;
+  text-decoration: none;
+}
+
+.month-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.month-calendar-month {
+  padding: 8px 0;
+  font: inherit;
+  color: var(--color-text);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.month-calendar-month:hover {
+  background: #f1f2f0;
+}
+
+/* This month is outlined, so it is easy to find */
+.month-calendar-month.current {
+  border-color: var(--color-accent);
+}
+
+.month-calendar-month.chosen {
+  color: #fff;
+  font-weight: 700;
+  background: var(--color-accent);
+}

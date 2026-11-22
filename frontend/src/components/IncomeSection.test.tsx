@@ -2,11 +2,10 @@ import { fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { MonthIncome } from '../api/types'
 import { AuthContext, type AuthState } from '../auth/authContext'
-import { formatMonth, monthOf, shiftMonth, today } from '../dates'
+import { formatMonth, monthOf, today } from '../dates'
 import { IncomeSection } from './IncomeSection'
 
 const thisMonth = monthOf(today())
-const lastMonth = shiftMonth(thisMonth, -1)
 
 let fetchMock: ReturnType<typeof vi.fn>
 
@@ -55,23 +54,13 @@ describe('IncomeSection', () => {
 
   it("shows this month's sources, Other, and the total", async () => {
     renderSection()
+    await screen.findByText('Income 1')
 
-    expect(await screen.findByText(formatMonth(thisMonth))).toBeInTheDocument()
     expect(row('Income 1')).toHaveTextContent('$2,600.00')
     expect(row('Income 2')).toHaveTextContent('$1,800.00')
     expect(row('Other')).toHaveTextContent('$0.00')
     expect(row('Total')).toHaveTextContent('$4,400.00')
     expect(fetchMock).toHaveBeenCalledWith(`/api/income?month=${thisMonth}`, expect.anything())
-  })
-
-  it('loads another month with the arrows', async () => {
-    renderSection()
-    await screen.findByText('Income 1')
-
-    fireEvent.click(screen.getByRole('button', { name: 'Previous month' }))
-
-    expect(screen.getByText(formatMonth(lastMonth))).toBeInTheDocument()
-    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledWith(`/api/income?month=${lastMonth}`, expect.anything()))
   })
 
   it('changes a source from this month on, in cents', async () => {

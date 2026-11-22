@@ -6,8 +6,9 @@ import { useAuth } from '../auth/useAuth'
 import { formatLongDate } from '../budgetText'
 import { CategoryDonut } from '../components/CategoryDonut'
 import { ProgressBar } from '../components/ProgressBar'
-import { formatMonth, monthOf, shiftMonth, today } from '../dates'
+import { monthOf, today } from '../dates'
 import { formatCents } from '../money'
+import { useMonth } from '../useMonth'
 import './DashboardPage.css'
 
 type Expense = CategorySummary & ExpenseStatus
@@ -259,7 +260,7 @@ function SpendingSplitCard({ month }: { month: string }) {
 
 export function DashboardPage() {
   const { getToken } = useAuth()
-  const [month, setMonth] = useState(monthOf(today()))
+  const [month] = useMonth()
   const [summary, setSummary] = useState<MonthSummary | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -287,18 +288,6 @@ export function DashboardPage() {
 
   return (
     <>
-      <div className="page-header">
-        <h1>{formatMonth(month)}</h1>
-        <div className="month-nav">
-          <button type="button" className="button" aria-label="Previous month" onClick={() => setMonth(shiftMonth(month, -1))}>
-            ‹
-          </button>
-          <button type="button" className="button" aria-label="Next month" onClick={() => setMonth(shiftMonth(month, 1))}>
-            ›
-          </button>
-        </div>
-      </div>
-
       {error && (
         <p className="error" role="alert">
           {error}

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { CategorySummary, MonthSummary, SpendingSummary } from '../api/types'
@@ -243,16 +243,5 @@ describe('DashboardPage', () => {
     renderDashboard({ ...october, categories: [] })
 
     expect(await screen.findByRole('link', { name: 'Go to Budget setup' })).toHaveAttribute('href', '/budget-setup')
-  })
-
-  it('loads the previous month', async () => {
-    renderDashboard()
-    await screen.findByText('Groceries')
-
-    fireEvent.click(screen.getByRole('button', { name: 'Previous month' }))
-
-    await vi.waitFor(() =>
-      expect(fetchMock).toHaveBeenCalledWith(`/api/summary?month=${shiftMonth(thisMonth, -1)}`, expect.anything()),
-    )
   })
 })

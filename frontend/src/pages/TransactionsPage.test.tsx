@@ -340,17 +340,6 @@ describe('TransactionsPage', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent("doesn't look like a CSV")
   })
 
-  it('loads the previous month', async () => {
-    renderPage()
-    await screen.findByText('Meijer')
-
-    fireEvent.click(screen.getByRole('button', { name: 'Previous month' }))
-
-    await vi.waitFor(() =>
-      expect(fetchMock).toHaveBeenCalledWith(`/api/transactions?month=${shiftMonth(thisMonth, -1)}`, expect.anything()),
-    )
-  })
-
   it('opens filtered to a category and month from the address, largest first', async () => {
     const lastMonth = shiftMonth(thisMonth, -1)
     transactions = [

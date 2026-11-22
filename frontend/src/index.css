@@ -57,7 +57,14 @@ h1 {
 
 .site-name {
   font-size: 20px;
+  font-weight: 700;
   margin-right: 16px;
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.site-name:hover {
+  color: var(--color-accent);
 }
 
 .nav-tab {
@@ -98,6 +105,11 @@ h1 {
 .page-intro {
   margin: 6px 0 24px;
   color: var(--color-muted);
+}
+
+/* An intro under the month tabs, where there's no title above it */
+.page-intro-top {
+  margin-top: 0;
 }
 
 .api-status {
@@ -221,18 +233,6 @@ h2 {
 }
 
 /* Month switcher */
-
-.month-nav {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.month-name {
-  min-width: 140px;
-  text-align: center;
-  font-weight: 500;
-}
 
 /* Tables */
 
