@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import { apiGet } from '../api/client'
 import type { BillStatus, CategorySummary, ExpenseStatus, FundBillStatus, IncomeSummary, MonthSummary, SpendingSummary } from '../api/types'
@@ -47,41 +47,42 @@ function monthProgress(month: string) {
 }
 
 // The headline: how much is left under the expense limits, and how the month is going
-function LeftToSpend({ summary }: { summary: MonthSummary }) {
+function LeftToSpend({ summary, children }: { summary: MonthSummary; children: ReactNode }) {
   const { expensesLimitCents: limit, expensesSpentCents: spent } = summary.totals
   const left = limit - spent
   const progress = monthProgress(summary.month)
   return (
-    <section className="card dash-hero" aria-label="Left to spend">
-      <div>
-        <div className="dash-hero-label">{left < 0 ? 'Over your limits' : 'Left to spend'}</div>
-        <div className="dash-hero-value">{formatCents(Math.abs(left))}</div>
-        {progress && left > 0 && (
-          <div className="muted small">
-            {progress.daysLeft} {progress.daysLeft === 1 ? 'day' : 'days'} left · about{' '}
-            {formatCents(Math.floor(left / progress.daysLeft))} a day
+    <div className="dash-hero">
+      <section className="dash-hero-main" aria-label="Left to spend">
+          <div className="dash-hero-label">{left < 0 ? 'Over your limits' : 'Left to spend'}</div>
+          <div className="dash-hero-value">{formatCents(Math.abs(left))}</div>
+          {progress && left > 0 && (
+            <div className="dash-hero-note">
+              {progress.daysLeft} {progress.daysLeft === 1 ? 'day' : 'days'} left · about{' '}
+              {formatCents(Math.floor(left / progress.daysLeft))} a day
+            </div>
+          )}
+        {limit > 0 && (
+          <div className="dash-hero-pace">
+            <div className="dash-hero-bar">
+              <ProgressBar percent={(spent / limit) * 100} tone={left < 0 ? 'bad' : spent >= limit * NEAR_LIMIT ? 'warn' : 'good'} />
+              {progress && <span className="dash-hero-today" style={{ left: `${(progress.day / progress.days) * 100}%` }} aria-hidden="true" />}
+            </div>
+            <div className="dash-hero-pace-text">
+              <span>
+                {formatCents(spent)} of {formatCents(limit)} spent
+              </span>
+              {progress && (
+                <span>
+                  Day {progress.day} of {progress.days}
+                </span>
+              )}
+            </div>
           </div>
         )}
-      </div>
-      {limit > 0 && (
-        <div className="dash-hero-pace">
-          <div className="dash-hero-bar">
-            <ProgressBar percent={(spent / limit) * 100} tone={left < 0 ? 'bad' : spent >= limit * NEAR_LIMIT ? 'warn' : 'good'} />
-            {progress && <span className="dash-hero-today" style={{ left: `${(progress.day / progress.days) * 100}%` }} aria-hidden="true" />}
-          </div>
-          <div className="dash-hero-pace-text muted small">
-            <span>
-              {formatCents(spent)} of {formatCents(limit)} spent
-            </span>
-            {progress && (
-              <span>
-                Day {progress.day} of {progress.days}
-              </span>
-            )}
-          </div>
-        </div>
-      )}
-    </section>
+      </section>
+      {children}
+    </div>
   )
 }
 
@@ -153,19 +154,22 @@ function ExpenseRow({ expense, month }: { expense: Expense; month: string }) {
 }
 
 function BillRow({ bill }: { bill: Bill }) {
+  const paid = bill.state === 'paid'
   return (
     <li className="dash-bill">
-      <span>
-        {bill.name} <span className="muted small">· {bill.state === 'paid' ? 'Paid' : 'Pending'}</span>
+      <span className="dash-bill-name">
+        <span className={paid ? 'dash-check dash-check--paid' : 'dash-check'} aria-hidden="true">
+          {paid ? '✓' : '○'}
+        </span>
+        {bill.name}
+        <span className="visually-hidden">{paid ? ', paid' : ', not paid yet'}</span>
       </span>
-      <span>
-        {bill.state === 'paid' && formatCents(bill.paidCents)}
-        {bill.estimateCents !== null && (
-          <span className="muted small">
-            {bill.state === 'paid' ? ' ' : ''}est. {formatCents(bill.estimateCents)}
-          </span>
-        )}
-        {bill.state === 'pending' && bill.estimateCents === null && <span className="muted small">No estimate</span>}
+      <span className={paid ? undefined : 'muted'}>
+        {paid
+          ? formatCents(bill.paidCents)
+          : bill.estimateCents === null
+            ? 'No estimate'
+            : `est. ${formatCents(bill.estimateCents)}`}
       </span>
     </li>
   )
@@ -250,7 +254,7 @@ function SpendingSplitCard({ month }: { month: string }) {
   return (
     <section className="card" aria-labelledby="split-heading">
       <div className="dash-card-top">
-        <h2 id="split-heading">Where it went</h2>
+        <h2 id="split-heading">Spending</h2>
         <Link to="/trends">See trends</Link>
       </div>
       <CategoryDonut categories={spending.categories} />
@@ -285,6 +289,10 @@ export function DashboardPage() {
   const bills = (summary?.categories.filter((c) => c.type === 'bill') ?? []) as Bill[]
   const fundBills = (summary?.categories.filter((c) => c.type === 'fundBill') ?? []) as FundBill[]
   const remainder = expenses.find((c) => c.budgetType === 'REMAINDER')
+  // Most of its limit used first, so problems come to the top; no limit and the remainder go last
+  const used = (e: Expense) =>
+    e.budgetType === 'REMAINDER' || e.limitCents === null ? -1 : e.limitCents === 0 ? Infinity : e.spentCents / e.limitCents
+  const sortedExpenses = [...expenses].sort((a, b) => used(b) - used(a))
 
   return (
     <>
@@ -319,37 +327,37 @@ export function DashboardPage() {
             </p>
           )}
 
-          <LeftToSpend summary={summary} />
-
-          <section className="dash-tiles" aria-label="Month summary">
-            <div className="dash-tile">
-              <div className="dash-tile-label">Income</div>
-              <div className="dash-tile-value">{formatCents(summary.income.receivedCents)}</div>
-              <div className="dash-tile-note">
-                {summary.incomeCents === null ? 'no plan set' : `of ${formatCents(summary.incomeCents)} planned`}
+          <LeftToSpend summary={summary}>
+            <section className="dash-tiles" aria-label="Month summary">
+              <div className="dash-tile">
+                <div className="dash-tile-label">Income</div>
+                <div className="dash-tile-value">{formatCents(summary.income.receivedCents)}</div>
+                <div className="dash-tile-note">
+                  {summary.incomeCents === null ? 'no plan set' : `of ${formatCents(summary.incomeCents)} planned`}
+                </div>
               </div>
-            </div>
-            <div className="dash-tile">
-              <div className="dash-tile-label">Bills</div>
-              <div className="dash-tile-value">
-                {summary.totals.monthlyBillsPaid} of {summary.totals.monthlyBills} paid
+              <div className="dash-tile">
+                <div className="dash-tile-label">Bills</div>
+                <div className="dash-tile-value">
+                  {summary.totals.monthlyBillsPaid} of {summary.totals.monthlyBills} paid
+                </div>
+                <div className="dash-tile-note">
+                  {formatCents(summary.totals.billsPaidCents)} of {formatCents(summary.totals.billsPlannedCents)}
+                </div>
               </div>
-              <div className="dash-tile-note">
-                {formatCents(summary.totals.billsPaidCents)} of {formatCents(summary.totals.billsPlannedCents)}
+              <div className="dash-tile">
+                <div className="dash-tile-label">{remainder ? `${remainder.name} (remainder)` : 'Remainder'}</div>
+                <div className="dash-tile-value">{summary.remainderCents === null ? '—' : formatCents(summary.remainderCents)}</div>
+                <div className="dash-tile-note">
+                  {!remainder
+                    ? 'No remainder category'
+                    : summary.billDifferenceCents !== 0
+                      ? `${signed(-summary.billDifferenceCents)} from bills`
+                      : 'after bills and expenses'}
+                </div>
               </div>
-            </div>
-            <div className="dash-tile">
-              <div className="dash-tile-label">{remainder ? `${remainder.name} (remainder)` : 'Remainder'}</div>
-              <div className="dash-tile-value">{summary.remainderCents === null ? '—' : formatCents(summary.remainderCents)}</div>
-              <div className="dash-tile-note">
-                {!remainder
-                  ? 'No remainder category'
-                  : summary.billDifferenceCents !== 0
-                    ? `${signed(-summary.billDifferenceCents)} from bills`
-                    : 'after bills and expenses'}
-              </div>
-            </div>
-          </section>
+            </section>
+          </LeftToSpend>
 
           <NeedsAttention expenses={expenses} bills={bills} month={summary.month} />
 
@@ -360,7 +368,7 @@ export function DashboardPage() {
                 <p className="muted">No expense categories yet.</p>
               ) : (
                 <ul className="dash-list">
-                  {expenses.map((expense) => (
+                  {sortedExpenses.map((expense) => (
                     <ExpenseRow key={expense.id} expense={expense} month={summary.month} />
                   ))}
                 </ul>
@@ -374,8 +382,6 @@ export function DashboardPage() {
             </section>
 
             <div className="dash-side">
-              {(summary.income.sources.length > 0 || summary.income.receivedCents !== 0) && <IncomeCard income={summary.income} />}
-
               <section className="card" aria-labelledby="bills-heading">
                 <h2 id="bills-heading">Bills</h2>
                 {bills.length === 0 ? (
@@ -389,6 +395,8 @@ export function DashboardPage() {
                 )}
               </section>
 
+              <SpendingSplitCard month={month} />
+
               {fundBills.length > 0 && (
                 <section className="card" aria-labelledby="funds-heading">
                   <h2 id="funds-heading">Upcoming big bills</h2>
@@ -399,10 +407,11 @@ export function DashboardPage() {
                   </ul>
                 </section>
               )}
+
+              {(summary.income.sources.length > 0 || summary.income.receivedCents !== 0) && <IncomeCard income={summary.income} />}
             </div>
           </div>
 
-          <SpendingSplitCard month={month} />
         </>
       )}
     </>
