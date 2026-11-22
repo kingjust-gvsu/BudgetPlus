@@ -273,3 +273,20 @@
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
+
+/* Expense names and alerts open that category's transactions */
+
+.dash-alert a {
+  flex: 1;
+  color: inherit;
+  text-decoration: none;
+}
+
+.dash-alert a::after {
+  content: ' ›';
+  color: var(--color-muted);
+}
+
+.dash-alert a:hover {
+  text-decoration: underline;
+}

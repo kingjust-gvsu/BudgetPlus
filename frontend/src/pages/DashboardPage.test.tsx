@@ -159,6 +159,25 @@ describe('DashboardPage', () => {
     ])
   })
 
+  it("links expenses to that month's transactions in the category, largest first", async () => {
+    renderDashboard()
+    const expenses = within(await screen.findByRole('region', { name: 'Expenses' }))
+    const attention = within(screen.getByRole('list', { name: 'Needs attention' }))
+
+    expect(expenses.getByRole('link', { name: 'Groceries' })).toHaveAttribute(
+      'href',
+      `/transactions?month=${thisMonth}&category=groceries&sort=amount`,
+    )
+    expect(attention.getByRole('link', { name: 'Gas is $12.00 over' })).toHaveAttribute(
+      'href',
+      `/transactions?month=${thisMonth}&category=gas&sort=amount`,
+    )
+    expect(screen.getByRole('link', { name: 'Review transactions' })).toHaveAttribute(
+      'href',
+      `/transactions?month=${thisMonth}&category=uncategorized`,
+    )
+  })
+
   it("doesn't list next month's bills as unpaid", async () => {
     renderDashboard({ ...october, month: shiftMonth(thisMonth, 1) })
     const list = await screen.findByRole('list', { name: 'Needs attention' })
