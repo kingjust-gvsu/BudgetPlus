@@ -54,7 +54,7 @@ describe('parseBackup', () => {
     const { income: _income, ...version1 } = valid
     const backup = parseBackup({ ...version1, version: 1, monthlyIncomeCents: 400000 })
 
-    expect(backup.version).toBe(4)
+    expect(backup.version).toBe(5)
     // The car insurance category was added in March 2026, before any transaction
     expect(backup.income).toEqual({ sources: [{ name: 'Income', amounts: [{ month: '2026-03', amountCents: 400000 }] }], other: [] })
   })
@@ -97,8 +97,19 @@ describe('parseBackup', () => {
   it("puts an older backup's transactions in a Checking account starting on the first transaction's day", () => {
     const backup = parseBackup(valid)
 
-    expect(backup.accounts).toEqual([{ name: 'Checking', type: 'BANK', startingBalanceCents: 0, startDate: '2026-09-01', closed: false }])
+    expect(backup.accounts).toEqual([{ name: 'Checking', type: 'BANK', startingBalanceCents: 0, startDate: '2026-09-01', closed: false, inAccount: null }])
     expect(backup.transactions.every((t) => t.account === 'Checking')).toBe(true)
+  })
+
+  it('reads which bank account each version 5 bucket is in', () => {
+    const accounts = [
+      { name: 'Savings', type: 'BANK', startingBalanceCents: 0, startDate: '2026-01-01', inAccount: null },
+      { name: 'Fun money', type: 'FUND', startingBalanceCents: 50000, startDate: '2026-01-01', inAccount: 'Savings' },
+    ]
+
+    const backup = parseBackup({ ...valid, version: 5, categories: [], accounts, transactions: [] })
+
+    expect(backup.accounts.map((a) => [a.name, a.inAccount])).toEqual([['Savings', null], ['Fun money', 'Savings']])
   })
 
   it('reads version 4 accounts', () => {
@@ -115,14 +126,17 @@ describe('parseBackup', () => {
 
     const backup = parseBackup({ ...valid, version: 4, categories: [], accounts, transactions })
 
-    expect(backup.accounts).toEqual([{ ...accounts[0], closed: false }, accounts[1]])
+    expect(backup.accounts).toEqual([{ ...accounts[0], closed: false, inAccount: null }, { ...accounts[1], inAccount: null }])
     expect(backup.transactions.map((t) => [t.account, t.transferTo])).toEqual([['Amazon Card', null], ['Checking', 'Amazon Card'], ['Checking', null], ['Checking', null]])
     expect(backup.transactions.map((t) => [t.incomeSource, t.otherIncome])).toEqual([[null, false], [null, false], ['Job', false], [null, true]])
   })
 
   it.each([
     ['not a backup', { hello: 'world' }, "This isn't a Budget+ backup file"],
-    ['a newer version', withChanges({ version: 5 }), 'This backup is version 5; only versions 1 to 4 can be restored'],
+    ['a newer version', withChanges({ version: 6 }), 'This backup is version 6; only versions 1 to 5 can be restored'],
+    ['a bucket in an account that is not in the file', withChanges({ version: 5, categories: [], transactions: [], accounts: [{ name: 'Fun money', type: 'FUND', startingBalanceCents: 0, startDate: '2026-01-01', inAccount: 'Savings' }] }), 'Account 1: no account named "Savings" in the backup'],
+    ['a bucket in a credit card', withChanges({ version: 5, categories: [], transactions: [], accounts: [{ name: 'Visa', type: 'CREDIT_CARD', startingBalanceCents: 0, startDate: '2026-01-01' }, { name: 'Fun money', type: 'FUND', startingBalanceCents: 0, startDate: '2026-01-01', inAccount: 'Visa' }] }), 'Account 2: A bucket can only go in a bank account'],
+    ['a bank account in another account', withChanges({ version: 5, categories: [], transactions: [], accounts: [{ name: 'Savings', type: 'BANK', startingBalanceCents: 0, startDate: '2026-01-01' }, { name: 'Checking', type: 'BANK', startingBalanceCents: 0, startDate: '2026-01-01', inAccount: 'Savings' }] }), 'Account 2: Only a bucket can go in another account'],
     ['two income sources with the same name', withChanges({ income: { sources: [{ name: 'Job', amounts: [] }, { name: 'Job', amounts: [] }] } }), 'Two income sources are named "Job"'],
     ['the same month twice for a source', withChanges({ income: { sources: [{ name: 'Job', amounts: [{ month: '2026-01', amountCents: 1 }, { month: '2026-01', amountCents: 2 }] }] } }), 'Income source "Job" has 2026-01 twice'],
     ['a bill with a percent budget', withChanges({ categories: [{ name: 'Rent', kind: 'BILL', budgetType: 'PERCENT_OF_INCOME', budgetPercent: 10 }] }), 'Category 1: Bills use a fixed estimate'],

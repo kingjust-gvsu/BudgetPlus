@@ -71,11 +71,13 @@ export type AccountInput = {
   type: AccountType
   startingBalanceCents: number
   startDate: string // YYYY-MM-DD: the day the starting balance is from
+  parentAccountId?: string | null // buckets only: the bank account it's in
 }
 
 export type Account = AccountInput & {
   id: string
   closed: boolean // no longer used: keeps its transactions but isn't offered for new ones
+  parentAccountId: string | null // buckets only: the bank account it's in
   balanceCents: number // the starting balance plus everything from the start date on
 }
 

@@ -11,8 +11,8 @@ const thisMonth = monthOf(today())
 
 const categories: Category[] = [makeCategory({ id: 'cat-groceries', name: 'Groceries', kind: 'EXPENSE' })]
 
-const checking: Account = { id: 'acct-checking', name: 'Checking', type: 'BANK', startingBalanceCents: 0, startDate: '2026-01-01', closed: false, balanceCents: 0 }
-const card: Account = { id: 'acct-card', name: 'Amazon Card', type: 'CREDIT_CARD', startingBalanceCents: 0, startDate: '2026-01-01', closed: false, balanceCents: 0 }
+const checking: Account = { id: 'acct-checking', name: 'Checking', type: 'BANK', startingBalanceCents: 0, startDate: '2026-01-01', closed: false, parentAccountId: null, balanceCents: 0 }
+const card: Account = { id: 'acct-card', name: 'Amazon Card', type: 'CREDIT_CARD', startingBalanceCents: 0, startDate: '2026-01-01', closed: false, parentAccountId: null, balanceCents: 0 }
 
 let transactions: Transaction[]
 let accounts: Account[]

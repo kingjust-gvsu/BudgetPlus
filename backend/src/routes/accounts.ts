@@ -2,7 +2,7 @@ import { Router } from 'express'
 import { ACCOUNT_NOT_FOUND, ACCOUNT_TYPES, type AccountChanges, type AccountStore } from '../accounts.ts'
 import { currentUser } from '../auth.ts'
 import { NotFoundError, ValidationError } from '../errors.ts'
-import { requireBalanceCents, requireDate, requireIdParam, requireObject, requireOneOf, requireText } from '../validation.ts'
+import { isUuid, nullable, requireBalanceCents, requireDate, requireIdParam, requireObject, requireOneOf, requireText } from '../validation.ts'
 
 function requireBoolean(value: unknown, field: string): boolean {
   if (typeof value !== 'boolean') throw new ValidationError(`${field} must be true or false`)
@@ -10,6 +10,14 @@ function requireBoolean(value: unknown, field: string): boolean {
 }
 
 const MAX_NAME_LENGTH = 100
+
+// The bank account a bucket goes in: an account id, or null for none
+function requireParent(value: unknown): string | null {
+  return nullable(value, (v) => {
+    if (!isUuid(v)) throw new ValidationError(ACCOUNT_NOT_FOUND)
+    return v
+  })
+}
 
 // /api/accounts: where the signed-in user keeps money (bank accounts, credit cards, buckets),
 // each with its balance.
@@ -21,7 +29,8 @@ export function createAccountsRouter(store: AccountStore) {
     res.json(await store.list(currentUser(res).id))
   })
 
-  // POST /api/accounts { name, type, startingBalanceCents, startDate }: add an account
+  // POST /api/accounts { name, type, startingBalanceCents, startDate, parentAccountId? }: add an
+  // account; a bucket can name the bank account it goes in
   router.post('/', async (req, res) => {
     const body = requireObject(req.body)
     const account = await store.create(currentUser(res).id, {
@@ -29,11 +38,13 @@ export function createAccountsRouter(store: AccountStore) {
       type: requireOneOf(body.type, 'Type', ACCOUNT_TYPES),
       startingBalanceCents: requireBalanceCents(body.startingBalanceCents, 'Starting balance'),
       startDate: requireDate(body.startDate, 'Start date'),
+      parentAccountId: body.parentAccountId === undefined ? null : requireParent(body.parentAccountId),
     })
     res.status(201).json(account)
   })
 
-  // PATCH /api/accounts/:id { any of the above, closed? }: change an account, or close or reopen it
+  // PATCH /api/accounts/:id { any of the above, closed? }: change an account, close or reopen it, or
+  // move a bucket into a bank account (parentAccountId) or out of it (null)
   router.patch('/:id', async (req, res) => {
     const id = requireIdParam(req.params.id)
     const body = requireObject(req.body)
@@ -45,15 +56,16 @@ export function createAccountsRouter(store: AccountStore) {
     }
     if (body.startDate !== undefined) changes.startDate = requireDate(body.startDate, 'Start date')
     if (body.closed !== undefined) changes.closed = requireBoolean(body.closed, 'Closed')
+    if (body.parentAccountId !== undefined) changes.parentAccountId = requireParent(body.parentAccountId)
     if (Object.keys(changes).length === 0) {
-      throw new ValidationError('Nothing to change: send a name, type, starting balance, start date, or closed')
+      throw new ValidationError('Nothing to change: send a name, type, starting balance, start date, closed, or parent account')
     }
     const account = await store.update(currentUser(res).id, id, changes)
     if (!account) throw new NotFoundError(ACCOUNT_NOT_FOUND)
     res.json(account)
   })
 
-  // DELETE /api/accounts/:id: delete an account that has no transactions
+  // DELETE /api/accounts/:id: delete an account that has no transactions or buckets in it
   router.delete('/:id', async (req, res) => {
     const id = requireIdParam(req.params.id)
     if (!(await store.delete(currentUser(res).id, id))) throw new NotFoundError(ACCOUNT_NOT_FOUND)

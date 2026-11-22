@@ -94,9 +94,9 @@ describe('GET /api/accounts', () => {
 
     expect(response.status).toBe(200)
     expect(response.body).toEqual([
-      { id: checkingId, name: 'Checking', type: 'BANK', startingBalanceCents: 500000, startDate: '2026-10-01', closed: false, balanceCents: 500000 - 120000 + 2500 },
-      { id: cardId, name: 'Amazon Card', type: 'CREDIT_CARD', startingBalanceCents: -20000, startDate: '2026-10-01', closed: false, balanceCents: -24000 },
-      { id: fundId, name: 'Car insurance fund', type: 'FUND', startingBalanceCents: 94800, startDate: '2026-10-01', closed: false, balanceCents: 94800 },
+      { id: checkingId, name: 'Checking', type: 'BANK', startingBalanceCents: 500000, startDate: '2026-10-01', closed: false, parentAccountId: null, balanceCents: 500000 - 120000 + 2500 },
+      { id: cardId, name: 'Amazon Card', type: 'CREDIT_CARD', startingBalanceCents: -20000, startDate: '2026-10-01', closed: false, parentAccountId: null, balanceCents: -24000 },
+      { id: fundId, name: 'Car insurance fund', type: 'FUND', startingBalanceCents: 94800, startDate: '2026-10-01', closed: false, parentAccountId: null, balanceCents: 94800 },
     ])
   })
 
@@ -116,7 +116,7 @@ describe('POST /api/accounts', () => {
     const response = await request(app).post('/api/accounts').set(auth).send(newAccount)
 
     expect(response.status).toBe(201)
-    expect(response.body).toEqual({ id: expect.any(String), ...newAccount, closed: false, balanceCents: 0 })
+    expect(response.body).toEqual({ id: expect.any(String), ...newAccount, closed: false, parentAccountId: null, balanceCents: 0 })
   })
 
   it('allows a negative starting balance, like a fund that went below zero', async () => {
@@ -230,5 +230,65 @@ describe('DELETE /api/accounts/:id', () => {
     const { app } = setup()
 
     expect((await request(app).delete(`/api/accounts/${othersId}`).set(auth)).status).toBe(404)
+  })
+})
+
+describe('buckets in a bank account', () => {
+  const put = (app: ReturnType<typeof setup>['app'], id: string, parentAccountId: string | null) =>
+    request(app).patch(`/api/accounts/${id}`).set(auth).send({ parentAccountId })
+
+  it('puts a bucket in a bank account and takes it back out', async () => {
+    const { app } = setup()
+
+    const moved = await put(app, fundId, checkingId)
+    expect(moved.status).toBe(200)
+    expect(moved.body.parentAccountId).toBe(checkingId)
+
+    const out = await put(app, fundId, null)
+    expect(out.body.parentAccountId).toBeNull()
+  })
+
+  it('adds a bucket straight into a bank account', async () => {
+    const { app } = setup()
+
+    const response = await request(app)
+      .post('/api/accounts')
+      .set(auth)
+      .send({ name: 'Fun money', type: 'FUND', startingBalanceCents: 0, startDate: '2026-11-01', parentAccountId: checkingId })
+
+    expect(response.status).toBe(201)
+    expect(response.body.parentAccountId).toBe(checkingId)
+  })
+
+  it.each([
+    ['a bank account in another account', checkingId, fundId, 'Only a bucket can go in another account'],
+    ['a bucket in a credit card', fundId, cardId, 'A bucket can only go in a bank account'],
+    ["a bucket in another user's account", fundId, othersId, 'Account not found'],
+  ])('rejects %s', async (_case, id, parentAccountId, message) => {
+    const { app } = setup()
+
+    const response = await put(app, id, parentAccountId)
+
+    expect(response.status).toBe(400)
+    expect(response.body.error).toBe(message)
+  })
+
+  it("won't change or delete a bank account that has buckets in it", async () => {
+    const { app } = setup()
+    await put(app, fundId, checkingId)
+
+    const changed = await request(app).patch(`/api/accounts/${checkingId}`).set(auth).send({ type: 'CREDIT_CARD' })
+    expect(changed.status).toBe(409)
+    expect(changed.body.error).toBe('This account has buckets in it. Move or delete them first.')
+    expect((await request(app).delete(`/api/accounts/${checkingId}`).set(auth)).status).toBe(409)
+  })
+
+  it('takes a bucket out of its bank account when it becomes another type', async () => {
+    const { app } = setup()
+    await put(app, fundId, checkingId)
+
+    const response = await request(app).patch(`/api/accounts/${fundId}`).set(auth).send({ type: 'BANK' })
+
+    expect(response.body.parentAccountId).toBeNull()
   })
 })

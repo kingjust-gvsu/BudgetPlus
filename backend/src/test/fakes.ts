@@ -1,10 +1,13 @@
 import { randomUUID } from 'node:crypto'
 import {
+  ACCOUNT_HAS_BUCKETS,
   ACCOUNT_HAS_TRANSACTIONS,
   ACCOUNT_NAME_TAKEN,
   ACCOUNT_NOT_FOUND,
-  balanceOf,
   DEFAULT_ACCOUNT_NAME,
+  balanceOf,
+  checkBuckets,
+  settleParent,
   sortAccounts,
   type Account,
   type AccountInput,
@@ -195,8 +198,11 @@ export function createFakeAccountStore(
   const toAccount = ({ userId: _userId, ...account }: StoredAccount): Account => ({
     ...account,
     closed: account.closed ?? false,
+    parentAccountId: account.parentAccountId ?? null,
     balanceCents: balanceOf(account, transactions),
   })
+  const othersOf = (userId: string, id?: string) =>
+    accounts.filter((a) => a.userId === userId && a.id !== id).map((a) => ({ id: a.id, type: a.type, parentAccountId: a.parentAccountId ?? null }))
   const nameTaken = (userId: string, name: string, id?: string) =>
     accounts.some((a) => a.userId === userId && a.name === name && a.id !== id)
 
@@ -205,6 +211,7 @@ export function createFakeAccountStore(
     list: async (userId) => sortAccounts(accounts.filter((a) => a.userId === userId).map(toAccount)),
     create: async (userId, input) => {
       if (nameTaken(userId, input.name)) throw new ConflictError(ACCOUNT_NAME_TAKEN)
+      checkBuckets({ id: '', type: input.type, parentAccountId: input.parentAccountId ?? null }, othersOf(userId))
       const row = { id: randomUUID(), userId, ...input }
       accounts.push(row)
       return toAccount(row)
@@ -213,12 +220,17 @@ export function createFakeAccountStore(
       const row = accounts.find((a) => a.id === id && a.userId === userId)
       if (!row) return null
       if (changes.name !== undefined && nameTaken(userId, changes.name, id)) throw new ConflictError(ACCOUNT_NAME_TAKEN)
-      Object.assign(row, changes)
+      const type = changes.type ?? row.type
+      const settled = settleParent(type, changes)
+      const parentAccountId = settled.parentAccountId !== undefined ? settled.parentAccountId : (row.parentAccountId ?? null)
+      checkBuckets({ id, type, parentAccountId }, othersOf(userId, id))
+      Object.assign(row, settled)
       return toAccount(row)
     },
     delete: async (userId, id) => {
       const index = accounts.findIndex((a) => a.id === id && a.userId === userId)
       if (index === -1) return false
+      if (accounts.some((a) => a.parentAccountId === id)) throw new ConflictError(ACCOUNT_HAS_BUCKETS)
       if (transactions.some((t) => t.accountId === id || t.transferAccountId === id)) throw new ConflictError(ACCOUNT_HAS_TRANSACTIONS)
       accounts.splice(index, 1)
       return true
