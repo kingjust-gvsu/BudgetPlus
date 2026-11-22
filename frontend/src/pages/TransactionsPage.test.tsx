@@ -308,8 +308,7 @@ describe('TransactionsPage', () => {
     renderPage()
     await screen.findByText('Meijer')
 
-    fireEvent.click(screen.getByRole('button', { name: 'More CSV options' }))
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Export to CSV' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Export to CSV' }))
 
     await vi.waitFor(() => expect(click).toHaveBeenCalled())
     expect(fetchMock).toHaveBeenCalledWith('/api/transactions', expect.anything())
@@ -352,7 +351,7 @@ describe('TransactionsPage', () => {
 
     expect(fetchMock).toHaveBeenCalledWith(`/api/transactions?month=${lastMonth}`, expect.anything())
     expect(screen.getByLabelText('Filter by category')).toHaveValue('cat-groceries')
-    expect(screen.getByLabelText('Sort')).toHaveValue('amount')
+    expect(screen.getByRole('columnheader', { name: /Amount/ })).toHaveAttribute('aria-sort', 'descending')
     const descriptions = screen.getAllByRole('row').slice(1).map((row) => row.children[1].textContent)
     expect(descriptions).toEqual(['Costco', 'Meijer', 'Aldi'])
   })
@@ -365,5 +364,52 @@ describe('TransactionsPage', () => {
 
     expect(screen.queryByText('Meijer')).not.toBeInTheDocument()
     expect(screen.getByText('Target refund')).toBeInTheDocument()
+  })
+
+  it("shows each day's date once, newest first", async () => {
+    transactions = [{ ...transactions[0], id: 'tx-aldi', description: 'Aldi' }, ...transactions]
+    renderPage()
+    await screen.findByText('Aldi')
+
+    const rows = screen.getAllByRole('row').slice(1)
+    expect(rows.map((row) => row.classList.contains('day-start'))).toEqual([false, false, true])
+    // The second row on the same day keeps its date for screen readers only
+    expect(rows[1].querySelector('.transaction-date .visually-hidden')).not.toBeNull()
+    expect(rows[2].querySelector('.transaction-date .visually-hidden')).toBeNull()
+  })
+
+  it('sorts by clicking the Amount and Date headings', async () => {
+    transactions = [...transactions, { ...transactions[0], id: 'tx-costco', date: `${thisMonth}-01`, description: 'Costco', amountCents: 20000 }]
+    renderPage()
+    await screen.findByText('Costco')
+    const descriptions = () => screen.getAllByRole('row').slice(1).map((row) => row.children[1].textContent)
+    expect(descriptions()).toEqual(['Meijer', 'Target refund', 'Costco'])
+
+    fireEvent.click(screen.getByRole('button', { name: 'Amount' }))
+    expect(descriptions()).toEqual(['Costco', 'Meijer', 'Target refund'])
+    expect(screen.getByRole('columnheader', { name: /Amount/ })).toHaveAttribute('aria-sort', 'descending')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Amount' }))
+    expect(descriptions()).toEqual(['Target refund', 'Meijer', 'Costco'])
+    expect(screen.getByRole('columnheader', { name: /Amount/ })).toHaveAttribute('aria-sort', 'ascending')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Date' }))
+    expect(descriptions()).toEqual(['Meijer', 'Target refund', 'Costco'])
+    expect(screen.getByRole('columnheader', { name: /Date/ })).toHaveAttribute('aria-sort', 'descending')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Date' }))
+    expect(descriptions()).toEqual(['Costco', 'Target refund', 'Meijer'])
+    expect(screen.getByRole('columnheader', { name: /Date/ })).toHaveAttribute('aria-sort', 'ascending')
+  })
+
+  it('keeps the heading row when a filter matches nothing', async () => {
+    transactions = [transactions[0]]
+    renderPage()
+    await screen.findByText('Meijer')
+
+    fireEvent.change(screen.getByLabelText('Filter by category'), { target: { value: 'uncategorized' } })
+
+    expect(screen.getByText(/No uncategorized transactions in/)).toBeInTheDocument()
+    expect(screen.getByLabelText('Filter by category')).toBeInTheDocument()
   })
 })

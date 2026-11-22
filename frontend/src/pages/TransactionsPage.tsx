@@ -7,7 +7,6 @@ import { CsvImport } from '../components/CsvImport'
 import { transactionsToCsv } from '../csvExport'
 import { readCsv, type CsvFile } from '../csvImport'
 import { EditTransactionRow } from '../components/EditTransactionRow'
-import { SplitButton } from '../components/SplitButton'
 import { TransactionForm } from '../components/TransactionForm'
 import { formatDay, formatMonth, monthOf, today } from '../dates'
 import { formatCents } from '../money'
@@ -25,17 +24,28 @@ export function TransactionsPage() {
   const [params, setParams] = useSearchParams()
   // '' shows every category, 'uncategorized' shows spending without one, an id shows that category
   const categoryFilter = params.get('category') ?? ''
+  // Sorted by date or amount, biggest (newest) first unless ?order=asc
   const sort = params.get('sort') === 'amount' ? 'amount' : 'date'
-  const setParam = (name: string, value: string) =>
+  const order = params.get('order') === 'asc' ? 'asc' : 'desc'
+  // Sets address values together; '' removes one
+  const setAddress = (values: Record<string, string>) =>
     setParams(
       (current) => {
         const next = new URLSearchParams(current)
-        if (value) next.set(name, value)
-        else next.delete(name)
+        for (const [name, value] of Object.entries(values)) {
+          if (value) next.set(name, value)
+          else next.delete(name)
+        }
         return next
       },
       { replace: true },
     )
+  const setParam = (name: string, value: string) => setAddress({ [name]: value })
+  // Clicking the sorted column flips the order; another column starts biggest (newest) first
+  const sortBy = (column: 'date' | 'amount') =>
+    column === sort
+      ? setAddress({ order: order === 'asc' ? '' : 'asc' })
+      : setAddress({ sort: column === 'amount' ? 'amount' : '', order: '' })
   const [transactions, setTransactions] = useState<Transaction[] | null>(null)
   const [categories, setCategories] = useState<Category[]>([])
   const [accounts, setAccounts] = useState<Account[]>([])
@@ -82,13 +92,19 @@ export function TransactionsPage() {
 
   const viewing = accounts.some((a) => a.id === accountFilter) ? accountFilter : ''
   // With one account there's nothing to tell apart, and filtered to one they're all the same
-  const showAccount = accounts.length > 1 && !viewing
+  // With one account there's nothing to tell apart
+  const showAccount = accounts.length > 1
   const accountName = (id: string) => accounts.find((a) => a.id === id)?.name
   const shown = (transactions ?? [])
     .filter((t) => !viewing || t.accountId === viewing || t.transferAccountId === viewing)
     .filter((t) => !categoryFilter || (categoryFilter === 'uncategorized' ? isUncategorized(t) : t.categoryId === categoryFilter))
-  // The list comes newest first; largest first puts the biggest spending at the top
+  // The list comes newest first; by amount puts the biggest spending at the top
   if (sort === 'amount') shown.sort((a, b) => b.amountCents - a.amountCents)
+  if (order === 'asc') shown.reverse()
+  // The first transaction of its day in the list. Sorted by date, a line separates the days.
+  const newDay = (i: number) => i === 0 || shown[i - 1].date !== shown[i].date
+  const ariaOrder = order === 'asc' ? 'ascending' : 'descending'
+  const arrow = order === 'asc' ? ' ↑' : ' ↓'
   const filterName =
     categoryFilter === 'uncategorized' ? 'uncategorized' : categories.find((c) => c.id === categoryFilter)?.name
   // Seen from the account a transfer went into, it's money coming in (like money back)
@@ -162,35 +178,52 @@ export function TransactionsPage() {
     setEditingId(null)
   }
 
+  // Import and export, as small icon buttons beside the add form's heading
+  const csvButtons = (
+    <>
+      <button
+        type="button"
+        className="button icon-button"
+        aria-label="Import from CSV"
+        title="Import from CSV"
+        onClick={() => filePicker.current?.click()}
+      >
+        {/* An arrow down into a tray */}
+        <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true">
+          <path d="M10 3v9m-4-4 4 4 4-4M4 13v3h12v-3" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+      <button
+        type="button"
+        className="button icon-button"
+        aria-label={exporting ? 'Exporting…' : 'Export to CSV'}
+        title="Export to CSV"
+        onClick={exportCsv}
+        disabled={exporting}
+      >
+        {/* An arrow up out of a tray */}
+        <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true">
+          <path d="M10 12V3M6 7l4-4 4 4M4 13v3h12v-3" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+    </>
+  )
+
   return (
     <>
-      <div className="page-header">
-        <div>
-          <p className="page-intro page-intro-top">
-            Add the money you spend, and refunds as negative amounts. For a paycheck, pick its income under
-            Category. For paying off a card or saving into a fund, pick the account the money went to.
-          </p>
-        </div>
-        <div className="page-actions">
-          <input
-            ref={filePicker}
-            type="file"
-            accept=".csv,text/csv"
-            className="visually-hidden"
-            aria-label="CSV file to import"
-            tabIndex={-1}
-            onChange={(e) => pickImportFile(e.target.files?.[0])}
-          />
-          {!importFile && (
-            <SplitButton
-              label="Import from CSV"
-              onClick={() => filePicker.current?.click()}
-              menuLabel="More CSV options"
-              items={[{ label: exporting ? 'Exporting…' : 'Export to CSV', onClick: exportCsv, disabled: exporting }]}
-            />
-          )}
-        </div>
-      </div>
+      <p className="page-intro page-intro-top">
+        Add the money you spend, and refunds as negative amounts. For a paycheck, pick its income under Category.
+        For paying off a card or saving into a fund, pick the account the money went to.
+      </p>
+      <input
+        ref={filePicker}
+        type="file"
+        accept=".csv,text/csv"
+        className="visually-hidden"
+        aria-label="CSV file to import"
+        tabIndex={-1}
+        onChange={(e) => pickImportFile(e.target.files?.[0])}
+      />
 
       {notice && (
         <p className="success" role="status">
@@ -212,7 +245,7 @@ export function TransactionsPage() {
           }}
         />
       ) : (
-        <TransactionForm categories={categories} accounts={accounts} incomeSources={incomeSources} onSave={add} />
+        <TransactionForm categories={categories} accounts={accounts} incomeSources={incomeSources} onSave={add} actions={csvButtons} />
       )}
 
       {error && (
@@ -222,69 +255,71 @@ export function TransactionsPage() {
       )}
 
       <section className="card" aria-label={`Transactions in ${formatMonth(month)}`}>
-        <div className="transactions-filters">
-          <div className="field transactions-filter">
-            <span aria-hidden="true">Show</span>
-            {accounts.length > 1 && (
-              <select aria-label="Filter by account" value={viewing} onChange={(e) => setAccountFilter(e.target.value)}>
-                <option value="">All accounts</option>
-                {accounts
-                  .filter((a) => !a.closed)
-                  .map((account) => (
-                    <option key={account.id} value={account.id}>
-                      {account.name}
-                    </option>
-                  ))}
-                {accounts.some((a) => a.closed) && (
-                  <optgroup label="Closed">
-                    {accounts
-                      .filter((a) => a.closed)
-                      .map((account) => (
-                        <option key={account.id} value={account.id}>
-                          {account.name}
-                        </option>
-                      ))}
-                  </optgroup>
-                )}
-              </select>
-            )}
-            <select aria-label="Filter by category" value={categoryFilter} onChange={(e) => setParam('category', e.target.value)}>
-              <option value="">All categories</option>
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-              <option value="uncategorized">Uncategorized</option>
-            </select>
-          </div>
-          <div className="field transactions-filter">
-            <label htmlFor="sort">Sort</label>
-            <select id="sort" value={sort} onChange={(e) => setParam('sort', e.target.value === 'amount' ? 'amount' : '')}>
-              <option value="date">Newest first</option>
-              <option value="amount">Largest first</option>
-            </select>
-          </div>
-        </div>
         {transactions === null ? (
           <p className="muted">Loading…</p>
-        ) : shown.length === 0 ? (
-          <p className="muted">
-            No {filterName ? `${filterName} ` : ''}transactions {viewing ? `for ${accountName(viewing)} ` : ''}in{' '}
-            {formatMonth(month)}.
-
-          </p>
+        ) : transactions.length === 0 ? (
+          <p className="muted">No transactions in {formatMonth(month)} yet.</p>
         ) : (
           <div className="table-scroll">
-            <table className="table">
+            <table className="table transactions-table">
               <thead>
                 <tr>
-                  <th scope="col">Date</th>
+                  <th scope="col" aria-sort={sort === 'date' ? ariaOrder : undefined}>
+                    <button type="button" className="sort-button" onClick={() => sortBy('date')}>
+                      Date{sort === 'date' && <span aria-hidden="true">{arrow}</span>}
+                    </button>
+                  </th>
                   <th scope="col">Description</th>
-                  {showAccount && <th scope="col">Account</th>}
-                  <th scope="col">Category</th>
-                  <th scope="col" className="amount">
-                    Amount
+                  {showAccount && (
+                    <th scope="col">
+                      <select
+                        className="header-filter"
+                        aria-label="Filter by account"
+                        value={viewing}
+                        onChange={(e) => setAccountFilter(e.target.value)}
+                      >
+                        <option value="">All accounts</option>
+                        {accounts
+                          .filter((a) => !a.closed)
+                          .map((account) => (
+                            <option key={account.id} value={account.id}>
+                              {account.name}
+                            </option>
+                          ))}
+                        {accounts.some((a) => a.closed) && (
+                          <optgroup label="Closed">
+                            {accounts
+                              .filter((a) => a.closed)
+                              .map((account) => (
+                                <option key={account.id} value={account.id}>
+                                  {account.name}
+                                </option>
+                              ))}
+                          </optgroup>
+                        )}
+                      </select>
+                    </th>
+                  )}
+                  <th scope="col">
+                    <select
+                      className="header-filter"
+                      aria-label="Filter by category"
+                      value={categoryFilter}
+                      onChange={(e) => setParam('category', e.target.value)}
+                    >
+                      <option value="">All categories</option>
+                      {categories.map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {category.name}
+                        </option>
+                      ))}
+                      <option value="uncategorized">Uncategorized</option>
+                    </select>
+                  </th>
+                  <th scope="col" className="amount" aria-sort={sort === 'amount' ? ariaOrder : undefined}>
+                    <button type="button" className="sort-button" onClick={() => sortBy('amount')}>
+                      Amount{sort === 'amount' && <span aria-hidden="true">{arrow}</span>}
+                    </button>
                   </th>
                   <th scope="col">
                     <span className="visually-hidden">Actions</span>
@@ -292,7 +327,15 @@ export function TransactionsPage() {
                 </tr>
               </thead>
               <tbody>
-                {shown.map((transaction) =>
+                {shown.length === 0 && (
+                  <tr>
+                    <td colSpan={showAccount ? 6 : 5} className="muted">
+                      No {filterName ? `${filterName} ` : ''}transactions {viewing ? `for ${accountName(viewing)} ` : ''}in{' '}
+                      {formatMonth(month)}.
+                    </td>
+                  </tr>
+                )}
+                {shown.map((transaction, i) =>
                   transaction.id === editingId ? (
                     <EditTransactionRow
                       key={transaction.id}
@@ -305,8 +348,15 @@ export function TransactionsPage() {
                       onCancel={() => setEditingId(null)}
                     />
                   ) : (
-                    <tr key={transaction.id}>
-                      <td>{formatDay(transaction.date)}</td>
+                    <tr key={transaction.id} className={sort === 'date' && i > 0 && newDay(i) ? 'day-start' : undefined}>
+                      <td className="transaction-date">
+                        {/* Newest first, each day's date shows once; screen readers still hear it on every row */}
+                        {newDay(i) || sort !== 'date' ? (
+                          formatDay(transaction.date)
+                        ) : (
+                          <span className="visually-hidden">{formatDay(transaction.date)}</span>
+                        )}
+                      </td>
                       <td>{transaction.description}</td>
                       {showAccount && <td>{accountName(transaction.accountId)}</td>}
                       <td>

@@ -41,7 +41,6 @@ describe('MonthLayout', () => {
     expect(screen.getByText(`Dashboard for ${thisMonth} at /`)).toBeInTheDocument()
     const tabs = within(screen.getByRole('navigation', { name: 'Month views' })).getAllByRole('link')
     expect(tabs.map((tab) => tab.textContent)).toEqual(['Dashboard', 'Transactions', 'Bills & funds'])
-    expect(screen.queryByRole('button', { name: 'This month' })).not.toBeInTheDocument()
   })
 
   it('moves a month with the arrows and keeps it across tabs', () => {
@@ -57,7 +56,8 @@ describe('MonthLayout', () => {
   it('goes back to this month', () => {
     renderMonthView(`/bills?month=${lastMonth}`)
 
-    fireEvent.click(screen.getByRole('button', { name: 'This month' }))
+    fireEvent.click(screen.getByRole('button', { name: new RegExp(formatMonth(lastMonth)) }))
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'Pick a month' })).getByRole('button', { name: 'This month' }))
 
     expect(screen.getByText(`Bills for ${thisMonth} at /bills`)).toBeInTheDocument()
   })

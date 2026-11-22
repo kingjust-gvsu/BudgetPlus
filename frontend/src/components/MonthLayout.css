@@ -1,13 +1,21 @@
 /* The month picker and the Dashboard, Transactions, and Bills tabs, on the navy band under the header */
 
 .month-band {
-  /* Runs edge to edge of the window, flush under the header */
+  position: relative;
+  z-index: 1;
   margin: -28px 0 24px;
   padding-top: 12px;
   color: var(--band-text);
+}
+
+/* The navy runs edge to edge of the window, flush under the header. It's drawn behind the band
+   rather than clipped to it, so the month calendar can open below the band. */
+.month-band::before {
+  content: '';
+  position: absolute;
+  inset: 0 -100vmax;
+  z-index: -1;
   background: var(--band);
-  box-shadow: 0 0 0 100vmax var(--band);
-  clip-path: inset(0 -100vmax);
 }
 
 .month-tabs {
@@ -60,4 +68,15 @@
 .month-band .month-picker-name[aria-expanded='true'] {
   background: var(--band-glass);
   border-color: var(--band-glass-border);
+}
+
+/* The calendar is white, so its button keeps the normal look */
+.month-band .month-calendar .button {
+  color: var(--color-text);
+  background: var(--color-surface);
+  border-color: #d0d0ca;
+}
+
+.month-band .month-calendar .button:hover {
+  background: #f1f2f0;
 }

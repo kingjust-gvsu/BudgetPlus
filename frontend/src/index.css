@@ -32,6 +32,8 @@
 
 body {
   margin: 0;
+  /* The month band's navy reaches past the page sides; don't let it add a sideways scroll */
+  overflow-x: clip;
 }
 
 a {
@@ -205,15 +207,17 @@ h2 {
   cursor: pointer;
 }
 
+/* Main actions (Add, Save) in the same navy as the header */
 .button-primary {
   font-weight: 500;
-  background: var(--color-accent);
-  border-color: var(--color-accent);
+  background: var(--band);
+  border-color: var(--band);
   color: #ffffff;
 }
 
 .button-primary:hover {
-  background: var(--color-accent-hover);
+  background: #1f2a52;
+  border-color: #1f2a52;
 }
 
 .button:disabled {
@@ -568,6 +572,36 @@ h2 {
   gap: 12px;
 }
 
+/* A square button with just an icon; its name is read aloud and shown on hover */
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  color: var(--color-muted);
+}
+
+.icon-button:hover:not(:disabled) {
+  color: var(--color-text);
+  background: #f1f2f0;
+}
+
+.page-actions:has(.icon-button) {
+  gap: 8px;
+}
+
+/* A card's heading with buttons at the right end */
+.form-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.form-card-top .page-actions {
+  margin-top: -6px;
+}
+
 /* Money in, like a paycheck */
 .amount-in {
   color: var(--color-income, #1f7a4d);
@@ -585,4 +619,98 @@ h2 {
   flex-direction: row;
   align-items: center;
   gap: 8px;
+}
+
+/* Transactions table: navy heading row, a line between days, and the row under the mouse highlighted */
+
+.transactions-table th {
+  color: var(--band-muted);
+  background: var(--band);
+  border-bottom: 0;
+}
+
+/* Sorting and filtering live in the heading row */
+.sort-button {
+  padding: 4px 0;
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.sort-button:hover,
+.transactions-table th[aria-sort] .sort-button {
+  color: var(--band-text);
+}
+
+.header-filter {
+  max-width: 100%;
+  padding: 4px 8px;
+  font: inherit;
+  color: var(--band-text);
+  background: var(--band-glass);
+  border: 1px solid var(--band-glass-border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.header-filter:hover {
+  background: var(--band-glass-hover);
+}
+
+.header-filter option,
+.header-filter optgroup {
+  color: var(--color-text);
+  background: var(--color-surface);
+}
+
+.transactions-table th :focus-visible {
+  outline: 2px solid var(--band-accent);
+  outline-offset: 2px;
+}
+
+.transactions-table th:first-child {
+  border-radius: 8px 0 0 8px;
+}
+
+.transactions-table th:last-child {
+  border-radius: 0 8px 8px 0;
+}
+
+.transactions-table td {
+  border-bottom: 0;
+}
+
+.transactions-table .day-start td {
+  border-top: 1px solid #d5dae6;
+}
+
+.transactions-table .transaction-date {
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.transactions-table tbody tr:not(.editing-row):hover td {
+  background: #e8eefc;
+}
+
+.transactions-table tbody tr:not(.editing-row):hover td:first-child {
+  box-shadow: inset 3px 0 0 var(--color-accent);
+}
+
+/* Edit and Delete show on the row under the mouse (or with the keyboard), and always on touch screens */
+.transactions-table .row-actions .link-button {
+  opacity: 0;
+}
+
+.transactions-table tr:hover .row-actions .link-button,
+.transactions-table tr:focus-within .row-actions .link-button {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .transactions-table .row-actions .link-button {
+    opacity: 1;
+  }
 }

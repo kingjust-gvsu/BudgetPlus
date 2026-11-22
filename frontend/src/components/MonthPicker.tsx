@@ -60,11 +60,6 @@ export function MonthPicker({ month, onChange }: Props) {
       <button type="button" className="button month-picker-arrow" aria-label="Next month" onClick={() => onChange(shiftMonth(month, 1))}>
         ›
       </button>
-      {month !== thisMonth && (
-        <button type="button" className="button" onClick={() => onChange(thisMonth)}>
-          This month
-        </button>
-      )}
 
       {open && (
         <div className="month-calendar" role="dialog" aria-label="Pick a month">
@@ -95,6 +90,9 @@ export function MonthPicker({ month, onChange }: Props) {
               )
             })}
           </div>
+          <button type="button" className="button month-calendar-today" onClick={() => pick(thisMonth)}>
+            This month
+          </button>
         </div>
       )}
     </div>
