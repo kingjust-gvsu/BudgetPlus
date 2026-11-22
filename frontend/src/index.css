@@ -711,18 +711,18 @@ h2 {
   white-space: nowrap;
 }
 
-/* Edit and Delete show on the row under the mouse (or with the keyboard), and always on touch screens */
-.transactions-table .row-actions .link-button {
+/* Row buttons (Edit, Delete) show on the row under the mouse (or with the keyboard), and always on touch screens */
+.table-navy tbody tr:not(.editing-row) .row-actions .link-button {
   opacity: 0;
 }
 
-.transactions-table tr:hover .row-actions .link-button,
-.transactions-table tr:focus-within .row-actions .link-button {
+.table-navy tbody tr:hover .row-actions .link-button,
+.table-navy tbody tr:focus-within .row-actions .link-button {
   opacity: 1;
 }
 
 @media (hover: none) {
-  .transactions-table .row-actions .link-button {
+  .table-navy tbody tr .row-actions .link-button {
     opacity: 1;
   }
 }

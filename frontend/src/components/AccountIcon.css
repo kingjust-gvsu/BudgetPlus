@@ -1,0 +1,21 @@
+/* A small account-type icon in a soft rounded square */
+
+.account-icon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  color: var(--band);
+  background: #e9edf6;
+  border-radius: 7px;
+  vertical-align: middle;
+}
+
+/* An icon followed by a name or label */
+.with-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}

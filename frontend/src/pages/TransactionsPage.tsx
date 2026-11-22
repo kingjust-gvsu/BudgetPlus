@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router'
 import { apiGet, apiSend } from '../api/client'
 import type { Account, Category, IncomeSourceName, Transaction, TransactionInput } from '../api/types'
 import { useAuth } from '../auth/useAuth'
+import { AccountIcon } from '../components/AccountIcon'
 import { CsvImport } from '../components/CsvImport'
 import { transactionsToCsv } from '../csvExport'
 import { readCsv, type CsvFile } from '../csvImport'
@@ -95,6 +96,7 @@ export function TransactionsPage() {
   // With one account there's nothing to tell apart
   const showAccount = accounts.length > 1
   const accountName = (id: string) => accounts.find((a) => a.id === id)?.name
+  const accountType = (id: string) => accounts.find((a) => a.id === id)?.type
   const shown = (transactions ?? [])
     .filter((t) => !viewing || t.accountId === viewing || t.transferAccountId === viewing)
     .filter((t) => !categoryFilter || (categoryFilter === 'uncategorized' ? isUncategorized(t) : t.categoryId === categoryFilter))
@@ -383,7 +385,14 @@ export function TransactionsPage() {
                         )}
                       </td>
                       <td>{transaction.description}</td>
-                      {showAccount && <td>{accountName(transaction.accountId)}</td>}
+                      {showAccount && (
+                        <td>
+                          <span className="with-icon">
+                            {accountType(transaction.accountId) && <AccountIcon type={accountType(transaction.accountId)!} />}
+                            {accountName(transaction.accountId)}
+                          </span>
+                        </td>
+                      )}
                       <td>
                         {categoryLabel(transaction, names, viewing) ?? <span className="muted">Uncategorized</span>}
                       </td>

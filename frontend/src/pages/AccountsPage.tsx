@@ -3,6 +3,7 @@ import { ACCOUNT_TYPE_NAMES, flipForCard, formatBalance, showsOwed } from '../ac
 import { ApiError, apiGet, apiSend } from '../api/client'
 import type { Account, AccountInput, AccountType } from '../api/types'
 import { useAuth } from '../auth/useAuth'
+import { AccountIcon } from '../components/AccountIcon'
 import { formatDate, today } from '../dates'
 import { centsToInput, formatCents, parseDollars } from '../money'
 import './AccountsPage.css'
@@ -118,6 +119,60 @@ export function AccountsPage() {
     <>
       <h1 className="page-title">Accounts</h1>
 
+      <section className="card" aria-labelledby="add-account-heading">
+        <h2 id="add-account-heading">Add an account</h2>
+        <form className="form-row" onSubmit={add} aria-label="Add an account">
+          <div className="field field-grow">
+            <label htmlFor="new-account-name">Name</label>
+            <input
+              id="new-account-name"
+              placeholder="e.g. Checking"
+              maxLength={100}
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+            />
+          </div>
+          <div className="field">
+            <label htmlFor="new-account-type">Type</label>
+            <select
+              id="new-account-type"
+              value={form.type}
+              onChange={(e) => setForm({ ...form, type: e.target.value as AccountType })}
+            >
+              {Object.entries(ACCOUNT_TYPE_NAMES).map(([type, label]) => (
+                <option key={type} value={type}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="field">
+            <label htmlFor="new-account-starting">{startingLabel(form.type)}</label>
+            <input
+              id="new-account-starting"
+              className="input-amount"
+              inputMode="decimal"
+              placeholder="0.00"
+              value={form.starting}
+              onChange={(e) => setForm({ ...form, starting: e.target.value })}
+            />
+          </div>
+          <div className="field">
+            <label htmlFor="new-account-date">On</label>
+            <input
+              id="new-account-date"
+              type="date"
+              value={form.startDate}
+              onChange={(e) => setForm({ ...form, startDate: e.target.value })}
+            />
+          </div>
+          <button type="submit" className="button button-primary" disabled={saving}>
+            Add account
+          </button>
+        </form>
+        <p className="muted small">Transactions before this date don't change the balance.</p>
+      </section>
+
       <section className="card" aria-labelledby="accounts-heading">
         <h2 id="accounts-heading">Your accounts</h2>
         {!accounts ? (
@@ -126,7 +181,7 @@ export function AccountsPage() {
           <p className="muted">Add each place you keep money: bank accounts, credit cards, and savings funds.</p>
         ) : (
           <div className="table-scroll">
-            <table className="table accounts-table">
+            <table className="table table-navy accounts-table">
               <thead>
                 <tr>
                   <th scope="col">Account</th>
@@ -197,7 +252,12 @@ export function AccountsPage() {
                     </tr>
                   ) : (
                     <tr key={account.id}>
-                      <td className="account-name">{account.name}</td>
+                      <td>
+                        <span className="with-icon">
+                          <AccountIcon type={account.type} />
+                          <span className="account-name">{account.name}</span>
+                        </span>
+                      </td>
                       <td>{ACCOUNT_TYPE_NAMES[account.type]}</td>
                       <td className="amount">{formatBalance(account.type, account.startingBalanceCents)}</td>
                       <td>{formatDate(account.startDate)}</td>
@@ -255,89 +315,57 @@ export function AccountsPage() {
         <section className="card" aria-labelledby="closed-accounts-heading">
           <h2 id="closed-accounts-heading">Closed accounts</h2>
           <p className="muted small">They keep their transactions but aren't offered for new ones.</p>
-          <ul className="closed-accounts">
-            {closed.map((account) => (
-              <li key={account.id} className="closed-account">
-                <span className="account-name">{account.name}</span>
-                <span className="muted">{ACCOUNT_TYPE_NAMES[account.type]}</span>
-                <span className="closed-account-balance">{formatBalance(account.type, account.balanceCents)}</span>
-                <span className="row-actions">
-                  <button
-                    type="button"
-                    className="link-button"
-                    aria-label={`Reopen ${account.name}`}
-                    onClick={() => send('PATCH', `/accounts/${account.id}`, { closed: false })}
-                  >
-                    Reopen
-                  </button>
-                  <button
-                    type="button"
-                    className="link-button"
-                    aria-label={`Delete ${account.name}`}
-                    onClick={() => remove(account)}
-                  >
-                    Delete
-                  </button>
-                </span>
-              </li>
-            ))}
-          </ul>
+          <div className="table-scroll">
+            <table className="table table-navy accounts-table">
+              <thead>
+                <tr>
+                  <th scope="col">Account</th>
+                  <th scope="col">Type</th>
+                  <th scope="col" className="amount">
+                    Balance
+                  </th>
+                  <th scope="col">
+                    <span className="visually-hidden">Actions</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {closed.map((account) => (
+                  <tr key={account.id}>
+                    <td>
+                      <span className="with-icon">
+                        <AccountIcon type={account.type} />
+                        <span className="account-name">{account.name}</span>
+                      </span>
+                    </td>
+                    <td className="muted">{ACCOUNT_TYPE_NAMES[account.type]}</td>
+                    <td className="amount">{formatBalance(account.type, account.balanceCents)}</td>
+                    <td className="row-actions">
+                      <button
+                        type="button"
+                        className="link-button"
+                        aria-label={`Reopen ${account.name}`}
+                        onClick={() => send('PATCH', `/accounts/${account.id}`, { closed: false })}
+                      >
+                        Reopen
+                      </button>
+                      <button
+                        type="button"
+                        className="link-button"
+                        aria-label={`Delete ${account.name}`}
+                        onClick={() => remove(account)}
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </section>
       )}
 
-      <section className="card" aria-labelledby="add-account-heading">
-        <h2 id="add-account-heading">Add an account</h2>
-        <form className="form-row" onSubmit={add} aria-label="Add an account">
-          <div className="field field-grow">
-            <label htmlFor="new-account-name">Name</label>
-            <input
-              id="new-account-name"
-              placeholder="e.g. Checking"
-              maxLength={100}
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-            />
-          </div>
-          <div className="field">
-            <label htmlFor="new-account-type">Type</label>
-            <select
-              id="new-account-type"
-              value={form.type}
-              onChange={(e) => setForm({ ...form, type: e.target.value as AccountType })}
-            >
-              {Object.entries(ACCOUNT_TYPE_NAMES).map(([type, label]) => (
-                <option key={type} value={type}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="field">
-            <label htmlFor="new-account-starting">{startingLabel(form.type)}</label>
-            <input
-              id="new-account-starting"
-              className="input-amount"
-              inputMode="decimal"
-              placeholder="0.00"
-              value={form.starting}
-              onChange={(e) => setForm({ ...form, starting: e.target.value })}
-            />
-          </div>
-          <div className="field">
-            <label htmlFor="new-account-date">On</label>
-            <input
-              id="new-account-date"
-              type="date"
-              value={form.startDate}
-              onChange={(e) => setForm({ ...form, startDate: e.target.value })}
-            />
-          </div>
-          <button type="submit" className="button button-primary" disabled={saving}>
-            Add account
-          </button>
-        </form>
-        <p className="muted small">Transactions before this date don't change the balance.</p>
-      </section>
     </>
   )
 }
