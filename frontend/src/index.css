@@ -357,14 +357,15 @@ h2 {
   font-size: 13px;
 }
 
+/* Bills indigo and expenses teal, the same as on the Trends charts */
 .badge-bill {
-  background: #ececea;
-  color: var(--color-text);
+  background: #e6eafb;
+  color: #2c45a8;
 }
 
 .badge-expense {
-  background: #e3ecfb;
-  color: var(--color-accent);
+  background: #dcf3ef;
+  color: #0f6e62;
 }
 
 /* Budget setup */

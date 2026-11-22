@@ -122,6 +122,11 @@ export function IncomeSection() {
           {income.sources.length === 0 && editing?.kind !== 'new' && (
             <p className="muted">Add each regular income, like each paycheck in your household.</p>
           )}
+          {/* A navy heading row, like the tables on other pages */}
+          <div className="income-head" aria-hidden="true">
+            <span>Source</span>
+            <span className="income-amount">Monthly amount</span>
+          </div>
           <ul className="income-list">
             {income.sources.map((source) =>
               editing?.kind === 'source' && editing.id === source.id ? (
