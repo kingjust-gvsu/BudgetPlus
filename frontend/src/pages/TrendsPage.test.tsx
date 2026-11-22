@@ -77,6 +77,22 @@ describe('TrendsPage', () => {
     expect(within(groceries).getByRole('row', { name: /October 2026/ })).toHaveTextContent('$450.00')
   })
 
+  it("links each month to that month's transactions in the category", async () => {
+    renderTrends()
+
+    const cards = await screen.findAllByRole('listitem')
+    const groceries = within(cards[1]).getByRole('table', { name: 'Groceries by month' })
+    expect(within(within(groceries).getByRole('row', { name: /October 2026/ })).getByRole('link')).toHaveAttribute(
+      'href',
+      '/transactions?month=2026-10&category=groceries&sort=amount',
+    )
+    const uncategorized = within(cards[2]).getByRole('table', { name: 'Uncategorized by month' })
+    expect(within(within(uncategorized).getByRole('row', { name: /October 2026/ })).getByRole('link')).toHaveAttribute(
+      'href',
+      '/transactions?month=2026-10&category=uncategorized&sort=amount',
+    )
+  })
+
   it('switches the time range', async () => {
     const fetchMock = renderTrends()
     await screen.findByRole('heading', { name: 'Spending by month' })

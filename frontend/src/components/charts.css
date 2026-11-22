@@ -425,8 +425,9 @@
   display: flex;
 }
 
-.trend-chart-hits span {
+.trend-chart-hits a {
   flex: 1;
+  cursor: pointer;
 }
 
 .trend-tooltip {

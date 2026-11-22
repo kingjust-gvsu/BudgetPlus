@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router'
 import type { CategorySpending, MonthSpending } from '../api/types'
 import { niceScale } from '../charts'
 import { formatMonth, formatShortMonth } from '../dates'
@@ -7,6 +8,10 @@ import './charts.css'
 
 const wholeDollars = (cents: number) => formatCents(cents).replace(/\.00$/, '')
 const kindClass = (kind: CategorySpending['kind']) => (kind === 'BILL' ? 'bills' : kind === 'EXPENSE' ? 'expenses' : 'other')
+
+// That month's transactions in the category, biggest first
+const transactionsLink = (category: CategorySpending, month: string) =>
+  `/transactions?month=${month}&category=${category.id ?? 'uncategorized'}&sort=amount`
 
 const WIDTH = 100 // the line is drawn in a 100 × 100 box and stretched to fit
 const HEIGHT = 100
@@ -50,10 +55,17 @@ function CategoryTrend({ category, months }: { category: CategorySpending; month
             style={{ left: `${p.x}%`, bottom: `${p.y}%` }}
           />
         ))}
-        {/* Hover targets: one column per month */}
+        {/* Hover and click targets: one column per month, opening that month's transactions.
+            Keyboard and screen reader users get the same links in the table below. */}
         <div className="trend-chart-hits">
           {months.map((month, i) => (
-            <span key={month} onPointerEnter={() => setHovered(i)} onPointerLeave={() => setHovered(null)} />
+            <Link
+              key={month}
+              to={transactionsLink(category, month)}
+              tabIndex={-1}
+              onPointerEnter={() => setHovered(i)}
+              onPointerLeave={() => setHovered(null)}
+            />
           ))}
         </div>
         {hovered !== null && (
@@ -76,7 +88,9 @@ function CategoryTrend({ category, months }: { category: CategorySpending; month
           {months.map((month, i) => (
             <tr key={month}>
               <th scope="row">{formatMonth(month)}</th>
-              <td>{formatCents(category.byMonthCents[i])}</td>
+              <td>
+                <Link to={transactionsLink(category, month)}>{formatCents(category.byMonthCents[i])}</Link>
+              </td>
             </tr>
           ))}
         </tbody>
