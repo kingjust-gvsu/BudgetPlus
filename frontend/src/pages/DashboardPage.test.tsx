@@ -123,11 +123,47 @@ describe('DashboardPage', () => {
     renderDashboard()
     const tiles = await screen.findByRole('region', { name: 'Month summary' })
 
-    expect(within(tiles).getByText('received of $4,000.00 planned')).toBeInTheDocument()
-    expect(within(tiles).getByText('of $1,530.00 planned · 2 of 4 paid')).toBeInTheDocument()
-    expect(within(tiles).getByText('of $840.00 in limits')).toBeInTheDocument()
+    expect(within(tiles).getByText('of $4,000.00 planned')).toBeInTheDocument()
+    expect(within(tiles).getByText('2 of 4 paid')).toBeInTheDocument()
+    expect(within(tiles).getByText('$1,334.00 of $1,530.00')).toBeInTheDocument()
     expect(within(tiles).getByText('Savings (remainder)')).toBeInTheDocument()
     expect(within(tiles).getByText('-$14.00 from bills')).toBeInTheDocument()
+  })
+
+  it('leads with how much is left to spend', async () => {
+    renderDashboard()
+    const hero = within(await screen.findByRole('region', { name: 'Left to spend' }))
+
+    expect(hero.getByText('$213.00')).toBeInTheDocument()
+    expect(hero.getByText('$627.00 of $840.00 spent')).toBeInTheDocument()
+    expect(hero.getByText(/days? left · about \$\d+\.\d\d a day/)).toBeInTheDocument()
+  })
+
+  it('says how far over the limits spending is', async () => {
+    renderDashboard({ ...october, totals: { ...october.totals, expensesSpentCents: 90000 } })
+    const hero = within(await screen.findByRole('region', { name: 'Left to spend' }))
+
+    expect(hero.getByText('Over your limits')).toBeInTheDocument()
+    expect(hero.getByText('$60.00')).toBeInTheDocument()
+  })
+
+  it('lists what needs attention', async () => {
+    const groceries = { ...october.categories.find((c) => c.id === 'groceries')!, spentCents: 44000, leftCents: 4000 } as CategorySummary
+    renderDashboard({ ...october, categories: october.categories.map((c) => (c.id === 'groceries' ? groceries : c)) })
+    const items = within(await screen.findByRole('list', { name: 'Needs attention' })).getAllByRole('listitem')
+
+    expect(items.map((item) => item.textContent)).toEqual([
+      'Gas is $12.00 over',
+      'Groceries has $40.00 left',
+      'Internet not paid yet · est. $65.00',
+    ])
+  })
+
+  it("doesn't list next month's bills as unpaid", async () => {
+    renderDashboard({ ...october, month: shiftMonth(thisMonth, 1) })
+    const list = await screen.findByRole('list', { name: 'Needs attention' })
+
+    expect(list).not.toHaveTextContent('not paid yet')
   })
 
   it('shows expenses as left or over their limit', async () => {
