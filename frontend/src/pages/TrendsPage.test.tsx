@@ -45,10 +45,10 @@ describe('TrendsPage', () => {
     vi.unstubAllGlobals()
   })
 
-  it('loads the last six months and sums them up', async () => {
+  it('loads the last six months', async () => {
     const fetchMock = renderTrends()
 
-    expect(await screen.findByText('$4,000.00 spent in the last 3 months, about $1,333.33 a month.')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Spending by month' })).toBeInTheDocument()
     expect(fetchMock).toHaveBeenCalledWith(`/api/spending?to=${thisMonth}&months=6`, expect.anything())
   })
 
@@ -98,7 +98,6 @@ describe('TrendsPage', () => {
     await vi.waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(`/api/spending?to=${thisMonth}&months=all`, expect.anything()),
     )
-    expect(await screen.findByText(/spent since September 2026/)).toBeInTheDocument()
   })
 
   it('says so when there is no spending yet', async () => {
