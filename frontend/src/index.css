@@ -545,9 +545,15 @@ h2 {
 }
 
 /* Transactions: which account's transactions to show */
+.transactions-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  margin-bottom: 12px;
+}
+
 .transactions-filter {
   flex-direction: row;
   align-items: center;
   gap: 8px;
-  margin-bottom: 12px;
 }

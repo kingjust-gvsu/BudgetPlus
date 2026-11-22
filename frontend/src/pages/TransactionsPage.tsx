@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router'
 import { apiGet, apiSend } from '../api/client'
 import type { Account, Category, IncomeSourceName, Transaction, TransactionInput } from '../api/types'
 import { useAuth } from '../auth/useAuth'
@@ -12,9 +13,30 @@ import { formatDay, formatMonth, monthOf, shiftMonth, today } from '../dates'
 import { formatCents } from '../money'
 import { categoryLabel, formatAmount, isIncome } from '../transactionInput'
 
+// Not spending in any category: no category, and not a transfer or income
+const isUncategorized = (t: Transaction) =>
+  t.categoryId === null && t.transferAccountId === null && t.incomeSourceId === null && !t.isOtherIncome
+
 export function TransactionsPage() {
   const { getToken } = useAuth()
-  const [month, setMonth] = useState(monthOf(today()))
+  // The month, category, and sort live in the address, so other pages can link to a filtered list
+  const [params, setParams] = useSearchParams()
+  const monthParam = params.get('month')
+  const month = monthParam && /^\d{4}-\d{2}$/.test(monthParam) ? monthParam : monthOf(today())
+  // '' shows every category, 'uncategorized' shows spending without one, an id shows that category
+  const categoryFilter = params.get('category') ?? ''
+  const sort = params.get('sort') === 'amount' ? 'amount' : 'date'
+  const setParam = (name: string, value: string) =>
+    setParams(
+      (current) => {
+        const next = new URLSearchParams(current)
+        if (value) next.set(name, value)
+        else next.delete(name)
+        return next
+      },
+      { replace: true },
+    )
+  const setMonth = (value: string) => setParam('month', value === monthOf(today()) ? '' : value)
   const [transactions, setTransactions] = useState<Transaction[] | null>(null)
   const [categories, setCategories] = useState<Category[]>([])
   const [accounts, setAccounts] = useState<Account[]>([])
@@ -63,7 +85,13 @@ export function TransactionsPage() {
   // With one account there's nothing to tell apart, and filtered to one they're all the same
   const showAccount = accounts.length > 1 && !viewing
   const accountName = (id: string) => accounts.find((a) => a.id === id)?.name
-  const shown = (transactions ?? []).filter((t) => !viewing || t.accountId === viewing || t.transferAccountId === viewing)
+  const shown = (transactions ?? [])
+    .filter((t) => !viewing || t.accountId === viewing || t.transferAccountId === viewing)
+    .filter((t) => !categoryFilter || (categoryFilter === 'uncategorized' ? isUncategorized(t) : t.categoryId === categoryFilter))
+  // The list comes newest first; largest first puts the biggest spending at the top
+  if (sort === 'amount') shown.sort((a, b) => b.amountCents - a.amountCents)
+  const filterName =
+    categoryFilter === 'uncategorized' ? 'uncategorized' : categories.find((c) => c.id === categoryFilter)?.name
   // Seen from the account a transfer went into, it's money coming in (like money back)
   const shownAmount = (t: Transaction) =>
     viewing && t.transferAccountId === viewing ? formatCents(-t.amountCents) : formatAmount(t)
@@ -203,37 +231,57 @@ export function TransactionsPage() {
       )}
 
       <section className="card" aria-label={`Transactions in ${formatMonth(month)}`}>
-        {accounts.length > 1 && (
+        <div className="transactions-filters">
           <div className="field transactions-filter">
-            <label htmlFor="account-filter">Show</label>
-            <select id="account-filter" value={viewing} onChange={(e) => setAccountFilter(e.target.value)}>
-              <option value="">All accounts</option>
-              {accounts
-                .filter((a) => !a.closed)
-                .map((account) => (
-                  <option key={account.id} value={account.id}>
-                    {account.name}
-                  </option>
-                ))}
-              {accounts.some((a) => a.closed) && (
-                <optgroup label="Closed">
-                  {accounts
-                    .filter((a) => a.closed)
-                    .map((account) => (
-                      <option key={account.id} value={account.id}>
-                        {account.name}
-                      </option>
-                    ))}
-                </optgroup>
-              )}
+            <span aria-hidden="true">Show</span>
+            {accounts.length > 1 && (
+              <select aria-label="Filter by account" value={viewing} onChange={(e) => setAccountFilter(e.target.value)}>
+                <option value="">All accounts</option>
+                {accounts
+                  .filter((a) => !a.closed)
+                  .map((account) => (
+                    <option key={account.id} value={account.id}>
+                      {account.name}
+                    </option>
+                  ))}
+                {accounts.some((a) => a.closed) && (
+                  <optgroup label="Closed">
+                    {accounts
+                      .filter((a) => a.closed)
+                      .map((account) => (
+                        <option key={account.id} value={account.id}>
+                          {account.name}
+                        </option>
+                      ))}
+                  </optgroup>
+                )}
+              </select>
+            )}
+            <select aria-label="Filter by category" value={categoryFilter} onChange={(e) => setParam('category', e.target.value)}>
+              <option value="">All categories</option>
+              {categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+              <option value="uncategorized">Uncategorized</option>
             </select>
           </div>
-        )}
+          <div className="field transactions-filter">
+            <label htmlFor="sort">Sort</label>
+            <select id="sort" value={sort} onChange={(e) => setParam('sort', e.target.value === 'amount' ? 'amount' : '')}>
+              <option value="date">Newest first</option>
+              <option value="amount">Largest first</option>
+            </select>
+          </div>
+        </div>
         {transactions === null ? (
           <p className="muted">Loading…</p>
         ) : shown.length === 0 ? (
           <p className="muted">
-            No transactions {viewing ? `for ${accountName(viewing)} ` : ''}in {formatMonth(month)} yet.
+            No {filterName ? `${filterName} ` : ''}transactions {viewing ? `for ${accountName(viewing)} ` : ''}in{' '}
+            {formatMonth(month)}.
+
           </p>
         ) : (
           <div className="table-scroll">

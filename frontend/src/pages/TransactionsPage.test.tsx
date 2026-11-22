@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
+import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Account, Category, Transaction } from '../api/types'
 import { AuthContext, type AuthState } from '../auth/authContext'
@@ -41,7 +42,7 @@ function fakeApi(url: string, init?: RequestInit) {
   return Response.json({ error: 'Not found' }, { status: 404 })
 }
 
-function renderPage() {
+function renderPage(address = '/transactions') {
   const auth: AuthState = {
     user: { email: 'test@example.com', displayName: 'Test User' },
     signInWithGoogle: vi.fn(),
@@ -49,9 +50,11 @@ function renderPage() {
     getToken: vi.fn().mockResolvedValue('test-token'),
   }
   return render(
-    <AuthContext.Provider value={auth}>
-      <TransactionsPage />
-    </AuthContext.Provider>,
+    <MemoryRouter initialEntries={[address]}>
+      <AuthContext.Provider value={auth}>
+        <TransactionsPage />
+      </AuthContext.Provider>
+    </MemoryRouter>,
   )
 }
 
@@ -209,7 +212,7 @@ describe('TransactionsPage', () => {
       renderPage()
       await screen.findByText('Meijer')
 
-      fireEvent.change(screen.getByLabelText('Show'), { target: { value: 'acct-card' } })
+      fireEvent.change(screen.getByLabelText('Filter by account'), { target: { value: 'acct-card' } })
 
       const row = screen.getByText('Pay off card').closest('tr')!
       expect(row).toHaveTextContent('Transfer from Checking')
@@ -346,5 +349,32 @@ describe('TransactionsPage', () => {
     await vi.waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(`/api/transactions?month=${shiftMonth(thisMonth, -1)}`, expect.anything()),
     )
+  })
+
+  it('opens filtered to a category and month from the address, largest first', async () => {
+    const lastMonth = shiftMonth(thisMonth, -1)
+    transactions = [
+      { ...transactions[0], id: 'tx-aldi', description: 'Aldi', amountCents: 2300 },
+      { ...transactions[0], id: 'tx-costco', description: 'Costco', amountCents: 15699 },
+      ...transactions,
+    ]
+    renderPage(`/transactions?month=${lastMonth}&category=cat-groceries&sort=amount`)
+    await screen.findByText('Costco')
+
+    expect(fetchMock).toHaveBeenCalledWith(`/api/transactions?month=${lastMonth}`, expect.anything())
+    expect(screen.getByLabelText('Filter by category')).toHaveValue('cat-groceries')
+    expect(screen.getByLabelText('Sort')).toHaveValue('amount')
+    const descriptions = screen.getAllByRole('row').slice(1).map((row) => row.children[1].textContent)
+    expect(descriptions).toEqual(['Costco', 'Meijer', 'Aldi'])
+  })
+
+  it('shows only spending without a category', async () => {
+    renderPage()
+    await screen.findByText('Meijer')
+
+    fireEvent.change(screen.getByLabelText('Filter by category'), { target: { value: 'uncategorized' } })
+
+    expect(screen.queryByText('Meijer')).not.toBeInTheDocument()
+    expect(screen.getByText('Target refund')).toBeInTheDocument()
   })
 })

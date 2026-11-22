@@ -20,6 +20,9 @@ const signed = (cents: number) => (cents > 0 ? `+${formatCents(cents)}` : format
 // Within this share of a limit, an expense is shown as near it
 const NEAR_LIMIT = 0.9
 
+// The month's transactions in one category, biggest first
+const transactionsLink = (month: string, category: string) => `/transactions?month=${month}&category=${category}&sort=amount`
+
 // under, near, over, or noLimit
 function expenseState({ state, limitCents, spentCents }: Expense) {
   const near = state === 'under' && limitCents !== null && limitCents > 0 && spentCents >= limitCents * NEAR_LIMIT
@@ -93,12 +96,16 @@ function NeedsAttention({ expenses, bills, month }: { expenses: Expense[]; bills
     <ul className="dash-attention" aria-label="Needs attention">
       {over.map((e) => (
         <li key={e.id} className="dash-alert dash-alert--bad">
-          {e.name} is {formatCents(-(e.leftCents ?? 0))} over
+          <Link to={transactionsLink(month, e.id)}>
+            {e.name} is {formatCents(-(e.leftCents ?? 0))} over
+          </Link>
         </li>
       ))}
       {near.map((e) => (
         <li key={e.id} className="dash-alert dash-alert--warn">
-          {e.name} has {formatCents(e.leftCents ?? 0)} left
+          <Link to={transactionsLink(month, e.id)}>
+            {e.name} has {formatCents(e.leftCents ?? 0)} left
+          </Link>
         </li>
       ))}
       {unpaid.length > 0 && (
@@ -113,14 +120,16 @@ function NeedsAttention({ expenses, bills, month }: { expenses: Expense[]; bills
   )
 }
 
-function ExpenseRow({ expense }: { expense: Expense }) {
+function ExpenseRow({ expense, month }: { expense: Expense; month: string }) {
   const { limitCents, spentCents, leftCents } = expense
   const state = expenseState(expense)
   const name = expense.budgetType === 'REMAINDER' ? `${expense.name} (remainder)` : expense.name
   return (
     <li className="dash-row">
       <div className="dash-row-line">
-        <span className="dash-row-name">{name}</span>
+        <Link to={transactionsLink(month, expense.id)} className="dash-row-name">
+          {name}
+        </Link>
         <span>{limitCents === null ? formatCents(spentCents) : `${formatCents(spentCents)} of ${formatCents(limitCents)}`}</span>
       </div>
       {state !== 'noLimit' && limitCents !== null && (
@@ -363,14 +372,14 @@ export function DashboardPage() {
               ) : (
                 <ul className="dash-list">
                   {expenses.map((expense) => (
-                    <ExpenseRow key={expense.id} expense={expense} />
+                    <ExpenseRow key={expense.id} expense={expense} month={summary.month} />
                   ))}
                 </ul>
               )}
               {summary.uncategorizedCents !== 0 && (
                 <p className="muted small dash-uncategorized">
                   {formatCents(summary.uncategorizedCents)} of spending isn't in a category yet.{' '}
-                  <Link to="/transactions">Review transactions</Link>
+                  <Link to={`/transactions?month=${summary.month}&category=uncategorized`}>Review transactions</Link>
                 </p>
               )}
             </section>
