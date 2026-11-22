@@ -9,9 +9,10 @@ import { readCsv, type CsvFile } from '../csvImport'
 import { EditTransactionRow } from '../components/EditTransactionRow'
 import { SplitButton } from '../components/SplitButton'
 import { TransactionForm } from '../components/TransactionForm'
-import { formatDay, formatMonth, monthOf, shiftMonth, today } from '../dates'
+import { formatDay, formatMonth, monthOf, today } from '../dates'
 import { formatCents } from '../money'
 import { categoryLabel, formatAmount, isIncome } from '../transactionInput'
+import { useMonth } from '../useMonth'
 
 // Not spending in any category: no category, and not a transfer or income
 const isUncategorized = (t: Transaction) =>
@@ -20,9 +21,8 @@ const isUncategorized = (t: Transaction) =>
 export function TransactionsPage() {
   const { getToken } = useAuth()
   // The month, category, and sort live in the address, so other pages can link to a filtered list
+  const [month, setMonth] = useMonth()
   const [params, setParams] = useSearchParams()
-  const monthParam = params.get('month')
-  const month = monthParam && /^\d{4}-\d{2}$/.test(monthParam) ? monthParam : monthOf(today())
   // '' shows every category, 'uncategorized' shows spending without one, an id shows that category
   const categoryFilter = params.get('category') ?? ''
   const sort = params.get('sort') === 'amount' ? 'amount' : 'date'
@@ -36,7 +36,6 @@ export function TransactionsPage() {
       },
       { replace: true },
     )
-  const setMonth = (value: string) => setParam('month', value === monthOf(today()) ? '' : value)
   const [transactions, setTransactions] = useState<Transaction[] | null>(null)
   const [categories, setCategories] = useState<Category[]>([])
   const [accounts, setAccounts] = useState<Account[]>([])
@@ -156,17 +155,18 @@ export function TransactionsPage() {
     }
   }
 
-  const changeMonth = (by: number) => {
+  // Stop editing when the month changes
+  const [editingMonth, setEditingMonth] = useState(month)
+  if (editingMonth !== month) {
+    setEditingMonth(month)
     setEditingId(null)
-    setMonth(shiftMonth(month, by))
   }
 
   return (
     <>
       <div className="page-header">
         <div>
-          <h1>Transactions</h1>
-          <p className="page-intro">
+          <p className="page-intro page-intro-top">
             Add the money you spend, and refunds as negative amounts. For a paycheck, pick its income under
             Category. For paying off a card or saving into a fund, pick the account the money went to.
           </p>
@@ -189,15 +189,6 @@ export function TransactionsPage() {
               items={[{ label: exporting ? 'Exporting…' : 'Export to CSV', onClick: exportCsv, disabled: exporting }]}
             />
           )}
-          <div className="month-nav">
-            <button type="button" className="button" aria-label="Previous month" onClick={() => changeMonth(-1)}>
-              ‹
-            </button>
-            <span className="month-name">{formatMonth(month)}</span>
-            <button type="button" className="button" aria-label="Next month" onClick={() => changeMonth(1)}>
-              ›
-            </button>
-          </div>
         </div>
       </div>
 

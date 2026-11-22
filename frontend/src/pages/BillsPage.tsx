@@ -5,8 +5,8 @@ import type { BillStatus, CategorySummary, FundBillStatus, MonthSummary } from '
 import { useAuth } from '../auth/useAuth'
 import { formatLongDate } from '../budgetText'
 import { ProgressBar } from '../components/ProgressBar'
-import { formatMonth, monthOf, shiftMonth, today } from '../dates'
 import { formatCents } from '../money'
+import { useMonth } from '../useMonth'
 import './BillsPage.css'
 
 type Bill = CategorySummary & BillStatus
@@ -54,7 +54,7 @@ function FundCard({ bill }: { bill: FundBill }) {
 
 export function BillsPage() {
   const { getToken } = useAuth()
-  const [month, setMonth] = useState(monthOf(today()))
+  const [month] = useMonth()
   const [summary, setSummary] = useState<MonthSummary | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -82,19 +82,6 @@ export function BillsPage() {
 
   return (
     <>
-      <div className="page-header">
-        <h1>Bills &amp; funds</h1>
-        <div className="month-nav">
-          <button type="button" className="button" aria-label="Previous month" onClick={() => setMonth(shiftMonth(month, -1))}>
-            ‹
-          </button>
-          <span className="month-name">{formatMonth(month)}</span>
-          <button type="button" className="button" aria-label="Next month" onClick={() => setMonth(shiftMonth(month, 1))}>
-            ›
-          </button>
-        </div>
-      </div>
-
       {error && (
         <p className="error" role="alert">
           {error}

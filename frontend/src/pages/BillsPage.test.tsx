@@ -1,9 +1,9 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { MonthSummary } from '../api/types'
 import { AuthContext, type AuthState } from '../auth/authContext'
-import { monthOf, shiftMonth, today } from '../dates'
+import { monthOf, today } from '../dates'
 import { BillsPage } from './BillsPage'
 
 const thisMonth = monthOf(today())
@@ -132,16 +132,5 @@ describe('BillsPage', () => {
     renderBills({ ...summary, categories: [] })
 
     expect(await screen.findByText(/No monthly bills yet/)).toBeInTheDocument()
-  })
-
-  it('loads the previous month', async () => {
-    renderBills()
-    await screen.findByText('Electric')
-
-    fireEvent.click(screen.getByRole('button', { name: 'Previous month' }))
-
-    await vi.waitFor(() =>
-      expect(fetchMock).toHaveBeenCalledWith(`/api/summary?month=${shiftMonth(thisMonth, -1)}`, expect.anything()),
-    )
   })
 })

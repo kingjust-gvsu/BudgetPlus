@@ -1,15 +1,13 @@
 import { useEffect } from 'react'
-import { NavLink, Outlet } from 'react-router'
+import { Link, NavLink, Outlet } from 'react-router'
 import { apiGet } from '../api/client'
 import { useAuth } from '../auth/useAuth'
 import { UserMenu } from './UserMenu'
 
+// Pages that aren't about one month. Budget+ itself opens the month view (Dashboard, Transactions, Bills).
 const tabs = [
-  { to: '/', label: 'Dashboard' },
-  { to: '/transactions', label: 'Transactions' },
-  { to: '/accounts', label: 'Accounts' },
-  { to: '/bills', label: 'Bills & funds' },
   { to: '/trends', label: 'Trends' },
+  { to: '/accounts', label: 'Accounts' },
   { to: '/budget-setup', label: 'Budget setup' },
 ]
 
@@ -28,7 +26,9 @@ export function Layout() {
     <>
       <header className="site-header">
         <nav aria-label="Main" className="site-nav">
-          <strong className="site-name">Budget+</strong>
+          <Link to="/" className="site-name">
+            Budget+
+          </Link>
           {tabs.map((tab) => (
             <NavLink key={tab.to} to={tab.to} end className="nav-tab">
               {tab.label}
