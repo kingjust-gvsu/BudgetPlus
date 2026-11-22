@@ -19,19 +19,52 @@
   list-style: none;
 }
 
+.income-head,
 .income-item {
   display: grid;
   grid-template-columns: minmax(120px, 220px) 130px 1fr auto;
   align-items: center;
   gap: 4px 16px;
+  padding: 0 8px;
+}
+
+.income-head {
+  min-height: 40px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--band-muted);
+  background: var(--band);
+  border-radius: 8px;
+}
+
+.income-item {
   min-height: 48px;
-  border-top: 1px solid #ececea;
+}
+
+/* The row under the mouse is highlighted, and its Edit and Delete show (always on touch screens) */
+.income-item:not(.editing, .income-total):hover {
+  background: #e8eefc;
+  box-shadow: inset 3px 0 0 var(--color-accent);
+}
+
+.income-item .row-actions .link-button {
+  opacity: 0;
+}
+
+.income-item:hover .row-actions .link-button,
+.income-item:focus-within .row-actions .link-button {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .income-item .row-actions .link-button {
+    opacity: 1;
+  }
 }
 
 .income-item.editing {
   display: block;
-  padding: 8px 12px;
-  margin: 0 -12px;
+  padding: 8px;
   background: #f3f6fd;
 }
 
@@ -47,7 +80,7 @@
 }
 
 .income-total {
-  border-top: 2px solid var(--color-border);
+  border-top: 1px solid #d5dae6;
   font-weight: 600;
 }
 

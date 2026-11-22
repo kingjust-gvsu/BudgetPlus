@@ -4,8 +4,7 @@ import type { SpendingSummary } from '../api/types'
 import { useAuth } from '../auth/useAuth'
 import { CategoryTrends } from '../components/CategoryTrends'
 import { MonthlySpendingChart } from '../components/MonthlySpendingChart'
-import { formatMonth, monthOf, today } from '../dates'
-import { formatCents } from '../money'
+import { monthOf, today } from '../dates'
 import './TrendsPage.css'
 
 type Range = number | 'all'
@@ -35,25 +34,11 @@ export function TrendsPage() {
   }, [getToken, range])
 
   const total = spending?.months.reduce((sum, m) => sum + m.billsCents + m.expensesCents, 0) ?? 0
-  const monthCount = spending?.months.length ?? 1
-  const period =
-    range === 'all' && spending && monthCount > 1
-      ? `since ${formatMonth(spending.months[0].month)}`
-      : monthCount === 1
-        ? 'this month'
-        : `in the last ${monthCount} months`
 
   return (
     <>
       <div className="page-header">
-        <div>
-          <h1>Trends</h1>
-          {spending && total > 0 && (
-            <p className="page-intro">
-              {formatCents(total)} spent {period}, about {formatCents(Math.round(total / monthCount))} a month.
-            </p>
-          )}
-        </div>
+        <h1>Trends</h1>
         <div className="range-toggle" role="group" aria-label="Time range">
           {RANGES.map((option) => (
             <button

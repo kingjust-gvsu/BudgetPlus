@@ -88,7 +88,7 @@ describe('DashboardPage', () => {
   it("shows how the month's spending splits across categories", async () => {
     renderDashboard()
 
-    expect(await screen.findByRole('heading', { name: 'Where it went' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Spending' })).toBeInTheDocument()
     const rent = screen.getByText('Rent', { selector: '.donut-legend-name' }).closest('li')!
     expect(rent).toHaveTextContent('Rent$1,200.0080%')
     expect(screen.getByRole('link', { name: 'See trends' })).toHaveAttribute('href', '/trends')
@@ -196,6 +196,14 @@ describe('DashboardPage', () => {
     expect(within(expenseRow('Gifts')).getByText('No limit set')).toBeInTheDocument()
   })
 
+  it('lists expenses with the most of their limit used first', async () => {
+    renderDashboard()
+    const expenses = within(await screen.findByRole('region', { name: 'Expenses' }))
+
+    const names = expenses.getAllByRole('listitem').map((item) => item.querySelector('.dash-row-name')?.textContent)
+    expect(names).toEqual(['Gas', 'Groceries', 'Gifts', 'Savings (remainder)'])
+  })
+
   it('points out an expense that is near its limit', async () => {
     const groceries = { ...october.categories.find((c) => c.id === 'groceries')!, spentCents: 44000, leftCents: 4000 } as CategorySummary
     renderDashboard({ ...october, categories: october.categories.map((c) => (c.id === 'groceries' ? groceries : c)) })
@@ -204,13 +212,12 @@ describe('DashboardPage', () => {
     expect(within(expenses.getByText('Groceries').closest('li')!).getByText('$40.00 left · near the limit')).toBeInTheDocument()
   })
 
-  it('shows bills neutrally as paid or pending', async () => {
+  it('shows bills as a checklist of paid and not paid yet', async () => {
     renderDashboard()
     await screen.findByText('Electric')
 
-    expect(within(row('Electric')).getByText('· Paid')).toBeInTheDocument()
-    expect(within(row('Electric')).getByText(/est\. \$120\.00/)).toBeInTheDocument()
-    expect(within(row('Internet')).getByText('· Pending')).toBeInTheDocument()
+    expect(row('Electric')).toHaveTextContent('Electric, paid$134.00')
+    expect(row('Internet')).toHaveTextContent('Internet, not paid yetest. $65.00')
   })
 
   it('shows progress toward bills that are not monthly', async () => {

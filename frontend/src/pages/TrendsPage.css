@@ -1,26 +1,31 @@
 /* Trends */
 
 .range-toggle {
-  display: flex;
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  background: #e6e9f1;
+  border-radius: 10px;
 }
 
+/* Options sit on a soft gray track; the chosen one is a navy pill like the main buttons */
 .range-toggle .button {
-  border-radius: 0;
-  margin-left: -1px;
+  min-height: 36px;
+  padding: 0 14px;
+  font-size: 15px;
+  color: var(--color-muted);
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
 }
 
-.range-toggle .button:first-child {
-  margin-left: 0;
-  border-radius: 8px 0 0 8px;
-}
-
-.range-toggle .button:last-child {
-  border-radius: 0 8px 8px 0;
+.range-toggle .button:hover {
+  color: var(--color-text);
 }
 
 .range-toggle .button[aria-pressed='true'] {
-  position: relative;
-  background: var(--color-accent);
-  border-color: var(--color-accent);
+  font-weight: 500;
   color: #ffffff;
+  background: var(--band);
+  box-shadow: 0 2px 6px rgb(11 16 32 / 0.2);
 }

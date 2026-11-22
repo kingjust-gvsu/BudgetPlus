@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useState, type FormEvent, type ReactNode } from 'react'
 import type { Account, Category, IncomeSourceName, TransactionInput } from '../api/types'
 import { today } from '../dates'
 import { readTransactionFields } from '../transactionInput'
@@ -9,11 +9,17 @@ type Props = {
   accounts: Account[]
   incomeSources: IncomeSourceName[]
   onSave: (input: TransactionInput) => Promise<void>
+  // The date it starts on; today if left out
+  defaultDate?: string
+  // When given, a Cancel link closes the form
+  onClose?: () => void
+  // Extra buttons beside the heading, like import and export
+  actions?: ReactNode
 }
 
 // Form for adding a transaction, or a transfer between accounts.
-export function TransactionForm({ categories, accounts, incomeSources, onSave }: Props) {
-  const [date, setDate] = useState(today())
+export function TransactionForm({ categories, accounts, incomeSources, onSave, defaultDate, onClose, actions }: Props) {
+  const [date, setDate] = useState(defaultDate ?? today())
   const [description, setDescription] = useState('')
   // '' until picked: then the first account (bank accounts come first)
   const [pickedAccountId, setPickedAccountId] = useState('')
@@ -51,7 +57,10 @@ export function TransactionForm({ categories, accounts, incomeSources, onSave }:
 
   return (
     <form className="card" onSubmit={handleSubmit} aria-label="Add a transaction">
-      <h2>Add a transaction</h2>
+      <div className="form-card-top">
+        <h2>Add a transaction</h2>
+        {actions && <div className="page-actions">{actions}</div>}
+      </div>
       <div className="form-row">
         <div className="field">
           <label htmlFor="add-date">Date</label>
@@ -99,6 +108,11 @@ export function TransactionForm({ categories, accounts, incomeSources, onSave }:
         <button type="submit" className="button button-primary" disabled={saving}>
           Add
         </button>
+        {onClose && (
+          <button type="button" className="link-button" onClick={onClose}>
+            Cancel
+          </button>
+        )}
       </div>
       {error && (
         <p className="error" role="alert">

@@ -100,7 +100,7 @@ export function BillsPage() {
               </p>
             ) : (
               <div className="table-scroll">
-                <table className="table">
+                <table className="table table-navy">
                   <thead>
                     <tr>
                       <th scope="col">Bill</th>
@@ -120,7 +120,23 @@ export function BillsPage() {
                     {bills.map((bill) => (
                       <tr key={bill.id}>
                         <td>{bill.name}</td>
-                        <td>{bill.state === 'paid' ? 'Paid' : <span className="muted">Pending</span>}</td>
+                        <td>
+                          {bill.state === 'paid' ? (
+                            <span className="bill-status">
+                              <span className="bill-check bill-check--paid" aria-hidden="true">
+                                ✓
+                              </span>
+                              Paid
+                            </span>
+                          ) : (
+                            <span className="bill-status muted">
+                              <span className="bill-check" aria-hidden="true">
+                                ○
+                              </span>
+                              Pending
+                            </span>
+                          )}
+                        </td>
                         <td className="amount">{bill.estimateCents === null ? <span className="muted">—</span> : formatCents(bill.estimateCents)}</td>
                         <td className="amount">{bill.state === 'paid' ? formatCents(bill.paidCents) : <span className="muted">—</span>}</td>
                         <td className="amount muted">{differenceText(bill)}</td>

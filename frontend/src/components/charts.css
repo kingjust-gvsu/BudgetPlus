@@ -1,9 +1,9 @@
 /* Spending charts. Bills and expenses always use the same two colors (checked for color blindness). */
 
 :root {
-  --chart-bills: #2a78d6;
-  --chart-expenses: #eb6834;
-  --chart-other: #8c9096; /* uncategorized */
+  --chart-bills: #3b5bdb;
+  --chart-expenses: #20a99a;
+  --chart-other: #c9cdd6; /* uncategorized */
   --chart-grid: #ececea;
 }
 
@@ -425,8 +425,9 @@
   display: flex;
 }
 
-.trend-chart-hits span {
+.trend-chart-hits a {
   flex: 1;
+  cursor: pointer;
 }
 
 .trend-tooltip {

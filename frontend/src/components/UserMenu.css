@@ -15,18 +15,18 @@
   border: 1px solid transparent;
   border-radius: 10px;
   background: transparent;
-  color: var(--color-text);
+  color: var(--band-text);
   cursor: pointer;
 }
 
 .user-menu-button:hover,
 .user-menu-button[aria-expanded='true'] {
-  background: #f1f2f0;
-  border-color: var(--color-border);
+  background: var(--band-glass);
+  border-color: var(--band-glass-border);
 }
 
 .user-menu-button:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--band-accent);
   outline-offset: 2px;
 }
 
@@ -37,6 +37,8 @@
   z-index: 20;
   min-width: 220px;
   padding: 6px;
+  /* White panel under the navy header, so it brings back the dark text */
+  color: var(--color-text);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 12px;

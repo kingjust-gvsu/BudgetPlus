@@ -16,14 +16,16 @@ export function MonthLayout() {
   const search = month === monthOf(today()) ? '' : `?month=${month}`
   return (
     <>
-      <MonthPicker month={month} onChange={setMonth} />
-      <nav aria-label="Month views" className="month-tabs">
-        {tabs.map((tab) => (
-          <NavLink key={tab.to} to={{ pathname: tab.to, search }} end className="month-tab">
-            {tab.label}
-          </NavLink>
-        ))}
-      </nav>
+      <div className="month-band">
+        <MonthPicker month={month} onChange={setMonth} />
+        <nav aria-label="Month views" className="month-tabs">
+          {tabs.map((tab) => (
+            <NavLink key={tab.to} to={{ pathname: tab.to, search }} end className="month-tab">
+              {tab.label}
+            </NavLink>
+          ))}
+        </nav>
+      </div>
       <Outlet />
     </>
   )

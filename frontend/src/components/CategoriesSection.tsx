@@ -191,7 +191,7 @@ export function CategoriesSection() {
         <p className="muted">No categories yet. Add your bills (rent, electric) and expenses (groceries, gas).</p>
       ) : (
         <div className="table-scroll">
-          <table className="table table-compact">
+          <table className="table table-navy table-compact">
             <thead>
               <tr>
                 <th scope="col">Name</th>

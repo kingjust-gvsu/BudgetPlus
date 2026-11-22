@@ -14,9 +14,10 @@ export function niceScale(cents: number): { top: number; step: number } {
 }
 
 // The biggest categories get their own slice and the rest share "Other". These five colors
-// (in this order) and the gray stay tellable apart next to each other, including for color blindness.
-const SLICE_COLORS = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4']
-const OTHER_COLOR = '#c9cbce'
+// (in this order) and the gray stay tellable apart next to each other, including for color blindness,
+// and sit well with the app's navy: indigo, teal, violet, amber, rose.
+const SLICE_COLORS = ['#3b5bdb', '#20a99a', '#8b6fe0', '#e3a43a', '#d2657f']
+const OTHER_COLOR = '#c9cdd6'
 
 type Slice = { key: string; name: string; cents: number; color: string }
 
