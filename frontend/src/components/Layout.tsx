@@ -27,7 +27,7 @@ export function Layout() {
       <header className="site-header">
         <nav aria-label="Main" className="site-nav">
           <Link to="/" className="site-name">
-            Budget+
+            Budget<span className="site-plus">+</span>
           </Link>
           {tabs.map((tab) => (
             <NavLink key={tab.to} to={tab.to} end className="nav-tab">

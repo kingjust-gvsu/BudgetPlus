@@ -74,6 +74,7 @@
 .dash-tile {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
+  box-shadow: var(--card-shadow);
   border-radius: 12px;
   padding: 12px 16px;
 }

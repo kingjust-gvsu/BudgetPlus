@@ -3,9 +3,18 @@
 :root {
   --color-text: #1f2328;
   --color-muted: #57606a;
-  --color-bg: #f6f6f3;
+  --color-bg: #f3f5fa;
   --color-surface: #ffffff;
-  --color-border: #e3e3de;
+  --color-border: #e3e6ee;
+  /* The navy band at the top of every page, matching the sign-in page */
+  --band: #0e1428;
+  --band-text: #f4f6fb;
+  --band-muted: #b8c0d6;
+  --band-glass: rgb(255 255 255 / 0.08);
+  --band-glass-hover: rgb(255 255 255 / 0.14);
+  --band-glass-border: rgb(255 255 255 / 0.18);
+  --band-accent: #4ee0c8;
+  --card-shadow: 0 4px 16px rgb(11 16 32 / 0.05);
   --color-accent: #1f4fb8;
   --color-accent-hover: #163a8a;
   --color-good: #1a7f37;
@@ -41,8 +50,8 @@ h1 {
 /* Header and page tabs */
 
 .site-header {
-  background: var(--color-surface);
-  border-bottom: 1px solid var(--color-border);
+  background: radial-gradient(ellipse 80% 160% at 50% 0%, #1a2244 0%, var(--band) 70%);
+  color: var(--band-text);
 }
 
 .site-nav {
@@ -58,25 +67,44 @@ h1 {
 .site-name {
   font-size: 20px;
   font-weight: 700;
+  letter-spacing: -0.01em;
   margin-right: 16px;
-  color: var(--color-text);
+  color: var(--band-text);
   text-decoration: none;
 }
 
+/* The + in the same blue-to-teal as the sign-in page */
+.site-plus {
+  background: linear-gradient(135deg, #7aa2ff, #4ee0c8);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
 .site-name:hover {
-  color: var(--color-accent);
+  color: #ffffff;
 }
 
 .nav-tab {
   padding: 12px 0;
+  color: var(--band-muted);
   text-decoration: none;
   border-bottom: 2px solid transparent;
 }
 
+.nav-tab:hover {
+  color: var(--band-text);
+}
+
 .nav-tab.active {
-  color: var(--color-text);
+  color: var(--band-text);
   font-weight: 700;
-  border-bottom-color: var(--color-accent);
+  border-bottom-color: var(--band-accent);
+}
+
+.site-nav :focus-visible {
+  outline: 2px solid var(--band-accent);
+  outline-offset: 2px;
 }
 
 
@@ -157,6 +185,7 @@ h2 {
 .card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
+  box-shadow: var(--card-shadow);
   border-radius: 12px;
   padding: 20px;
   margin-bottom: 24px;
